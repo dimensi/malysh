@@ -185,6 +185,42 @@ final class Persistence {
         ).map { try decode($0) }
     }
 
+    func measurements(babyID: UUID) throws -> [ChildMeasurement] {
+        try objects(entity: "MeasurementRecord", predicate: NSPredicate(format: "babyID == %@", babyID as NSUUID))
+            .map { try decode($0) as ChildMeasurement }.sorted(by: ChildMeasurement.newestFirst)
+    }
+
+    /// Each measurement is its own CloudKit record. Saving replaces its complete payload;
+    /// concurrent edits of the same measurement use Core Data's object-trump policy.
+    func saveMeasurement(_ measurement: ChildMeasurement) throws {
+        try measurement.validate()
+        try transaction {
+            guard let baby = try babyObject(id: measurement.babyID) else { throw Failure.missingBaby }
+            let existing = try objects(entity: "MeasurementRecord",
+                                       predicate: NSPredicate(format: "id == %@", measurement.id as NSUUID)).first
+            let object = try existing ?? insert(entity: "MeasurementRecord", store: baby.objectID.persistentStore)
+            guard object.objectID.isTemporaryID || object.objectID.persistentStore == baby.objectID.persistentStore
+            else { throw Failure.missingStore }
+            object.setValue(measurement.id, forKey: "id")
+            object.setValue(measurement.babyID, forKey: "babyID")
+            object.setValue(measurement.measuredAt, forKey: "measuredAt")
+            object.setValue(measurement.modifiedAt, forKey: "modifiedAt")
+            try object.setValue(JSONEncoder().encode(measurement), forKey: "payload")
+            object.setValue(baby, forKey: "baby")
+        }
+    }
+
+    func deleteMeasurement(id: UUID) throws {
+        try transaction {
+            for object in try objects(
+                entity: "MeasurementRecord",
+                predicate: NSPredicate(format: "id == %@", id as NSUUID)
+            ) {
+                container.viewContext.delete(object)
+            }
+        }
+    }
+
     func saveBaby(_ baby: Baby) throws {
         var mergedBaby = baby
         try transaction {

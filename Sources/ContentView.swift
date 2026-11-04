@@ -50,6 +50,7 @@ struct ContentView: View {
     @State private var showDiaper = false
     @State private var showWidgetSleep = false
     @State private var showSettings = false
+    @State private var showProfile = false
     @State private var editing: CareEvent?
     @State private var pendingWidgetRoute: WidgetRoute?
     @State private var widgetRouteInbox = WidgetRouteInbox.shared
@@ -81,6 +82,9 @@ struct ContentView: View {
                                     .contains(where: { $0.id == event.id }) ? { try store.delete(event) } : nil)
                 }
                 .sheet(isPresented: $showSettings, onDismiss: resumeWidgetRouteAfterSheet) { SettingsView(store: store)
+                }
+                .sheet(isPresented: $showProfile, onDismiss: resumeWidgetRouteAfterSheet) {
+                    ChildProfileView(store: store)
                 }
             } else {
                 VStack(spacing: 20) {
@@ -126,19 +130,33 @@ struct ContentView: View {
                         )
                         .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
                         .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 6) {
-                                Text(store.baby?.name ?? "Малыш").font(.title3.bold())
-                                if store.isSharedDiary {
-                                    Image(systemName: "person.2.fill")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .accessibilityLabel("Семейный дневник")
-                                        .accessibilityIdentifier("family.header")
+                        Button { showProfile = true } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Text(store.baby?.name ?? "Малыш").font(.title3.bold())
+                                    if store.isSharedDiary {
+                                        Image(systemName: "person.2.fill")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .accessibilityLabel("Семейный дневник")
+                                            .accessibilityIdentifier("family.header")
+                                    }
+                                }
+                                TimelineView(.periodic(from: .now, by: 60)) { context in
+                                    if let age = store.baby?.ageLabel(now: context.date) {
+                                        Text(age).foregroundStyle(.secondary)
+                                    } else {
+                                        Text(context.date, format: .dateTime.day().month(.wide))
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                             }
-                            Text(Date(), format: .dateTime.day().month(.wide)).foregroundStyle(.secondary)
+                            .frame(minHeight: AppDesign.Metrics.minimumTouch, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("child.profile.open")
+                        .accessibilityHint("Открывает профиль ребёнка и измерения")
                         Spacer()
                     }
                     if store.active.isEmpty {
@@ -313,10 +331,11 @@ struct ContentView: View {
         }
         // UIKit must finish dismissing the current sheet before its presenter
         // can show a widget action's anchored confirmation dialog.
-        if editing != nil || showSettings {
+        if editing != nil || showSettings || showProfile {
             widgetRouteAwaitsSheetDismissal = true
             editing = nil
             showSettings = false
+            showProfile = false
             return
         }
         let needsAction = route.destination == .breast || route.destination == .diaper ||

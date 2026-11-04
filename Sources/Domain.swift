@@ -93,25 +93,51 @@ public struct ParentProfile: Codable, Sendable, Equatable {
     }
 }
 
+/// Gregorian civil date survives timezone changes without shifting the chosen birthday.
+public struct CivilDay: Codable, Sendable, Equatable {
+    public var year: Int
+    public var month: Int
+    public var day: Int
+
+    public init(date: Date, timeZone: TimeZone = .current) {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        year = parts.year ?? 1970
+        month = parts.month ?? 1
+        day = parts.day ?? 1
+    }
+
+    public func date(calendar: Calendar) -> Date? {
+        calendar.date(from: DateComponents(year: year, month: month, day: day))
+    }
+}
+
 public struct Baby: Identifiable, Codable, Sendable, Equatable {
     public var id: UUID
     public var name: String
     public var birthDate: Date
     public var parentProfiles: [String: ParentProfile]
+    public var birthDateConfirmed: Bool
+    public var birthDay: CivilDay?
 
     public init(
         id: UUID = UUID(),
         name: String,
         birthDate: Date = Date(),
-        parentProfiles: [String: ParentProfile] = [:]
+        parentProfiles: [String: ParentProfile] = [:],
+        birthDateConfirmed: Bool = false
     ) {
         self.id = id
         self.name = name
         self.birthDate = birthDate
         self.parentProfiles = parentProfiles
+        self.birthDateConfirmed = birthDateConfirmed
+        birthDay = birthDateConfirmed ? CivilDay(date: birthDate) : nil
     }
 
-    private enum CodingKeys: String, CodingKey { case id, name, birthDate, parentProfiles }
+    private enum CodingKeys: String,
+        CodingKey { case id, name, birthDate, parentProfiles, birthDateConfirmed, birthDay }
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -119,6 +145,8 @@ public struct Baby: Identifiable, Codable, Sendable, Equatable {
         name = try values.decode(String.self, forKey: .name)
         birthDate = try values.decode(Date.self, forKey: .birthDate)
         parentProfiles = try values.decodeIfPresent([String: ParentProfile].self, forKey: .parentProfiles) ?? [:]
+        birthDateConfirmed = try values.decodeIfPresent(Bool.self, forKey: .birthDateConfirmed) ?? false
+        birthDay = try values.decodeIfPresent(CivilDay.self, forKey: .birthDay)
     }
 }
 

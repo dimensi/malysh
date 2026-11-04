@@ -11,6 +11,7 @@
 		00C4630DD6A8518B9C12EB4C /* WidgetSystemUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC935FA1D40894DB96CA64B5 /* WidgetSystemUITests.swift */; };
 		067E7D5BBDA60231BD35C71B /* Domain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */; };
 		070CCD2396B49D535859846A /* CareActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF439A3A8C09CF76764DDB0D /* CareActivityCoordinator.swift */; };
+		082C5BA9EF9254A995B8238E /* ChildProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA89BE4CAC87CCF203A92881 /* ChildProfileTests.swift */; };
 		09C5C8A5DC48FF563D2E37DA /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298DBC1D5993065C443496CB /* PersistenceTests.swift */; };
 		0BB408F1BF9B16E0F293D90F /* CloudFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FC9DCFAFEAB31295E2C73C9 /* CloudFailure.swift */; };
 		0FE6FE4CF9713709385F99DF /* Malysh.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 226833D8083308456F270E4A /* Malysh.xcdatamodeld */; };
@@ -51,6 +52,7 @@
 		A235322E41861923BEB23F7F /* CareActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D59E1D6759F548114733AA4 /* CareActivityIntents.swift */; };
 		A4A5AFC46D497F016367EA14 /* LiveActivityUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D4F94DA23CE72902D9D94 /* LiveActivityUITests.swift */; };
 		A52AB186DDDC5DFF3BB920C6 /* CareActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D59E1D6759F548114733AA4 /* CareActivityIntents.swift */; };
+		AB4AD7A627C03B6B7C3BE27C /* ChildProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCDE9BFA45CFA05A1B7BA48F /* ChildProfileView.swift */; };
 		AC51A80628E140BB694B5B9F /* CareActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 754529FCC0E07F606825A2B8 /* CareActivityAttributes.swift */; };
 		AFCF53F170C0545ED90A6BA7 /* MalyshWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CFD96C656BDC9151995D4C54 /* MalyshWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B0D2ACF33527C91FEF8ED2B8 /* EventAuthorshipUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6FEB62E16C5DEB0C6BC5DC /* EventAuthorshipUITests.swift */; };
@@ -59,6 +61,7 @@
 		C298B7DA824AEAA6A7422608 /* CloudFailureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894E384B7F7EBB9ADFCA1B45 /* CloudFailureTests.swift */; };
 		C4DCD121F98897D5E6D67BED /* Domain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */; };
 		C5ED665559A95E8811A8DC02 /* WidgetRouteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F36745A8E246E830575A5A /* WidgetRouteTests.swift */; };
+		CCC7BA958E89B0040B6ECFE2 /* ChildProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A4168CA6855FEC2A480A92E /* ChildProfile.swift */; };
 		CF0054F95D706E885B88C65F /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DD992A50110540FC676286B /* AppStore.swift */; };
 		D28CAA9F1FC6CD2A8B38164F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1C8F15FAB8ABEF7E07B2A0C7 /* PrivacyInfo.xcprivacy */; };
 		D505360A7AEBEC59100C87E6 /* TuistAssets+MalyshWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 712B3212847EDAC8E41B10CA /* TuistAssets+MalyshWidgets.swift */; };
@@ -73,6 +76,7 @@
 		EFD1383B5D7F307BB54F28E7 /* EventEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */; };
 		F2F164CF48CA52CD4CBEF1BB /* WidgetRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B5885ACCC409989C1F4056 /* WidgetRoute.swift */; };
 		FA549E306B4C98F66025D754 /* TuistAssets+Malysh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5777AC8BD2FBB805A3988C6A /* TuistAssets+Malysh.swift */; };
+		FA79D7A9C836A7944AF1FAC5 /* ProfileUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC02A65EE936D70B32516130 /* ProfileUITests.swift */; };
 		FC27DD3F62BE4469F5D67BB6 /* TuistBundle+MalyshWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8737D4A4B9E827B02B1B8254 /* TuistBundle+MalyshWidgetTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -181,6 +185,7 @@
 		17EE10751315B4204C1A49AB /* WidgetSnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotStore.swift; sourceTree = "<group>"; };
 		1C8F15FAB8ABEF7E07B2A0C7 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		298DBC1D5993065C443496CB /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
+		2A4168CA6855FEC2A480A92E /* ChildProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfile.swift; sourceTree = "<group>"; };
 		2BA1A613F665DF51301DE63B /* MalyshUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MalyshUITests.swift; sourceTree = "<group>"; };
 		2D8997C83101EAF0BB70AF5B /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		334A82F443BAE4538EAD531F /* WidgetSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotTests.swift; sourceTree = "<group>"; };
@@ -214,12 +219,15 @@
 		894E384B7F7EBB9ADFCA1B45 /* CloudFailureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudFailureTests.swift; sourceTree = "<group>"; };
 		9E3196271A6AFAD4C78051CC /* DiaryWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryWidget.swift; sourceTree = "<group>"; };
 		A06714FA66DA3AB1CC276B9E /* DiaryWidgetRenderingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryWidgetRenderingTests.swift; sourceTree = "<group>"; };
+		AA89BE4CAC87CCF203A92881 /* ChildProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfileTests.swift; sourceTree = "<group>"; };
+		AC02A65EE936D70B32516130 /* ProfileUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileUITests.swift; sourceTree = "<group>"; };
 		BC935FA1D40894DB96CA64B5 /* WidgetSystemUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSystemUITests.swift; sourceTree = "<group>"; };
 		BEE7445CB125A24CB62679A8 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		BF17D40A4D30BF1FEA449A61 /* CareActivityCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityCoordinatorTests.swift; sourceTree = "<group>"; };
 		BFBAACA39179BDCE9D3B7214 /* ParentProfileCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfileCache.swift; sourceTree = "<group>"; };
 		C10A8A91EE68D5D67909CCAA /* Sharing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sharing.swift; sourceTree = "<group>"; };
 		C111135A85BE95B43D4B2D1E /* AppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreTests.swift; sourceTree = "<group>"; };
+		C6031991CC1051EBD59EDDC1 /* MalyshV3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MalyshV3.xcdatamodel; sourceTree = "<group>"; };
 		CA01728ECAE9C538E98ADFE2 /* TuistBundle+Malysh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TuistBundle+Malysh.swift"; sourceTree = "<group>"; };
 		CF439A3A8C09CF76764DDB0D /* CareActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityCoordinator.swift; sourceTree = "<group>"; };
 		CFD96C656BDC9151995D4C54 /* MalyshWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MalyshWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -232,6 +240,7 @@
 		EF30D48B0AE7C83A6BF3B856 /* WidgetRouteUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetRouteUITests.swift; sourceTree = "<group>"; };
 		F977BB4322C33F798653AE45 /* ParentProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfileTests.swift; sourceTree = "<group>"; };
 		FA9534C35260971748388CB7 /* Malysh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Malysh.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FCDE9BFA45CFA05A1B7BA48F /* ChildProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfileView.swift; sourceTree = "<group>"; };
 		FD34A9F6DBDFE454C66BE51B /* EventAuthorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventAuthorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -322,6 +331,7 @@
 				DD6FEB62E16C5DEB0C6BC5DC /* EventAuthorshipUITests.swift */,
 				6F7D4F94DA23CE72902D9D94 /* LiveActivityUITests.swift */,
 				2BA1A613F665DF51301DE63B /* MalyshUITests.swift */,
+				AC02A65EE936D70B32516130 /* ProfileUITests.swift */,
 				EF30D48B0AE7C83A6BF3B856 /* WidgetRouteUITests.swift */,
 				BC935FA1D40894DB96CA64B5 /* WidgetSystemUITests.swift */,
 			);
@@ -342,6 +352,7 @@
 				C111135A85BE95B43D4B2D1E /* AppStoreTests.swift */,
 				EED3BCB25AD453FD0D8FE150 /* CareActivityActionTests.swift */,
 				BF17D40A4D30BF1FEA449A61 /* CareActivityCoordinatorTests.swift */,
+				AA89BE4CAC87CCF203A92881 /* ChildProfileTests.swift */,
 				894E384B7F7EBB9ADFCA1B45 /* CloudFailureTests.swift */,
 				892C506F7C92B8100B9D1C01 /* DomainTests.swift */,
 				FD34A9F6DBDFE454C66BE51B /* EventAuthorTests.swift */,
@@ -404,6 +415,8 @@
 				0E0B87C49D1DD53ADA46C4E4 /* LiveActivities */,
 				20DA4B93465DA28E12101281 /* Widgets */,
 				3DD992A50110540FC676286B /* AppStore.swift */,
+				2A4168CA6855FEC2A480A92E /* ChildProfile.swift */,
+				FCDE9BFA45CFA05A1B7BA48F /* ChildProfileView.swift */,
 				4FC9DCFAFEAB31295E2C73C9 /* CloudFailure.swift */,
 				4210B00AFA4D4AF6758D41C2 /* ContentView.swift */,
 				4C1142AC4200083321BFC857 /* DesignComponents.swift */,
@@ -664,6 +677,8 @@
 				FA549E306B4C98F66025D754 /* TuistAssets+Malysh.swift in Sources */,
 				9761D7F5D866652F67387C29 /* TuistBundle+Malysh.swift in Sources */,
 				CF0054F95D706E885B88C65F /* AppStore.swift in Sources */,
+				CCC7BA958E89B0040B6ECFE2 /* ChildProfile.swift in Sources */,
+				AB4AD7A627C03B6B7C3BE27C /* ChildProfileView.swift in Sources */,
 				0BB408F1BF9B16E0F293D90F /* CloudFailure.swift in Sources */,
 				968DC1846F5F47343910AE58 /* ContentView.swift in Sources */,
 				DDBD78423EF94B06F03FDB9A /* DesignComponents.swift in Sources */,
@@ -712,6 +727,7 @@
 				954894A9AEA2163B02AD6E15 /* AppStoreTests.swift in Sources */,
 				4735B552A0DE1D49C02A75F6 /* CareActivityActionTests.swift in Sources */,
 				007F81B047C9C43B5F7A8AAA /* CareActivityCoordinatorTests.swift in Sources */,
+				082C5BA9EF9254A995B8238E /* ChildProfileTests.swift in Sources */,
 				C298B7DA824AEAA6A7422608 /* CloudFailureTests.swift in Sources */,
 				E26E0EFC8953691AD67A597E /* DomainTests.swift in Sources */,
 				EFBF5AC48A18D9C974746757 /* EventAuthorTests.swift in Sources */,
@@ -730,6 +746,7 @@
 				B0D2ACF33527C91FEF8ED2B8 /* EventAuthorshipUITests.swift in Sources */,
 				A4A5AFC46D497F016367EA14 /* LiveActivityUITests.swift in Sources */,
 				4B5FF6B389F9108A573AF2FE /* MalyshUITests.swift in Sources */,
+				FA79D7A9C836A7944AF1FAC5 /* ProfileUITests.swift in Sources */,
 				4C9EBB3641EBBE185AFA7023 /* WidgetRouteUITests.swift in Sources */,
 				00C4630DD6A8518B9C12EB4C /* WidgetSystemUITests.swift in Sources */,
 			);
@@ -1286,8 +1303,9 @@
 			isa = XCVersionGroup;
 			children = (
 				E2DA251C68BAE8B6BD4189EA /* Malysh.xcdatamodel */,
+				C6031991CC1051EBD59EDDC1 /* MalyshV3.xcdatamodel */,
 			);
-			currentVersion = E2DA251C68BAE8B6BD4189EA /* Malysh.xcdatamodel */;
+			currentVersion = C6031991CC1051EBD59EDDC1 /* MalyshV3.xcdatamodel */;
 			path = Malysh.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
