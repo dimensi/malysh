@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23501" systemVersion="24A335" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="1">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23501" systemVersion="24A335" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="2">
     <entity name="BabyRecord" representedClassName="NSManagedObject" syncable="YES">
         <attribute name="id" optional="YES" indexed="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" optional="YES" attributeType="String"/>
@@ -8,6 +8,7 @@
         <relationship name="events" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="EventRecord" inverseName="baby" inverseEntity="EventRecord"/>
     </entity>
     <entity name="EventRecord" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="schemaVersion" optional="YES" attributeType="Integer 16" defaultValueString="1" usesScalarValueType="YES"/>
         <attribute name="id" optional="YES" indexed="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="babyID" optional="YES" indexed="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="start" optional="YES" indexed="YES" attributeType="Date" usesScalarValueType="NO"/>

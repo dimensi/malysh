@@ -173,7 +173,6 @@
 		EC026ED73F1E5888713E7176 /* CareActivityRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityRuntime.swift; sourceTree = "<group>"; };
 		ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		EED3BCB25AD453FD0D8FE150 /* CareActivityActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityActionTests.swift; sourceTree = "<group>"; };
-		F73F474969B820A4837BA636 /* MalyshV2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MalyshV2.xcdatamodel; sourceTree = "<group>"; };
 		F977BB4322C33F798653AE45 /* ParentProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfileTests.swift; sourceTree = "<group>"; };
 		FA9534C35260971748388CB7 /* Malysh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Malysh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FD34A9F6DBDFE454C66BE51B /* EventAuthorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventAuthorTests.swift; sourceTree = "<group>"; };
@@ -1047,9 +1046,8 @@
 			isa = XCVersionGroup;
 			children = (
 				E2DA251C68BAE8B6BD4189EA /* Malysh.xcdatamodel */,
-				F73F474969B820A4837BA636 /* MalyshV2.xcdatamodel */,
 			);
-			currentVersion = F73F474969B820A4837BA636 /* MalyshV2.xcdatamodel */;
+			currentVersion = E2DA251C68BAE8B6BD4189EA /* Malysh.xcdatamodel */;
 			path = Malysh.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;
