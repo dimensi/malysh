@@ -111,7 +111,16 @@ struct ContentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
                     .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(store.baby?.name ?? "Малыш").font(.title3.bold())
+                        HStack(spacing: 6) {
+                            Text(store.baby?.name ?? "Малыш").font(.title3.bold())
+                            if store.isSharedDiary {
+                                Image(systemName: "person.2.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .accessibilityLabel("Семейный дневник")
+                                    .accessibilityIdentifier("family.header")
+                            }
+                        }
                         Text(Date(), format: .dateTime.day().month(.wide)).foregroundStyle(.secondary)
                     }
                     Spacer()
