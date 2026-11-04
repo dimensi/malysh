@@ -17,6 +17,7 @@ final class AppStore {
     private var cloudSetup = CloudSetupState()
     private var cloudAccountAvailable = false
     var pendingShare: CKShare?
+    private var pendingAcceptedShareID: CKRecord.ID?
     var baby: Baby? {
         babies.first { $0.id == selectedID }
     }
@@ -146,7 +147,25 @@ final class AppStore {
         if !babies.contains(where: { $0.id == selectedID }) {
             selectedID = babies.first?.id
         }
+        try selectAcceptedSharedBabyIfAvailable()
         events = try selectedID.map { try persistence.events(babyID: $0).sorted { $0.start > $1.start } } ?? []
+    }
+
+    private func selectAcceptedSharedBabyIfAvailable() throws {
+        guard let acceptedShareID = pendingAcceptedShareID, let sharedStore = persistence.sharedStore else { return }
+        var candidates: [NSManagedObjectID: UUID] = [:]
+        for baby in babies {
+            if let object = try persistence.babyObject(id: baby.id), object.objectID.persistentStore == sharedStore {
+                candidates[object.objectID] = baby.id
+            }
+        }
+        guard !candidates.isEmpty else { return }
+        let shares = try persistence.container.fetchShares(matching: Array(candidates.keys))
+        guard let objectID = shares.first(where: { $0.value.recordID == acceptedShareID })?.key,
+              let babyID = candidates[objectID] else { return }
+        selectedID = babyID
+        UserDefaults.standard.set(babyID.uuidString, forKey: "selectedBaby")
+        pendingAcceptedShareID = nil
     }
 
     func select(_ id: UUID) {
@@ -238,14 +257,14 @@ final class AppStore {
                 await load()
             }
             try await persistence.accept(metadata: metadata)
-            try reload()
-            if let sharedBaby = babies.first(where: { baby in
-                (try? persistence.babyObject(id: baby.id)?.objectID.persistentStore) == persistence.sharedStore
-            }) {
-                select(sharedBaby.id)
-            }
         } catch {
+            pendingAcceptedShareID = nil
             errorMessage = CloudFailure.message(for: error)
+            return
         }
+        pendingAcceptedShareID = metadata.share.recordID
+        // Acceptance can complete before Core Data imports the shared objects.
+        // Keep the target through delayed imports and transient metadata lookup errors.
+        perform { try reload() }
     }
 }

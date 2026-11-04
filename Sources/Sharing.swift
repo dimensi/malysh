@@ -54,17 +54,6 @@ extension Persistence {
             }
         }
     }
-
-    func persist(share: CKShare) async throws {
-        for store in container.persistentStoreCoordinator.persistentStores {
-            let shares = try container.fetchShares(in: store)
-            if shares.contains(where: { $0.recordID == share.recordID }) {
-                try await persist(share: share, in: store)
-                return
-            }
-        }
-        throw Failure.missingStore
-    }
 }
 
 extension Notification.Name {
@@ -75,11 +64,10 @@ extension Notification.Name {
 struct ShareSheet: UIViewControllerRepresentable {
     let share: CKShare
     let container: CKContainer
-    let persistence: Persistence
     var onError: @MainActor (Error) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(persistence: persistence, onError: onError)
+        Coordinator(onError: onError)
     }
 
     func makeUIViewController(context: Context) -> UICloudSharingController {
@@ -93,10 +81,8 @@ struct ShareSheet: UIViewControllerRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, UICloudSharingControllerDelegate {
-        let persistence: Persistence
         let onError: @MainActor (Error) -> Void
-        init(persistence: Persistence, onError: @escaping @MainActor (Error) -> Void) {
-            self.persistence = persistence
+        init(onError: @escaping @MainActor (Error) -> Void) {
             self.onError = onError
         }
 
@@ -115,15 +101,10 @@ struct ShareSheet: UIViewControllerRepresentable {
             NotificationCenter.default.post(name: .malyshSharingChanged, object: nil)
         }
 
-        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
-            guard let share = csc.share else { return }
-            Task { @MainActor in
-                do {
-                    try await persistence.persist(share: share)
-                } catch {
-                    onError(error)
-                }
-            }
+        func cloudSharingControllerDidSaveShare(_: UICloudSharingController) {
+            // iOS 16.4+ Core Data already observes and imports system sharing UI saves.
+            // Do not schedule a second export of the system UI's share changes.
+            NotificationCenter.default.post(name: .malyshSharingChanged, object: nil)
         }
     }
 }

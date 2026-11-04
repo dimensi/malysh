@@ -15,10 +15,10 @@ concurrency:
 jobs:
   release:
     name: Test, sign and upload
-    runs-on: macos-26
+    runs-on: macos-15
     timeout-minutes: 45
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       FASTLANE_SKIP_UPDATE_CHECK: '1'
       FASTLANE_HIDE_CHANGELOG: '1'
       FASTLANE_DISABLE_COLORS: '1'

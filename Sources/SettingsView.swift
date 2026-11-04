@@ -91,8 +91,7 @@ struct SettingsView: View {
                 if let share = store.pendingShare {
                     ShareSheet(
                         share: share,
-                        container: CKContainer(identifier: Persistence.containerIdentifier),
-                        persistence: store.persistence
+                        container: CKContainer(identifier: Persistence.containerIdentifier)
                     ) { error in
                         store.errorMessage = CloudFailure.message(for: error)
                     }

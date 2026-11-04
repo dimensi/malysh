@@ -3,6 +3,13 @@ import XCTest
 
 @MainActor
 final class AppStoreTests: XCTestCase {
+    func testDisabledCloudExplainsHowToAcceptInvitation() {
+        let message = CloudFailure.message(for: Persistence.Failure.cloudDisabled)
+        XCTAssertTrue(message.contains("Включите iCloud"))
+        XCTAssertTrue(message.contains("перезапустите приложение"))
+        XCTAssertFalse(message.contains("временно недоступен"))
+    }
+
     func testLocalLoadAndMixedDiaperPersistAcrossStoreReload() async throws {
         let persistence = Persistence(inMemory: true)
         let store = AppStore(persistence: persistence)

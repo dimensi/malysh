@@ -1,5 +1,6 @@
 import CloudKit
 @testable import Malysh
+import UIKit
 import XCTest
 
 final class CloudFailureTests: XCTestCase {
@@ -72,5 +73,31 @@ final class CloudFailureTests: XCTestCase {
         XCTAssertFalse(message.contains("PRIVATE_RECORD"))
         XCTAssertFalse(message.contains("private-id"))
         XCTAssertFalse(message.contains("Повторите позже"))
+    }
+
+    @MainActor
+    func testSystemSharingSaveRefreshesUI() async {
+        let refresh = expectation(forNotification: .malyshSharingChanged, object: nil)
+        var saveError: Error?
+        let coordinator = ShareSheet.Coordinator { saveError = $0 }
+
+        coordinator.cloudSharingControllerDidSaveShare(UICloudSharingController())
+
+        await fulfillment(of: [refresh], timeout: 1)
+        XCTAssertNil(saveError)
+    }
+
+    @MainActor
+    func testSystemSharingFailureReportsErrorWithoutRefresh() async {
+        let unexpectedRefresh = expectation(forNotification: .malyshSharingChanged, object: nil)
+        unexpectedRefresh.isInverted = true
+        var reportedError: NSError?
+        let coordinator = ShareSheet.Coordinator { reportedError = $0 as NSError }
+        let error = NSError(domain: CKErrorDomain, code: CKError.networkFailure.rawValue)
+
+        coordinator.cloudSharingController(UICloudSharingController(), failedToSaveShareWithError: error)
+
+        XCTAssertEqual(reportedError, error)
+        await fulfillment(of: [unexpectedRefresh], timeout: 0.1)
     }
 }

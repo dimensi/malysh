@@ -3,6 +3,9 @@ import Foundation
 
 enum CloudFailure {
     static func message(for error: Error) -> String {
+        if let failure = error as? Persistence.Failure, case .cloudDisabled = failure {
+            return failure.localizedDescription
+        }
         var pending = [error as NSError]
         var visited: Set<ObjectIdentifier> = []
         var codes: Set<Int> = []

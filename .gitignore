@@ -2,6 +2,7 @@
 DerivedData/
 DeviceValidation/
 DeviceReleaseValidation/
+DeviceProductionValidation/
 .build/
 Tuist/.build/
 Artifacts/
