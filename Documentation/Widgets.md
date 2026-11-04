@@ -39,3 +39,5 @@ SF Symbols, системные шрифты и существующие `Feeding
 `MalyshWidgetTests` компилирует production view расширения и сохраняет PNG всех шести семейств, заполненного/пустого/недоступного состояния, светлой/тёмной темы, accented и accessibility-размера. Размер изображения проверяется автоматически; отсутствие обрезания проверяется просмотром. Это не заменяет SpringBoard/Lock Screen проверку системных материалов и масок. Доставка между двумя Apple ID и физический защищённый Lock Screen требуют подписанных устройств; локальный reload не доказывает их работу. Результаты и ограничения текущего прогона указаны в PR.
 
 Для simulator-проверок используйте ad hoc подпись (`CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-`), как в `Scripts/check.sh`: без подписи simulator не назначает App Group containers. Эта подпись не является Apple Developer device/distribution-проверкой.
+
+[Результаты выполненных проверок и их границы](WidgetValidation.md).
