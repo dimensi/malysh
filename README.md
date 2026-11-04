@@ -41,7 +41,7 @@ DESTINATION='platform=iOS Simulator,name=iPhone 16 Pro' RESULT_BUNDLE_PATH=Artif
 - `Documentation` — настройка и результаты проверок.
 - `Scripts` — команды проверки проекта.
 
-Фактические результаты и ограничения проверок приведены в [Validation.md](Documentation/Validation.md). Подтверждены 24 теста (20 unit + 4 UI) и подписанные Debug/Release-сборки. Синхронизация двух Apple ID пока не подтверждена. Подробные журналы и локальные сборки хранятся в исключённой из Git папке `Artifacts`; краткая сводка доступна в `Documentation/test-summary.json`.
+Фактические результаты и ограничения проверок приведены в [Validation.md](Documentation/Validation.md). Подтверждены 28 тестов (24 unit + 4 UI), подписанные Debug/Release-сборки и доступность 1.0.4 (1) внутренней группе TestFlight. Общий доступ двух Apple ID после исправления системного сохранения приглашений ещё проверяется. Подробные журналы и локальные сборки хранятся в исключённой из Git папке `Artifacts`; краткая сводка доступна в `Documentation/test-summary.json`.
 
 Правила хранения, миграций и конфликтов описаны в [Data.md](Documentation/Data.md). Иконка подготовлена по приложенному референсу; исходник и промпт — [Branding.md](Documentation/Branding.md).
 
