@@ -88,13 +88,8 @@ final class LiveActivityUITests: XCTestCase {
         XCTAssertTrue(springboard.buttons[finishLabel].waitForExistence(timeout: 30), springboard.debugDescription)
         XCTAssertTrue(springboard.buttons[finishLabel].isHittable)
         XCUIDevice.shared.press(.home)
-        let finish = springboard.buttons[finishLabel]
-        springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.005))
-            .press(forDuration: 0.05, thenDragTo: springboard.coordinate(
-                withNormalizedOffset: CGVector(dx: 0.1, dy: 0.65)
-            ))
-        let cover = springboard.windows["SBCoverSheetWindow"]
-        XCTAssertTrue(cover.waitForExistence(timeout: 5))
+        let cover = openNotificationCenter(springboard)
+        let finish = cover.buttons[finishLabel]
         for _ in 0 ..< 2 {
             allowActivityIfNeeded(springboard)
             if finish.waitForExistence(timeout: 3) {
@@ -116,7 +111,12 @@ final class LiveActivityUITests: XCTestCase {
             capture("Кормление — экран блокировки, светлая тема")
             XCTAssertTrue(finish.isHittable)
             finish.tap()
-            waitForSystemDismissal(finish)
+            XCTAssertNotEqual(app.state, .runningForeground)
+            // iOS 26 can keep the removed card hittable in its old AX snapshot.
+            // Reopen the system surface before checking dismissal, without activating the app.
+            XCUIDevice.shared.press(.home)
+            let refreshedCover = openNotificationCenter(springboard)
+            waitForSystemDismissal(refreshedCover.buttons[finishLabel])
             XCTAssertNotEqual(app.state, .runningForeground)
         } else {
             // Wait for WidgetKit to render before killing the process that requests the activity.
@@ -158,6 +158,16 @@ final class LiveActivityUITests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(event.waitForExistence(timeout: 10))
+    }
+
+    private func openNotificationCenter(_ springboard: XCUIApplication) -> XCUIElement {
+        springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.005))
+            .press(forDuration: 0.05, thenDragTo: springboard.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.1, dy: 0.65)
+            ))
+        let cover = springboard.windows["SBCoverSheetWindow"]
+        XCTAssertTrue(cover.waitForExistence(timeout: 5))
+        return cover
     }
 
     private func launch() -> XCUIApplication {

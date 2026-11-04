@@ -20,7 +20,7 @@ final class EventAuthorshipUITests: XCTestCase {
         reveal(row, in: app)
         XCTAssertTrue(row.label.contains("Мокрый"))
         XCTAssertTrue(row.label.contains("Алексей · Папа"))
-        row.tap()
+        openEvent(row, in: app)
         assertMetadata(in: app, id: "editor.created-by", contains: "Алексей · Папа")
         appendNote("Проверка автора", in: app)
         save(in: app)
@@ -30,7 +30,7 @@ final class EventAuthorshipUITests: XCTestCase {
         reveal(edited, in: app)
         XCTAssertTrue(edited.label.contains("Подгузник"))
         XCTAssertTrue(edited.label.contains("Алексей · Папа"))
-        edited.tap()
+        openEvent(edited, in: app)
         assertMetadata(in: app, id: "editor.created-by", contains: "Алексей · Папа")
         assertMetadata(in: app, id: "editor.edited-by", contains: "Алексей · Папа")
         capture(app, name: "Автор и редактор новой записи")
@@ -42,7 +42,7 @@ final class EventAuthorshipUITests: XCTestCase {
         XCTAssertTrue(restored.label.contains("Подгузник"))
         XCTAssertTrue(restored.label.contains("Мокрый"))
         XCTAssertTrue(restored.label.contains("Алексей · Папа"))
-        restored.tap()
+        openEvent(restored, in: app)
         assertMetadata(in: app, id: "editor.created-by", contains: "Алексей · Папа")
         assertMetadata(in: app, id: "editor.edited-by", contains: "Алексей · Папа")
     }
@@ -54,7 +54,7 @@ final class EventAuthorshipUITests: XCTestCase {
         reveal(legacy, in: app)
         XCTAssertTrue(legacy.label.contains("Бутылочка"))
         XCTAssertFalse(legacy.label.contains("Алексей · Папа"))
-        legacy.tap()
+        openEvent(legacy, in: app)
         assertMetadata(in: app, id: "editor.created-by", contains: "Автор не указан")
         appendNote(" · Исправлено", in: app)
         save(in: app)
@@ -64,7 +64,7 @@ final class EventAuthorshipUITests: XCTestCase {
         reveal(edited, in: app)
         XCTAssertTrue(edited.label.contains("Бутылочка"))
         XCTAssertTrue(edited.label.contains("Исправлено"))
-        edited.tap()
+        openEvent(edited, in: app)
         assertMetadata(in: app, id: "editor.created-by", contains: "Автор не указан")
         assertMetadata(in: app, id: "editor.edited-by", contains: "Алексей · Папа")
         capture(app, name: "Неизвестный автор старой записи и известный редактор")
@@ -75,7 +75,7 @@ final class EventAuthorshipUITests: XCTestCase {
         reveal(restored, in: app)
         XCTAssertTrue(restored.label.contains("Бутылочка"))
         XCTAssertTrue(restored.label.contains("Исправлено"))
-        restored.tap()
+        openEvent(restored, in: app)
         assertMetadata(in: app, id: "editor.created-by", contains: "Автор не указан")
         assertMetadata(in: app, id: "editor.edited-by", contains: "Алексей · Папа")
     }
@@ -106,6 +106,13 @@ final class EventAuthorshipUITests: XCTestCase {
             .firstMatch
     }
 
+    private func openEvent(_ row: XCUIElement, in app: XCUIApplication) {
+        XCTAssertTrue(row.isHittable)
+        row.tap()
+        // A matching row is not proof that the editor presentation has completed.
+        XCTAssertTrue(app.buttons["editor.save"].waitForExistence(timeout: 5))
+    }
+
     private func assertMetadata(in app: XCUIApplication, id: String, contains text: String) {
         let metadata = app.descendants(matching: .any).matching(identifier: id).firstMatch
         XCTAssertTrue(metadata.waitForExistence(timeout: 5))
@@ -127,6 +134,9 @@ final class EventAuthorshipUITests: XCTestCase {
         let save = app.buttons["editor.save"]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
         save.tap()
+        // Do not interact with the underlying event row while its sheet is dismissing.
+        let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: save)
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
     }
 
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
