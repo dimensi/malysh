@@ -244,12 +244,13 @@ final class AppStore {
                 baby.parentProfiles["owner"] = ParentProfile(name: "Алексей", role: .father)
             }
             try persistence.saveBaby(baby)
+            let legacyID = UUID(uuidString: "E7D7955E-3B87-438B-9FD9-B3D6BBA29473")!
             if ProcessInfo.processInfo.arguments.contains("--legacy-author-fixture"),
-               try !persistence.events(babyID: baby.id).contains(where: { $0.note == "Старая запись" })
+               try !persistence.events(babyID: baby.id).contains(where: { $0.id == legacyID })
             {
                 let date = Date().addingTimeInterval(-3600)
-                try persistence.saveEvent(CareEvent(babyID: baby.id, kind: .bottle, start: date, end: date,
-                                                    note: "Старая запись"))
+                try persistence.saveEvent(CareEvent(id: legacyID, babyID: baby.id, kind: .bottle,
+                                                    start: date, end: date, note: "Старая запись"))
             }
         }
 
