@@ -111,6 +111,11 @@ final class WidgetSystemUITests: XCTestCase {
         XCUIDevice.shared.press(.home)
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         XCTAssertTrue(springboard.wait(for: .runningForeground, timeout: 5))
+        dismissKeyboardTutorial(in: springboard)
+        return springboard
+    }
+
+    private func dismissKeyboardTutorial(in springboard: XCUIApplication) {
         let tutorial = springboard.staticTexts.containing(
             NSPredicate(format: "label CONTAINS[c] 'Speed up your typing'")
         ).firstMatch
@@ -118,7 +123,6 @@ final class WidgetSystemUITests: XCTestCase {
         if tutorial.exists, next.exists, next.isHittable {
             next.tap()
         }
-        return springboard
     }
 
     private func installMedium(in springboard: XCUIApplication) {
@@ -127,15 +131,22 @@ final class WidgetSystemUITests: XCTestCase {
         if icon.value as? String == "Widget" {
             return
         }
-        icon.press(forDuration: 1.5)
-        // Actual SpringBoard labels captured on iOS 27.2.
-        let medium = springboard.buttons["Medium-sized widget"].firstMatch
-        guard medium.waitForExistence(timeout: 5) else {
-            attach(springboard, stage: "Ordinary widget — missing system size control")
-            XCTFail("SpringBoard did not offer the observed medium widget size")
-            return
+        // A fresh simulator queues all system widget catalogs. The first context
+        // menu can precede our descriptor; its contents do not update in place.
+        for attempt in 0 ..< 2 {
+            icon.press(forDuration: 1.5)
+            dismissKeyboardTutorial(in: springboard)
+            let medium = springboard.buttons["Medium-sized widget"].firstMatch
+            if medium.waitForExistence(timeout: 5) {
+                medium.tap()
+                return
+            }
+            attach(springboard, stage: "Ordinary widget — catalog menu attempt \(attempt + 1)")
+            if attempt == 0 {
+                _ = home()
+            }
         }
-        medium.tap()
+        XCTFail("SpringBoard did not offer medium size after reopening its initial catalog menu once")
     }
 
     private func openShortcut(_ label: String, springboard: XCUIApplication, app: XCUIApplication) {
