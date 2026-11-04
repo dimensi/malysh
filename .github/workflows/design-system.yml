@@ -1,0 +1,59 @@
+name: Design system
+
+on:
+  workflow_dispatch:
+    inputs:
+      record_baselines:
+        description: Export candidates for visual review (not a comparison pass)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+
+jobs:
+  verify:
+    name: Compare approved design snapshots
+    if: github.event_name != 'workflow_dispatch' || !inputs.record_baselines
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Run design snapshots (verify)
+        run: bash Scripts/design-snapshots.sh verify
+      - name: Save gallery images and results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: design-system-verify-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            Artifacts/DesignBaselines-verify
+            Artifacts/DesignSystem-verify.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
+  record:
+    name: Record candidates for manual review
+    if: github.event_name == 'workflow_dispatch' && inputs.record_baselines
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Run design snapshots (record)
+        run: bash Scripts/design-snapshots.sh record
+      - name: Save gallery images and results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: design-system-record-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            Artifacts/DesignBaselines-record
+            Artifacts/DesignSystem-record.xcresult
+          if-no-files-found: ignore
+          retention-days: 7

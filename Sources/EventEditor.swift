@@ -5,15 +5,21 @@ struct EventEditor: View {
     @State private var draft: CareEvent
     @State private var errorMessage: String?
 
+    private let creatorLabel: String?
+    private let lastEditorLabel: String?
     private let onSave: (CareEvent) throws -> Void
     private let onDelete: (() throws -> Void)?
 
     init(
         event: CareEvent,
+        creatorLabel: String? = nil,
+        lastEditorLabel: String? = nil,
         onSave: @escaping (CareEvent) throws -> Void,
         onDelete: (() throws -> Void)? = nil
     ) {
         _draft = State(initialValue: event)
+        self.creatorLabel = creatorLabel
+        self.lastEditorLabel = lastEditorLabel
         self.onSave = onSave
         self.onDelete = onDelete
     }
@@ -46,11 +52,11 @@ struct EventEditor: View {
                         Stepper(value: leftMinutes, in: 0 ... 240, step: 1) {
                             durationLabel("Левая грудь", seconds: draft.leftSeconds)
                         }
-                        .frame(minHeight: 44)
+                        .frame(minHeight: AppDesign.Metrics.minimumTouch)
                         Stepper(value: rightMinutes, in: 0 ... 240, step: 1) {
                             durationLabel("Правая грудь", seconds: draft.rightSeconds)
                         }
-                        .frame(minHeight: 44)
+                        .frame(minHeight: AppDesign.Metrics.minimumTouch)
                     } header: {
                         Text("Кормление грудью")
                     } footer: {
@@ -69,7 +75,7 @@ struct EventEditor: View {
                             Text("Объём: \(draft.volumeML) мл")
                                 .monospacedDigit()
                         }
-                        .frame(minHeight: 44)
+                        .frame(minHeight: AppDesign.Metrics.minimumTouch)
                         .accessibilityIdentifier("editor.volume")
                     }
                 case .diaper:
@@ -92,10 +98,33 @@ struct EventEditor: View {
                         .accessibilityLabel("Заметка о событии")
                 }
 
+                if onDelete != nil {
+                    Section("История записи") {
+                        LabeledContent("Автор", value: creatorLabel ?? "Автор не указан")
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier("editor.created-by")
+                        if draft.createdBy != nil {
+                            LabeledContent(
+                                "Создано",
+                                value: draft.createdAt.formatted(date: .abbreviated, time: .shortened)
+                            )
+                        }
+                        if let lastEditorLabel {
+                            LabeledContent("Последний редактор", value: lastEditorLabel)
+                                .accessibilityElement(children: .combine)
+                                .accessibilityIdentifier("editor.edited-by")
+                            LabeledContent(
+                                "Изменено",
+                                value: draft.modifiedAt.formatted(date: .abbreviated, time: .shortened)
+                            )
+                        }
+                    }
+                }
+
                 if let errorMessage {
                     Section {
                         Text(errorMessage)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(AppDesign.Palette.error)
                             .accessibilityLabel("Ошибка: \(errorMessage)")
                     }
                 }
@@ -103,7 +132,7 @@ struct EventEditor: View {
                 if onDelete != nil {
                     Section {
                         Button("Удалить запись", role: .destructive, action: delete)
-                            .frame(minHeight: 44)
+                            .frame(minHeight: AppDesign.Metrics.minimumTouch)
                             .accessibilityIdentifier("editor.delete")
                     }
                 }

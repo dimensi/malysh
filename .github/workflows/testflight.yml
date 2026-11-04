@@ -24,6 +24,7 @@ jobs:
       FASTLANE_DISABLE_COLORS: '1'
       FASTLANE_OPT_OUT_USAGE: '1'
       RELEASE_TAG: ${{ github.ref_name }}
+      RECORD_DESIGN_BASELINES: '0'
     steps:
       - name: Check out release
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -46,6 +47,9 @@ jobs:
             exit 1
           }
           xcodebuild -version
+
+      - name: Check design system rules
+        run: python3 Scripts/check-design-system.py
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1

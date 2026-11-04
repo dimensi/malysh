@@ -1,4 +1,5 @@
 import CloudKit
+import Combine
 @preconcurrency import CoreData
 import Foundation
 
@@ -11,6 +12,8 @@ final class Persistence {
     private(set) var cloudStartupError: Error?
     private let modelFound: Bool
     private let parentProfileCache: ParentProfileCache
+    private let eventAuthorCache: EventAuthorCache
+    private var accountChangeObserver: AnyCancellable?
     private var loaded = false
 
     enum Failure: LocalizedError {
@@ -34,6 +37,7 @@ final class Persistence {
         container = NSPersistentCloudKitContainer(name: "Malysh", managedObjectModel: model ?? NSManagedObjectModel())
         let root = directory ?? NSPersistentContainer.defaultDirectoryURL()
         parentProfileCache = ParentProfileCache(directory: root, inMemory: inMemory)
+        eventAuthorCache = EventAuthorCache(directory: root, inMemory: inMemory)
         container.persistentStoreDescriptions = ["private", "shared"].map { name in
             let description = NSPersistentStoreDescription(url: root.appendingPathComponent("Malysh-\(name).sqlite"))
             description.type = inMemory ? NSInMemoryStoreType : NSSQLiteStoreType
@@ -52,6 +56,9 @@ final class Persistence {
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         container.viewContext.transactionAuthor = "Malysh"
+        accountChangeObserver = NotificationCenter.default.publisher(for: .CKAccountChanged)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in try? self?.clearEventAuthorCache() }
     }
 
     func load() async throws {
@@ -132,7 +139,42 @@ final class Persistence {
         for value in values {
             try parentProfileCache.remember(babyID: value.id, profiles: value.parentProfiles)
         }
+        try? eventAuthorCache.retain(babyIDs: Set(values.map(\.id)))
         return values
+    }
+
+    /// Uses only local share metadata and a durable last-known-current-user cache.
+    func currentEventAuthor(babyID: UUID) throws -> EventAuthor? {
+        guard let record = try babyObject(id: babyID) else { throw Failure.missingBaby }
+        let baby: Baby = try decode(record)
+        if let family = try? familySnapshot(babyID: babyID),
+           let current = family.members.first(where: \.isCurrentUser),
+           current.id == "owner" || current.id.hasPrefix("user-")
+        {
+            let profile = baby.parentProfiles[current.id]
+            let author = EventAuthor(id: current.id,
+                                     nameSnapshot: profile?.name ?? (current.name.isEmpty ? nil : current.name),
+                                     role: profile?.role)
+            try? eventAuthorCache.remember(author, babyID: babyID)
+            return author
+        }
+        if privateStore != nil, record.objectID.persistentStore == privateStore {
+            let profile = baby.parentProfiles["owner"]
+            return EventAuthor(id: "owner", nameSnapshot: profile?.name, role: profile?.role)
+        }
+        // A shared store never proves the owner is the person using this device.
+        guard let cached = try? eventAuthorCache.author(babyID: babyID),
+              cached.id.hasPrefix("user-") else { return nil }
+        let profile = baby.parentProfiles[cached.id]
+        return EventAuthor(
+            id: cached.id,
+            nameSnapshot: profile?.name ?? cached.nameSnapshot,
+            role: profile?.role ?? cached.role
+        )
+    }
+
+    func clearEventAuthorCache() throws {
+        try eventAuthorCache.clear()
     }
 
     func events(babyID: UUID) throws -> [CareEvent] {
@@ -209,6 +251,7 @@ final class Persistence {
             }
         }
         try parentProfileCache.forget(babyIDs: ids)
+        try? eventAuthorCache.forget(babyIDs: ids)
     }
 
     func deleteEvent(id: UUID) throws {

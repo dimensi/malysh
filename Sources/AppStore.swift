@@ -158,6 +158,13 @@ final class AppStore {
                     try prepareFamilyFixture()
                 }
             #endif
+            #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
+                   ProcessInfo.processInfo.arguments.contains("--author-fixture")
+                {
+                    try prepareAuthorFixture()
+                }
+            #endif
             let saved = UserDefaults.standard.string(forKey: "selectedBaby").flatMap(UUID.init(uuidString:))
             selectedID = babies.first(where: { $0.id == saved })?.id
             try reload()
@@ -192,6 +199,10 @@ final class AppStore {
         try selectAcceptedSharedBabyIfAvailable()
         events = try selectedID.map { try persistence.events(babyID: $0).sorted { $0.start > $1.start } } ?? []
         family = selectedID.flatMap { try? persistence.familySnapshot(babyID: $0) }
+        // Warm per-diary actor knowledge for cold background Live Activity actions.
+        for baby in babies {
+            _ = try? persistence.currentEventAuthor(babyID: baby.id)
+        }
         #if DEBUG
             if let testingFamily {
                 family = FamilySnapshot(isOwner: testingFamily.isOwner, members: testingFamily.members.map { member in
@@ -223,6 +234,25 @@ final class AppStore {
     }
 
     #if DEBUG
+        private func prepareAuthorFixture() throws {
+            guard let privateStore = persistence.privateStore,
+                  var baby = try persistence.babies().first(where: { value in
+                      try persistence.babyObject(id: value.id)?.objectID.persistentStore == privateStore
+                  }) else { return }
+            baby.name = "Тестовый малыш"
+            if baby.parentProfiles["owner"] == nil {
+                baby.parentProfiles["owner"] = ParentProfile(name: "Алексей", role: .father)
+            }
+            try persistence.saveBaby(baby)
+            if ProcessInfo.processInfo.arguments.contains("--legacy-author-fixture"),
+               try !persistence.events(babyID: baby.id).contains(where: { $0.note == "Старая запись" })
+            {
+                let date = Date().addingTimeInterval(-3600)
+                try persistence.saveEvent(CareEvent(babyID: baby.id, kind: .bottle, start: date, end: date,
+                                                    note: "Старая запись"))
+            }
+        }
+
         /// Uses only the isolated UI-testing store; no iCloud connection or real identities.
         private func prepareFamilyFixture() throws {
             guard let sharedStore = persistence.sharedStore else { throw Persistence.Failure.missingStore }
@@ -358,8 +388,39 @@ final class AppStore {
             normalized.end = normalized.start
         }
         try normalized.validate()
+        let existing = try persistence.events(babyID: normalized.babyID).first { $0.id == normalized.id }
+        let author = try? persistence.currentEventAuthor(babyID: normalized.babyID)
+        let now = Date()
+        if let existing {
+            normalized.createdAt = existing.createdAt
+            normalized.createdBy = existing.createdBy
+            normalized.lastEditedBy = author
+        } else {
+            normalized.createdAt = now
+            normalized.createdBy = author
+            normalized.lastEditedBy = nil
+        }
+        normalized.modifiedAt = now
         try persistence.saveEvent(normalized)
         try reload()
+    }
+
+    func authorLabel(for author: EventAuthor?, babyID: UUID) -> String {
+        guard let author else { return "Автор не указан" }
+        let profile = babies.first { $0.id == babyID }?.parentProfiles[author.id]
+        let name = (profile?.name ?? author.nameSnapshot ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let role = profile?.role ?? author.role
+        if !name.isEmpty, let role {
+            return "\(name) · \(role.label)"
+        }
+        if !name.isEmpty {
+            return name
+        }
+        return role?.label ?? "Родитель"
+    }
+
+    func eventAuthorLabel(for event: CareEvent) -> String? {
+        event.createdBy.map { authorLabel(for: $0, babyID: event.babyID) }
     }
 
     func delete(_ event: CareEvent) throws {

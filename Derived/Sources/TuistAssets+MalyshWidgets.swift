@@ -35,6 +35,7 @@ public enum MalyshWidgetsAsset: Sendable {
   public static let brandMark = MalyshWidgetsImages(name: "BrandMark")
   public static let diaper = MalyshWidgetsColors(name: "Diaper")
   public static let feeding = MalyshWidgetsColors(name: "Feeding")
+  public static let onAccent = MalyshWidgetsColors(name: "OnAccent")
   public static let sleep = MalyshWidgetsColors(name: "Sleep")
 }
 

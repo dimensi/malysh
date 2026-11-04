@@ -135,6 +135,18 @@ public enum EventValidationError: Error, LocalizedError, Sendable {
     }
 }
 
+public struct EventAuthor: Codable, Sendable, Equatable {
+    public var id: String
+    public var nameSnapshot: String?
+    public var role: ParentRole?
+
+    public init(id: String, nameSnapshot: String? = nil, role: ParentRole? = nil) {
+        self.id = id
+        self.nameSnapshot = nameSnapshot
+        self.role = role
+    }
+}
+
 public struct CareEvent: Identifiable, Codable, Sendable, Equatable {
     public var id: UUID
     public var babyID: UUID
@@ -142,6 +154,8 @@ public struct CareEvent: Identifiable, Codable, Sendable, Equatable {
     public var end: Date?
     public var createdAt: Date
     public var modifiedAt: Date
+    public var createdBy: EventAuthor?
+    public var lastEditedBy: EventAuthor?
     public var kind: EventKind
     public var side: BreastSide
     public var sideStartedAt: Date?
@@ -157,15 +171,18 @@ public struct CareEvent: Identifiable, Codable, Sendable, Equatable {
                 side: BreastSide = .left, sideStartedAt: Date? = nil,
                 leftSeconds: TimeInterval = 0, rightSeconds: TimeInterval = 0,
                 volumeML: Int = 60, bottleType: BottleType = .formula,
-                diaperType: DiaperType = .wet, note: String = "")
+                diaperType: DiaperType = .wet, note: String = "",
+                createdBy: EventAuthor? = nil, lastEditedBy: EventAuthor? = nil)
     {
         self.id = id
         self.babyID = babyID
         self.kind = kind
         self.start = start
         self.end = end
-        self.createdAt = createdAt ?? start
-        self.modifiedAt = modifiedAt ?? start
+        self.createdAt = createdAt ?? Date()
+        self.modifiedAt = modifiedAt ?? self.createdAt
+        self.createdBy = createdBy
+        self.lastEditedBy = lastEditedBy
         self.side = side
         self.sideStartedAt = sideStartedAt ?? (kind == .breast && end == nil ? start : nil)
         self.leftSeconds = leftSeconds

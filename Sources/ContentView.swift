@@ -13,9 +13,9 @@ extension EventKind {
 
     var tint: Color {
         switch self {
-        case .breast, .bottle: Color("Feeding")
-        case .diaper: Color("Diaper")
-        case .sleep: Color("Sleep")
+        case .breast, .bottle: AppDesign.Palette.feeding
+        case .diaper: AppDesign.Palette.diaper
+        case .sleep: AppDesign.Palette.sleep
         }
     }
 }
@@ -62,21 +62,28 @@ struct ContentView: View {
                     NavigationStack { StatisticsView(store: store) }
                         .tabItem { Label("Статистика", systemImage: "chart.bar.fill") }.tag(2)
                 }
-                .tint(Color("AccentColor"))
+                .tint(AppDesign.Palette.accent)
                 .sheet(item: $editing) { event in
-                    EventEditor(event: event, onSave: { try store.save($0) },
+                    EventEditor(event: event,
+                                creatorLabel: store.authorLabel(for: event.createdBy, babyID: event.babyID),
+                                lastEditorLabel: event.lastEditedBy.map { store.authorLabel(
+                                    for: $0,
+                                    babyID: event.babyID
+                                ) },
+                                onSave: { try store.save($0) },
                                 onDelete: store.events
                                     .contains(where: { $0.id == event.id }) ? { try store.delete(event) } : nil)
                 }
                 .sheet(isPresented: $showSettings) { SettingsView(store: store) }
             } else {
                 VStack(spacing: 20) {
-                    Image(systemName: "moon.stars.fill").font(.largeTitle).foregroundStyle(Color("AccentColor"))
+                    Image(systemName: "moon.stars.fill").font(.largeTitle).foregroundStyle(AppDesign.Palette.accent)
                     Text("Открываем дневник").font(.title2.bold())
                     if !store.loadFailed {
                         ProgressView()
                     } else {
                         Button("Попробовать снова") { Task { await store.load() } }.buttonStyle(.borderedProminent)
+                            .foregroundStyle(AppDesign.Palette.onAccent)
                     }
                 }.padding()
             }
@@ -95,10 +102,14 @@ struct ContentView: View {
 
     private var today: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                HStack(spacing: 12) {
-                    Image("BrandMark").resizable().scaledToFill().frame(width: 48, height: 48)
-                        .clipShape(RoundedRectangle(cornerRadius: 14)).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.section) {
+                HStack(spacing: AppDesign.Spacing.row) {
+                    Image("BrandMark").resizable().scaledToFill().frame(
+                        width: AppDesign.Metrics.brandMarkSize,
+                        height: AppDesign.Metrics.brandMarkSize
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
+                    .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(store.baby?.name ?? "Малыш").font(.title3.bold())
                         if store.isSharedDiary {
@@ -126,13 +137,13 @@ struct ContentView: View {
 
                 LazyVGrid(columns: dynamicTypeSize.isAccessibilitySize
                     ? [GridItem(.flexible())]
-                    : [GridItem(.flexible()), GridItem(.flexible())], spacing: 12)
+                    : [GridItem(.flexible()), GridItem(.flexible())], spacing: AppDesign.Spacing.row)
                 {
                     ActionTile(
                         title: "Кормление",
                         subtitle: "Грудь или бутылочка",
                         symbol: "heart.fill",
-                        color: Color("Feeding"),
+                        color: AppDesign.Palette.feeding,
                         id: "action.feed"
                     ) { showFeed = true }
                         .confirmationDialog("Кормление", isPresented: $showFeed, titleVisibility: .visible) {
@@ -146,7 +157,7 @@ struct ContentView: View {
                         title: "Подгузник",
                         subtitle: "Записать смену",
                         symbol: "drop.fill",
-                        color: Color("Diaper"),
+                        color: AppDesign.Palette.diaper,
                         id: "action.diaper"
                     ) { showDiaper = true }
                         .confirmationDialog("Подгузник", isPresented: $showDiaper, titleVisibility: .visible) {
@@ -160,22 +171,25 @@ struct ContentView: View {
                         subtitle: store.active
                             .contains(where: { $0.kind == .sleep }) ? "Таймер уже идёт" : "Начать таймер",
                         symbol: "moon.zzz.fill",
-                        color: Color("Sleep"),
+                        color: AppDesign.Palette.sleep,
                         id: "action.sleep"
                     ) { store.start(.sleep) }
                     ActionTile(
                         title: "Сводка",
                         subtitle: "Как прошёл день",
                         symbol: "chart.bar.fill",
-                        color: Color(uiColor: .secondarySystemGroupedBackground),
+                        color: AppDesign.Palette.cardBackground,
                         id: "action.summary"
                     ) { tab = 2 }
                 }
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
                     HStack {
                         Text("Последние события").font(.title3.bold())
                         Spacer()
-                        Button("Все") { tab = 1 }.frame(minWidth: 44, minHeight: 44)
+                        Button("Все") { tab = 1 }.frame(
+                            minWidth: AppDesign.Metrics.minimumTouch,
+                            minHeight: AppDesign.Metrics.minimumTouch
+                        )
                     }
                     if store.events.isEmpty {
                         Text("Первый день вашей истории").font(.headline)
@@ -183,16 +197,16 @@ struct ContentView: View {
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(Array(store.events.prefix(8))) { event in
-                            EventRow(event: event) { edit(event) }
+                            EventRow(event: event, authorLabel: store.eventAuthorLabel(for: event)) { edit(event) }
                             if event.id != store.events.prefix(8).last?.id {
                                 Divider()
                             }
                         }
                     }
                 }
-            }.padding(20)
+            }.padding(AppDesign.Spacing.contentInset)
         }
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(AppDesign.Palette.groupedBackground)
         .navigationTitle("Сегодня")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -230,8 +244,8 @@ struct ContentView: View {
                 Text("Всё важное о кормлении, сне и заботе — в одном месте.").font(.body)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading).padding(20)
-        .foregroundStyle(Color.primary).background(Color("Feeding"), in: RoundedRectangle(cornerRadius: 20))
+        .foregroundStyle(AppDesign.Palette.primaryText)
+        .diaryCard(color: AppDesign.Palette.feeding)
     }
 
     private func addManual(_ kind: EventKind) {
@@ -248,68 +262,6 @@ struct ContentView: View {
             return
         }
         editing = event
-    }
-}
-
-private struct ActionTile: View {
-    let title: String
-    let subtitle: String
-    let symbol: String
-    let color: Color
-    let id: String
-    let action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 10) {
-                Image(systemName: symbol).font(.title2).accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title).font(.headline)
-                    Text(subtitle).font(.caption).fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading).padding(16)
-            .foregroundStyle(Color.primary).background(color, in: RoundedRectangle(cornerRadius: 20))
-            .contentShape(RoundedRectangle(cornerRadius: 20))
-        }.buttonStyle(.plain).accessibilityIdentifier(id)
-    }
-}
-
-struct EventRow: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    let event: CareEvent
-    let action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            Group {
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label(event.kind.label, systemImage: event.kind.symbol).font(.headline)
-                        Text(event.detail).font(.subheadline).foregroundStyle(.secondary)
-                        Text(event.start, format: .dateTime.hour().minute()).font(.subheadline).monospacedDigit()
-                        if !event.note.isEmpty {
-                            Text(event.note).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    HStack(alignment: .center, spacing: 12) {
-                        Image(systemName: event.kind.symbol).font(.title3)
-                            .frame(width: 44, height: 44).background(event.kind.tint, in: Circle())
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(event.kind.label).font(.headline)
-                            Text(event.detail).font(.subheadline).foregroundStyle(.secondary)
-                            if !event.note.isEmpty {
-                                Text(event.note).font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer(minLength: 4)
-                        Text(event.start, format: .dateTime.hour().minute()).font(.subheadline).monospacedDigit()
-                    }.frame(minHeight: 56).foregroundStyle(Color.primary).contentShape(Rectangle())
-                }
-            }.foregroundStyle(Color.primary).contentShape(Rectangle())
-        }
-        .buttonStyle(.plain).accessibilityIdentifier("event.\(event.id.uuidString)")
-        .accessibilityElement(children: .combine).accessibilityHint("Открыть запись")
     }
 }
 
@@ -334,11 +286,11 @@ private struct TimerCard: View {
                         .accessibilityIdentifier("timer.switch.\(event.id.uuidString)")
                 }
                 Button(event.kind == .sleep ? "Завершить сон" : "Завершить кормление", action: finish)
-                    .buttonStyle(.borderedProminent).controlSize(.large).tint(Color("AccentColor"))
+                    .buttonStyle(.borderedProminent).controlSize(.large).tint(AppDesign.Palette.accent)
+                    .foregroundStyle(AppDesign.Palette.onAccent)
                     .accessibilityIdentifier("timer.finish.\(event.id.uuidString)")
             }
-            .frame(maxWidth: .infinity, alignment: .leading).padding(20)
-            .background(event.kind.tint, in: RoundedRectangle(cornerRadius: 20))
+            .diaryCard(color: event.kind.tint)
         }
     }
 }
@@ -373,7 +325,7 @@ private struct HistoryView: View {
             ForEach(days, id: \.self) { day in
                 Section(day.formatted(date: .complete, time: .omitted)) {
                     ForEach(filtered.filter { Calendar.current.isDate($0.start, inSameDayAs: day) }) { event in
-                        EventRow(event: event) { edit(event) }
+                        EventRow(event: event, authorLabel: store.eventAuthorLabel(for: event)) { edit(event) }
                             .swipeActions {
                                 Button("Удалить", role: .destructive) { store.perform { try store.delete(event) } }
                             }
@@ -439,7 +391,12 @@ private struct StatisticsView: View {
                     .chartXScale(domain: dayInterval.start ... dayInterval.end)
                     .chartForegroundStyleScale(
                         domain: ["Грудь", "Бутылочка", "Подгузник", "Сон"],
-                        range: [Color.orange, Color.orange, Color.blue, Color.purple]
+                        range: [
+                            AppDesign.Palette.chartFeeding,
+                            AppDesign.Palette.chartFeeding,
+                            AppDesign.Palette.chartDiaper,
+                            AppDesign.Palette.chartSleep,
+                        ]
                     )
                     .chartXAxis { AxisMarks(values: .stride(by: .hour, count: 6)) { _ in
                         AxisGridLine(); AxisValueLabel(format: .dateTime.hour())

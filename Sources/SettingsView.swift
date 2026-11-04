@@ -35,10 +35,11 @@ struct SettingsView: View {
                     Button("Сохранить имя") { saveName() }
                         .disabled(babyName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.baby == nil)
                     if let saveError {
-                        Text(saveError).foregroundStyle(.red)
+                        Text(saveError).foregroundStyle(AppDesign.Palette.error)
                     }
                     if saved {
-                        Label("Имя сохранено", systemImage: "checkmark.circle").foregroundStyle(.green)
+                        Label("Имя сохранено", systemImage: "checkmark.circle")
+                            .foregroundStyle(AppDesign.Palette.success)
                     }
                 }
                 familySection
@@ -153,7 +154,7 @@ struct SettingsView: View {
                         ProgressView()
                     }
                 }
-                .frame(minHeight: 44)
+                .frame(minHeight: AppDesign.Metrics.minimumTouch)
             }
             .disabled(!store.cloudSharingReady || !cloudEnabled || store.cloudBusy || store.baby == nil)
             .accessibilityIdentifier("invite-family")
@@ -167,11 +168,11 @@ struct SettingsView: View {
                         cleanupError = "Не удалось проверить записи лишнего профиля. Попробуйте снова."
                     }
                 }
-                .frame(minHeight: 44)
+                .frame(minHeight: AppDesign.Metrics.minimumTouch)
                 .accessibilityIdentifier("family.cleanup")
             }
             if let cleanupError {
-                Text(cleanupError).foregroundStyle(.red)
+                Text(cleanupError).foregroundStyle(AppDesign.Palette.error)
             }
         } header: {
             Text("Семья")
@@ -255,7 +256,7 @@ private struct FamilyProfileEditor: View {
                 Text("Имя и роль видны обоим родителям")
             }
             if let errorMessage {
-                Text(errorMessage).foregroundStyle(.red)
+                Text(errorMessage).foregroundStyle(AppDesign.Palette.error)
             }
             Button("Сохранить") {
                 do {
@@ -265,7 +266,7 @@ private struct FamilyProfileEditor: View {
                     errorMessage = "Не удалось сохранить имя и роль. Попробуйте снова."
                 }
             }
-            .frame(minHeight: 44)
+            .frame(minHeight: AppDesign.Metrics.minimumTouch)
             .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             .accessibilityIdentifier("family.profile.save")
         }
