@@ -88,6 +88,31 @@ final class ProfileUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Пока нет измерений"].exists)
     }
 
+    func testMeasurementFailureAlertKeepsDraft() {
+        let app = launch(["--light-mode"])
+        app.buttons["measurement.history.weight"].tap()
+        app.buttons["measurement.add"].tap()
+        let unit = app.buttons["measurement.editor.unit"]
+        XCTAssertTrue(unit.waitForExistence(timeout: 5))
+        unit.tap()
+        app.buttons["кг"].tap()
+        let note = app.textFields["measurement.editor.note"]
+        note.tap()
+        note.typeText("Сохранить заметку")
+        let value = app.textFields["measurement.editor.value"]
+        let largeValue = "1" + String(repeating: "0", count: 307)
+        value.tap()
+        value.typeText(largeValue)
+        app.buttons["measurement.editor.save"].tap()
+        let alert = app.alerts["Не удалось изменить измерение"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        XCTAssertTrue(alert.staticTexts["Введите положительное конечное значение."].exists)
+        alert.buttons["Понятно"].tap()
+        XCTAssertTrue(app.navigationBars["Новое измерение"].exists)
+        XCTAssertEqual(value.value as? String, largeValue)
+        XCTAssertEqual(note.value as? String, "Сохранить заметку")
+    }
+
     func testProfileDarkWithLargeText() {
         let app = launch(["--dark-mode", "--large-text"])
         let height = app.buttons["measurement.history.height"]

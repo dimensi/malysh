@@ -105,9 +105,6 @@ private struct ChildProfileEditor: View {
                 } footer: {
                     Text("Возраст появится после подтверждения даты рождения.")
                 }
-                if let errorMessage {
-                    Text(errorMessage).foregroundStyle(AppDesign.Palette.error)
-                }
             }
             .navigationTitle("Изменить профиль").navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -129,6 +126,18 @@ private struct ChildProfileEditor: View {
                     .accessibilityIdentifier("child.editor.save")
                 }
             }
+        }
+        .alert("Не удалось изменить профиль", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: {
+                if !$0 {
+                    errorMessage = nil
+                }
+            }
+        )) {
+            Button("Понятно", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
         }
     }
 }
@@ -278,9 +287,6 @@ private struct MeasurementEditor: View {
                     TextField("Необязательно", text: $note, axis: .vertical)
                         .accessibilityIdentifier("measurement.editor.note")
                 }
-                if let errorMessage {
-                    Text(errorMessage).foregroundStyle(AppDesign.Palette.error)
-                }
                 if !isNew {
                     Section {
                         Button("Удалить запись", role: .destructive) {
@@ -317,6 +323,18 @@ private struct MeasurementEditor: View {
                     }.disabled(!valid).accessibilityIdentifier("measurement.editor.save")
                 }
             }
+        }
+        .alert("Не удалось изменить измерение", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: {
+                if !$0 {
+                    errorMessage = nil
+                }
+            }
+        )) {
+            Button("Понятно", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
         }
     }
 }
