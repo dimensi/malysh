@@ -20,7 +20,7 @@ run() {
     fi
 }
 
-run swiftformat Sources Tests UITests WidgetExtension Project.swift --lint
+run swiftformat Sources Tests UITests WidgetExtension WidgetTests Project.swift --lint
 run swiftlint lint --strict
 run tuist generate --no-open
 mkdir -p "$(dirname "$RESULT_BUNDLE_PATH")"
@@ -32,7 +32,7 @@ run xcodebuild \
     -workspace Malysh.xcworkspace \
     -scheme Malysh \
     -destination "$DESTINATION" \
-    CODE_SIGNING_ALLOWED=NO \
+    CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- \
     -derivedDataPath "$DERIVED_DATA_PATH" \
     -resultBundlePath "$RESULT_BUNDLE_PATH" \
     -parallel-testing-enabled NO \

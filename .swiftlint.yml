@@ -3,6 +3,7 @@ included:
   - Tests
   - UITests
   - WidgetExtension
+  - WidgetTests
 disabled_rules:
   - trailing_comma
   - opening_brace

@@ -6,6 +6,7 @@ import WidgetKit
 @main
 struct MalyshWidgetBundle: WidgetBundle {
     var body: some Widget {
+        DiaryWidget()
         CareLiveActivityWidget()
     }
 }

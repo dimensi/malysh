@@ -112,6 +112,7 @@ for prefix, bundle_id in [("profile", "dev.dimensi.malysh"), ("widget-profile", 
         assert "ProvisionedDevices" not in profile
         assert "ProvisionsAllDevices" not in profile
         assert profile["ExpirationDate"].replace(tzinfo=datetime.timezone.utc) > datetime.datetime.now(datetime.timezone.utc)
+        assert "group.dev.dimensi.malysh" in entitlements.get("com.apple.security.application-groups", [])
         if bundle_id == "dev.dimensi.malysh":
             assert "iCloud.dev.dimensi.malysh" in entitlements.get("com.apple.developer.icloud-container-identifiers", [])
         environment = entitlements.get("com.apple.developer.icloud-container-environment")
