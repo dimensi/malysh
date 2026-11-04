@@ -3,13 +3,16 @@ import XCTest
 /// Exercises the real SpringBoard host. Attachments are system evidence, not view renders.
 @MainActor
 final class WidgetSystemUITests: XCTestCase {
+    private var keyboardRecoveryNeeded = false
+
     override func setUpWithError() throws {
         continueAfterFailure = false
-        addUIInterruptionMonitor(withDescription: "System keyboard introduction") { alert in
+        addUIInterruptionMonitor(withDescription: "System keyboard introduction") { [weak self] alert in
             let tutorial = alert.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] 'Speed up your typing'"))
             let next = alert.buttons["Continue"].firstMatch
             guard tutorial.firstMatch.exists, next.exists else { return false }
             next.tap()
+            self?.keyboardRecoveryNeeded = true
             return true
         }
     }
@@ -111,7 +114,7 @@ final class WidgetSystemUITests: XCTestCase {
         XCUIDevice.shared.press(.home)
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         XCTAssertTrue(springboard.wait(for: .runningForeground, timeout: 5))
-        dismissKeyboardTutorial(in: springboard)
+        _ = recoverKeyboardIfNeeded(in: springboard)
         return springboard
     }
 
@@ -122,7 +125,20 @@ final class WidgetSystemUITests: XCTestCase {
         let next = springboard.buttons["Continue"].firstMatch
         if tutorial.exists, next.exists, next.isHittable {
             next.tap()
+            keyboardRecoveryNeeded = true
         }
+    }
+
+    @discardableResult
+    private func recoverKeyboardIfNeeded(in springboard: XCUIApplication) -> Bool {
+        dismissKeyboardTutorial(in: springboard)
+        guard keyboardRecoveryNeeded || springboard.keyboards.firstMatch.exists else { return false }
+        keyboardRecoveryNeeded = false
+        // Continue removes the tutorial but can leave its remote keyboard over Home.
+        // Native Home dismisses that keyboard and the affected context menu together.
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(springboard.wait(for: .runningForeground, timeout: 5))
+        return true
     }
 
     private func installMedium(in springboard: XCUIApplication) {
@@ -135,7 +151,10 @@ final class WidgetSystemUITests: XCTestCase {
         // menu can precede our descriptor; its contents do not update in place.
         for attempt in 0 ..< 2 {
             icon.press(forDuration: 1.5)
-            dismissKeyboardTutorial(in: springboard)
+            if recoverKeyboardIfNeeded(in: springboard) {
+                // Reopen the interrupted menu within this same catalog attempt.
+                icon.press(forDuration: 1.5)
+            }
             let medium = springboard.buttons["Medium-sized widget"].firstMatch
             if medium.waitForExistence(timeout: 5) {
                 medium.tap()
