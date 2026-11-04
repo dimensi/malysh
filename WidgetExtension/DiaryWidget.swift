@@ -50,6 +50,7 @@ struct DiaryWidgetView: View {
     let entry: DiaryWidgetEntry
     @Environment(\.widgetFamily) private var environmentFamily
     @Environment(\.widgetRenderingMode) private var environmentRenderingMode
+    @Environment(\.dynamicTypeSize) private var typeSize
     var familyOverride: WidgetFamily?
     var renderingModeOverride: WidgetRenderingMode?
 
@@ -59,13 +60,6 @@ struct DiaryWidgetView: View {
 
     private var renderingMode: WidgetRenderingMode {
         renderingModeOverride ?? environmentRenderingMode
-    }
-
-    private var maximumTypeSize: DynamicTypeSize {
-        switch family {
-        case .systemMedium, .systemLarge: .xxxLarge
-        default: .large
-        }
     }
 
     private var summary: WidgetSummary? {
@@ -85,15 +79,32 @@ struct DiaryWidgetView: View {
             switch family {
             case .accessoryInline: inline
             case .accessoryCircular: circular
-            case .accessoryRectangular: rectangular
-            case .systemMedium: medium
-            case .systemLarge: large
-            default: small
+            case .accessoryRectangular:
+                if typeSize > .large {
+                    accessibleRectangular
+                } else {
+                    rectangular
+                }
+            case .systemMedium:
+                if typeSize.isAccessibilitySize {
+                    accessibleMedium
+                } else {
+                    medium
+                }
+            case .systemLarge:
+                if typeSize.isAccessibilitySize {
+                    accessibleLarge
+                } else {
+                    large
+                }
+            default:
+                if typeSize > .large {
+                    accessibleFeed
+                } else {
+                    small
+                }
             }
         }
-        // Widget families have fixed system bounds. Keep large text readable within
-        // those bounds; VoiceOver still reads the full semantic content.
-        .dynamicTypeSize(...maximumTypeSize)
         .privacySensitive()
         .widgetURL(WidgetRoute(.today, babyID: babyID).url)
         .containerBackground(for: .widget) {
@@ -177,23 +188,131 @@ struct DiaryWidgetView: View {
 
     private var circular: some View {
         VStack(spacing: 1) {
-            Image(systemName: "drop.fill").font(AppDesign.Typography.note).widgetAccentable()
+            if typeSize <= .large {
+                Image(systemName: "drop.fill").font(AppDesign.Typography.note).widgetAccentable()
+            }
             Text(isReady ? String(summary?.wetDiapers ?? 0) : "—").font(.title2.bold()).monospacedDigit()
-            Text("сегодня").font(.caption2)
+            if typeSize <= .large {
+                Text("сегодня").font(.caption2)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(isReady ? "Мокрых подгузников сегодня: \(summary?.wetDiapers ?? 0)" : "Откройте дневник")
     }
 
-    private var inline: some View {
-        HStack {
-            Image(systemName: "heart.fill")
-            if let feed = summary?.lastFeeding {
-                Text("Кормление \(feed.end, style: .relative) назад")
-            } else {
-                Text(isReady ? "Кормлений пока нет" : "Откройте «Малыш»")
+    @ViewBuilder private var inline: some View {
+        if typeSize > .large {
+            Group {
+                if typeSize >= .accessibility2 {
+                    // The native 26pt inline slot cannot contain even one AX text line.
+                    // A semantic symbol keeps the full feed information available to VoiceOver.
+                    Image(systemName: summary?.lastFeeding.map { symbol($0.kind) } ?? "arrow.up.forward.app")
+                        .resizable().scaledToFit().frame(width: 20, height: 20)
+                } else {
+                    compactElapsed.font(.caption2)
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(feedAccessibilityLabel)
+        } else {
+            HStack {
+                Image(systemName: "heart.fill")
+                if let feed = summary?.lastFeeding {
+                    Text("Кормление \(feed.end, style: .relative) назад")
+                } else {
+                    Text(isReady ? "Кормлений пока нет" : "Откройте «Малыш»")
+                }
             }
         }
+    }
+
+    private var accessibleRectangular: some View {
+        HStack(spacing: AppDesign.Spacing.related) {
+            if let feed = summary?.lastFeeding, typeSize >= .accessibility2 {
+                Image(systemName: symbol(feed.kind)).widgetAccentable()
+                Text(feed.start, format: .dateTime.hour().minute()).monospacedDigit()
+            } else {
+                compactElapsed
+            }
+        }
+        .font(.caption2)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(feedAccessibilityLabel)
+    }
+
+    /// Fixed widget canvases keep the requested type size and shed secondary copy.
+    private var accessibleFeed: some View {
+        ViewThatFits(in: .vertical) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+                compactElapsed.font(AppDesign.Typography.itemTitle.bold())
+                feedDetail.font(AppDesign.Typography.note)
+            }.fixedSize(horizontal: false, vertical: true)
+            compactElapsed.font(AppDesign.Typography.itemTitle.bold())
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(feedAccessibilityLabel)
+    }
+
+    @ViewBuilder private var compactElapsed: some View {
+        if let feed = summary?.lastFeeding {
+            Text(feed.end, style: .relative).monospacedDigit()
+        } else {
+            Text("—")
+        }
+    }
+
+    private var accessibleMedium: some View {
+        HStack(spacing: AppDesign.Spacing.row) {
+            accessibleFeed
+            VStack(spacing: AppDesign.Spacing.related) {
+                shortcut("Грудь", symbol: "heart.fill", destination: .breast, kind: .breast, iconOnly: true)
+                shortcut("Подгузник", symbol: "drop.fill", destination: .diaper, kind: .diaper, iconOnly: true)
+                shortcut("Сон", symbol: "moon.zzz.fill", destination: .sleep, kind: .sleep, iconOnly: true)
+            }.frame(width: AppDesign.Metrics.minimumTouch)
+        }
+    }
+
+    private var accessibleLarge: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
+            Text("Сегодня").font(AppDesign.Typography.itemTitle)
+            accessibleTotal("Кормлений", value: isReady ? String(summary?.feeds ?? 0) : "—")
+            accessibleTotal("Мокрых", value: isReady ? String(summary?.wetDiapers ?? 0) : "—")
+            accessibleTotal("Сон", value: isReady ? duration(summary?.sleepSeconds ?? 0) : "—")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(dailyAccessibilityLabel)
+    }
+
+    private func accessibleTotal(_ title: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: AppDesign.Spacing.group) {
+            Text(title)
+            Spacer(minLength: 0)
+            Text(value).bold().monospacedDigit()
+        }.font(AppDesign.Typography.note)
+    }
+
+    private var feedAccessibilityLabel: Text {
+        guard let feed = summary?.lastFeeding else {
+            return Text(isReady ? "Кормлений ещё нет" : "Откройте «Малыш», чтобы увидеть дневник")
+        }
+        return Text(
+            "Последнее кормление: \(feed.kind.label), \(feed.start, format: .dateTime.hour().minute()), \(feed.end, style: .relative) назад"
+        )
+    }
+
+    private var dailyAccessibilityLabel: Text {
+        guard let summary, isReady else { return Text("Откройте «Малыш», чтобы увидеть дневник") }
+        let recent = summary.recentEvents.map {
+            "\($0.kind.label), \($0.start.formatted(date: .omitted, time: .shortened))"
+        }.joined(separator: "; ")
+        let counts = "Кормлений: \(summary.feeds). Мокрых подгузников: \(summary.wetDiapers)."
+        return Text(
+            "Сегодня. \(counts) Завершённый сон: \(duration(summary.sleepSeconds)). Последние события: \(recent)"
+        )
     }
 
     @ViewBuilder private var feedElapsed: some View {
@@ -214,13 +333,17 @@ struct DiaryWidgetView: View {
     }
 
     private func shortcut(_ title: String, symbol: String, destination: WidgetRoute.Destination,
-                          kind: EventKind) -> some View
+                          kind: EventKind, iconOnly: Bool = false) -> some View
     {
         Link(destination: WidgetRoute(destination, babyID: babyID).url) {
-            Label { Text(title) } icon: {
+            Label {
+                if !iconOnly {
+                    Text(title)
+                }
+            } icon: {
                 Image(systemName: symbol).font(AppDesign.Typography.note)
                     .foregroundStyle(AppDesign.Palette.primaryText)
-                    .frame(width: 26, height: 26)
+                    .frame(minWidth: 26, minHeight: 26)
                     .background(renderingMode == .fullColor ? color(kind) : .clear, in: Circle())
             }.frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
                 .contentShape(Rectangle())
