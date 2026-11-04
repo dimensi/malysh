@@ -112,13 +112,6 @@ struct ContentView: View {
                     .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(store.baby?.name ?? "Малыш").font(.title3.bold())
-                        if store.isSharedDiary {
-                            Label("Семейный дневник", systemImage: "person.2.fill")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .accessibilityIdentifier("family.header")
-                        }
                         Text(Date(), format: .dateTime.day().month(.wide)).foregroundStyle(.secondary)
                     }
                     Spacer()

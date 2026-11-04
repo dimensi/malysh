@@ -171,7 +171,7 @@ final class MalyshUITests: XCTestCase {
     /// A local rendering fixture: these checks do not exercise CloudKit delivery or acceptance.
     private func assertFamilySettings(appearance: String, screenshot: String) {
         let app = launch(appearance: ["--family-fixture", "--large-text", appearance])
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "family.header").firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["Семейный малыш"].exists)
         tap(app, id: "settings.open")
         XCTAssertTrue(app.navigationBars["Настройки"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.textFields["baby-name"].value as? String, "Семейный малыш")
