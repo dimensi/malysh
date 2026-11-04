@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		635526768B2D188875702B58 /* SchemaInitialization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F6FEA8F362032DDA0EC606 /* SchemaInitialization.swift */; };
 		EE4EEDDF946B0D7521FBAD72 /* CloudFailureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9853A4EBDA30D61756055C5 /* CloudFailureTests.swift */; };
 		7BA41CDB76516340C46E279A /* CloudFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94312DA0CC72E421C39FE40D /* CloudFailure.swift */; };
 		067E7D5BBDA60231BD35C71B /* Domain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */; };
@@ -79,6 +80,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		05F6FEA8F362032DDA0EC606 /* SchemaInitialization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaInitialization.swift; sourceTree = "<group>"; };
 		C9853A4EBDA30D61756055C5 /* CloudFailureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudFailureTests.swift; sourceTree = "<group>"; };
 		94312DA0CC72E421C39FE40D /* CloudFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudFailure.swift; sourceTree = "<group>"; };
 		080D9C43EA2BC9BE4E5C72EB /* MalyshTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MalyshTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -203,6 +205,7 @@
 		A8E055385573A42FA8C77264 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				05F6FEA8F362032DDA0EC606 /* SchemaInitialization.swift */,
 				94312DA0CC72E421C39FE40D /* CloudFailure.swift */,
 				3DD992A50110540FC676286B /* AppStore.swift */,
 				4210B00AFA4D4AF6758D41C2 /* ContentView.swift */,
@@ -369,6 +372,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				635526768B2D188875702B58 /* SchemaInitialization.swift in Sources */,
 				7BA41CDB76516340C46E279A /* CloudFailure.swift in Sources */,
 				FA549E306B4C98F66025D754 /* TuistAssets+Malysh.swift in Sources */,
 				9761D7F5D866652F67387C29 /* TuistBundle+Malysh.swift in Sources */,

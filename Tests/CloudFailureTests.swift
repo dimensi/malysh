@@ -58,4 +58,19 @@ final class CloudFailureTests: XCTestCase {
         state.record(identifier: "private", error: nil)
         XCTAssertTrue(state.isReady(expected: expected))
     }
+
+    func testMissingProductionSchemaIsNotPresentedAsTemporaryNetworkFailure() {
+        let schema = NSError(
+            domain: CKErrorDomain,
+            code: CKError.invalidArguments.rawValue,
+            userInfo: [NSLocalizedDescriptionKey: "Cannot create new type PRIVATE_RECORD in production schema"]
+        )
+        let partial = NSError(domain: CKErrorDomain, code: CKError.partialFailure.rawValue,
+                              userInfo: [CKPartialErrorsByItemIDKey: ["private-id": schema]])
+        let message = CloudFailure.message(for: partial)
+        XCTAssertTrue(message.contains("ещё не подготовлена"))
+        XCTAssertFalse(message.contains("PRIVATE_RECORD"))
+        XCTAssertFalse(message.contains("private-id"))
+        XCTAssertFalse(message.contains("Повторите позже"))
+    }
 }

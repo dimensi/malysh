@@ -7,11 +7,18 @@ enum CloudFailure {
         var visited: Set<ObjectIdentifier> = []
         var codes: Set<Int> = []
         var networkFailure = false
+        var missingProductionSchema = false
         // The limit also protects against custom errors that produce new wrappers when bridged.
         while let current = pending.popLast(), visited.count < 100 {
             guard visited.insert(ObjectIdentifier(current)).inserted else { continue }
             if current.domain == CKErrorDomain {
                 codes.insert(current.code)
+                let descriptions = current.userInfo.values.compactMap { $0 as? String }
+                if current.code == CKError.invalidArguments.rawValue,
+                   descriptions.contains(where: { $0.localizedCaseInsensitiveContains("production schema") })
+                {
+                    missingProductionSchema = true
+                }
             }
             if current.domain == NSURLErrorDomain {
                 networkFailure = true
@@ -25,6 +32,17 @@ enum CloudFailure {
             if let partial = current.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: Error] {
                 pending.append(contentsOf: partial.values.map { $0 as NSError })
             }
+        }
+        return userMessage(
+            codes: codes,
+            networkFailure: networkFailure,
+            missingProductionSchema: missingProductionSchema
+        )
+    }
+
+    private static func userMessage(codes: Set<Int>, networkFailure: Bool, missingProductionSchema: Bool) -> String {
+        if missingProductionSchema {
+            return "Облачная база приложения ещё не подготовлена. Требуется настройка со стороны разработчика. Записи сохранены на iPhone."
         }
         if codes.contains(CKError.badContainer.rawValue) {
             return "Контейнер iCloud недоступен. Проверьте команду разработчика и настройку контейнера приложения. Записи сохранены на iPhone."

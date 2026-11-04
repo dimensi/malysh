@@ -104,6 +104,19 @@ final class AppStore {
 
     func load() async {
         loadFailed = false
+        #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--initialize-cloudkit-schema") {
+                // Maintenance mode must never open or mirror the user's diary stores.
+                do {
+                    try await persistence.prepareDevelopmentSchema()
+                    exit(0)
+                } catch {
+                    let detail = error as NSError
+                    print("SCHEMA_INITIALIZATION_FAILED: \(detail.domain) \(detail.code)")
+                    exit(1)
+                }
+            }
+        #endif
         do {
             try await persistence.load()
             babies = try persistence.babies()

@@ -1,6 +1,7 @@
 # Local builds, databases and reports
 DerivedData/
 DeviceValidation/
+DeviceReleaseValidation/
 .build/
 Tuist/.build/
 Artifacts/
