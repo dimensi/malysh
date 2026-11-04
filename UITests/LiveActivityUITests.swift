@@ -21,6 +21,8 @@ final class LiveActivityUITests: XCTestCase {
         XCTAssertTrue(switchSide.waitForExistence(timeout: 10), springboard.debugDescription)
         capture("Кормление — системные кнопки")
         switchSide.tap()
+        // An intent can collapse the Island; reopen the updated system presentation.
+        _ = showActivity(button: "Переключить на левую грудь")
         XCTAssertTrue(springboard.staticTexts["Правая грудь"].waitForExistence(timeout: 10))
         XCTAssertNotEqual(app.state, .runningForeground)
         springboard.buttons["Завершить кормление"].tap()

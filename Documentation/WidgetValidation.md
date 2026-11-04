@@ -12,7 +12,7 @@
 
 ## Границы доказательства
 
-Существующий `LiveActivityUITests.testBreastSystemControlsSaveWhileAppStaysInBackground` не находит текст правой груди после нажатия в Dynamic Island; тот же результат воспроизведён на чистом `origin/main` без этих изменений. Проверка сна после завершения процесса нестабильна в полном UI-наборе на этом runtime, но повторный изолированный прогон прошёл. Assertions и код Live Activities не менялись.
+Существующий `LiveActivityUITests.testBreastSystemControlsSaveWhileAppStaysInBackground` не находит текст правой груди после нажатия в Dynamic Island; тот же результат воспроизведён на чистом `origin/main` без этих изменений. Проверка сна после завершения процесса нестабильна в полном UI-наборе на этом runtime, но повторный изолированный прогон прошёл. Производственный код и assertions Live Activities не менялись. В дополнительной проверке подготовка UI-теста сначала дожидается реальной карточки Lock Screen и обрабатывает системное разрешение до завершения приложения; после переключения груди повторно открывается системное представление. Все четыре теста Live Activities прошли на iOS 27.2 с первой попытки без ретраев (`CodexReviewLoop/LiveActivityFixture272.xcresult`).
 
 App Group проверен настоящим системным Home-виджетом. Физический защищённый Lock Screen, фактическая системная композиция tinted/clear и доставка CloudKit между двумя Apple ID в этом прогоне не подтверждены; для accessory/тем есть production-view render-проверки и нативные WidgetKit modifiers. Системные задержки reload/import остаются ограничением iOS.
 
