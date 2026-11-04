@@ -62,11 +62,18 @@ platform :ios do
         signingStyle: "manual",
         teamID: "YBBAN7R28K",
         signingCertificate: "Apple Distribution",
+        iCloudContainerEnvironment: "Production",
         provisioningProfiles: { "dev.dimensi.malysh" => profile },
         manageAppVersionAndBuildNumber: false
       },
       xcargs: settings.map { |key, value| "#{key}=#{Shellwords.escape(value)}" }.join(" ")
     )
+    app_info = File.expand_path("../Artifacts/TestFlight/Malysh.xcarchive/Products/Applications/Malysh.app/Info.plist", FastlaneCore::FastlaneFolder.path)
+    { "CFBundleShortVersionString" => version, "CFBundleVersion" => build_number.to_s,
+      "ITSAppUsesNonExemptEncryption" => "false" }.each do |key, expected|
+      actual = sh("/usr/libexec/PlistBuddy", "-c", "Print :#{key}", app_info, log: false).strip
+      UI.user_error!("Archived #{key} does not match the intended release") unless actual == expected
+    end
     upload_to_testflight(
       api_key: api_key,
       ipa: ipa,

@@ -15,6 +15,8 @@ let project = Project(name: "Malysh", settings: settings, targets: [
             bundleId: "dev.dimensi.malysh", deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "Малыш", "CFBundleDevelopmentRegion": "ru",
+                "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+                "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                 "UILaunchScreen": [:], "UIBackgroundModes": ["remote-notification"],
                 "CKSharingSupported": true,
                 "ITSAppUsesNonExemptEncryption": false,
