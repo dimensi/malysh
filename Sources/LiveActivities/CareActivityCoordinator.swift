@@ -131,8 +131,8 @@ final class CareActivityCoordinator: CareActivityCoordinating {
 }
 
 /// ActivityKit owns the lifetime (at most eight hours). An ended activity can be restored on
-/// foreground entry while its persisted care event is still running. Explicit dismissals are
-/// retained across launches, so that same event never reappears after the user swipes it away.
+/// foreground entry while its persisted care event is still running. Explicit dismissals observed
+/// by this process are retained across launches as a presentation preference.
 @MainActor
 final class SystemCareActivityBackend: CareActivityBackend {
     private let defaults: UserDefaults

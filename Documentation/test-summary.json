@@ -1,19 +1,25 @@
 {
   "result": "Passed",
-  "totalTestCount": 51,
-  "passedTests": 51,
-  "unitTests": 43,
-  "uiTests": 8,
+  "totalTestCount": 75,
+  "passedTests": 75,
+  "unitTests": 63,
+  "uiTests": 12,
   "failedTests": 0,
   "skippedTests": 0,
   "runtimeWarnings": [],
   "verifiedDate": "2026-11-04",
   "device": "iPhone 18 Pro (arm64, iOS Simulator 27.0)",
-  "verification": "Local combined coverage: FinalTests.xcresult passed 50 tests (42 unit + 8 UI); subsequent FinalUnitTests.xcresult passed 43 unit tests after the revocation guard. CI 1.0.8 then passed 43 unit and 7 UI but failed one popover cancellation UI test; no binary was uploaded. After replacing the product confirmation with an explicit native alert, ExplicitAlertTests.xcresult passed the targeted UI scenario 1/1. Full CI for 1.0.9 is pending; this is not one complete 51-test pass on the alert change.",
+  "verification": "One complete final Live Activities run passed 75/75 (63 unit + 12 UI), with no skipped tests or runtime warnings, after rebasing onto the explicit diary-cleanup alert fix. Two additional cold-process system tests passed in an isolated project copy on a fresh simulator. Unsigned Release app and embedded Widget Extension build passed. This does not verify signed distribution or two-Apple-ID CloudKit delivery.",
   "sources": [
-    {"bundle": "FinalTests.xcresult", "unitTests": 42, "uiTests": 8, "passedTests": 50},
-    {"bundle": "FinalUnitTests.xcresult", "unitTests": 43, "uiTests": 0, "passedTests": 43},
-    {"bundle": "Artifacts/FamilyProfiles/ExplicitAlertTests.xcresult", "unitTests": 0, "uiTests": 1, "passedTests": 1, "failedTests": 0, "skippedTests": 0, "runtimeWarnings": []}
+    {
+      "bundle": "Artifacts/LiveActivities/VerifiedTests.xcresult",
+      "unitTests": 63,
+      "uiTests": 12,
+      "passedTests": 75,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "runtimeWarnings": []
+    }
   ],
   "ci51Tests": {
     "failed108": {
@@ -45,5 +51,28 @@
     "assignedGroup": "parents",
     "usesNonExemptEncryption": false
   },
-  "nextTestFlight": {"version": "1.0.9", "status": "not uploaded"}
+  "nextTestFlight": {
+    "version": "1.0.9",
+    "status": "not uploaded"
+  },
+  "liveActivitiesColdLaunch": {
+    "bundle": "Artifacts/LiveActivities/ColdLaunch/ColdControls-2.xcresult",
+    "passedTests": 2,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "runtimeWarnings": [],
+    "device": "Fresh iPhone 18 Pro / iOS Simulator 27.0",
+    "storage": "Normal app paths, no --ui-testing flags, no iCloud account",
+    "actions": [
+      "breast side switch",
+      "breast finish",
+      "sleep finish"
+    ],
+    "processEvidence": "requiredLaunch: YES, didForeground: NO for all three actions; persisted results verified after relaunch"
+  },
+  "liveActivitiesBuild": {
+    "debugSimulator": "passed, app and Widget Extension",
+    "releaseDeviceUnsigned": "passed, app and embedded MalyshWidgets.appex",
+    "signedDistribution": "not tested; separate widget provisioning profile and IOS_WIDGET_PROVISIONING_PROFILE_BASE64 secret required"
+  }
 }

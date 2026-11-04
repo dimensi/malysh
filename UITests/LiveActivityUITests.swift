@@ -99,9 +99,12 @@ final class LiveActivityUITests: XCTestCase {
         }
         XCTAssertTrue(finish.waitForExistence(timeout: 5), springboard.debugDescription)
         // Resolve this app's first-activity system prompt before checking its normal appearance.
-        let allow = springboard.buttons["Allow"].firstMatch
-        if allow.exists {
-            allow.tap()
+        for label in ["Always Allow", "Allow", "Всегда разрешать", "Разрешить"] {
+            let allow = springboard.buttons[label].firstMatch
+            if allow.exists {
+                allow.tap()
+                break
+            }
         }
         if breast {
             XCTAssertTrue(springboard.staticTexts["Левая грудь"].exists)
