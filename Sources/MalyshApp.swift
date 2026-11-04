@@ -7,41 +7,14 @@ import UIKit
 @MainActor
 struct MalyshApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
-    @State private var store = AppStore()
+    @State private var store = CareActivityRuntime.shared.store
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             configuredContent
                 .onAppear { delegate.store = store }
-                .task {
-                    if !store.ready {
-                        await store.load()
-                    }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .malyshSharingChanged)
-                    .receive(on: RunLoop.main))
-                { _ in
-                    store.syncStatus = "Доступ к дневнику изменён · ожидаем обновление iCloud"
-                    if store.ready {
-                        store.perform { try store.reload() }
-                    }
-                }
-                .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)
-                    .receive(on: RunLoop.main))
-                { _ in
-                    if store.ready {
-                        store.perform { try store.reload() }
-                    }
-                }
-                .onReceive(NotificationCenter.default
-                    .publisher(for: NSPersistentCloudKitContainer.eventChangedNotification).receive(on: RunLoop.main))
-                { notification in
-                    guard let event = notification
-                        .userInfo?[NSPersistentCloudKitContainer
-                            .eventNotificationUserInfoKey] as? NSPersistentCloudKitContainer.Event else { return }
-                    store.handleCloudEvent(event)
-                }
+                .task { await CareActivityRuntime.shared.ensureReady() }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active, store.ready {
                         store.perform { try store.reload() }

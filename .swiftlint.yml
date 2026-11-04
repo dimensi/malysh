@@ -2,6 +2,7 @@ included:
   - Sources
   - Tests
   - UITests
+  - WidgetExtension
 disabled_rules:
   - trailing_comma
   - opening_brace

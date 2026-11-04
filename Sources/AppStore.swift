@@ -6,6 +6,9 @@ import SwiftUI
 @MainActor @Observable
 final class AppStore {
     let persistence: Persistence
+    private let activityCoordinator: (any CareActivityCoordinating)?
+    var allowsActivityStart: () -> Bool = { false }
+    private var loading = false
     var babies: [Baby] = []
     var visibleBabies: [Baby] = []
     var redundantBabies: [Baby] = []
@@ -99,7 +102,10 @@ final class AppStore {
         }
     }
 
-    init(persistence injectedPersistence: Persistence? = nil) {
+    init(persistence injectedPersistence: Persistence? = nil,
+         activityCoordinator: (any CareActivityCoordinating)? = nil)
+    {
+        self.activityCoordinator = activityCoordinator
         if let injectedPersistence {
             persistence = injectedPersistence
             return
@@ -120,6 +126,9 @@ final class AppStore {
     }
 
     func load() async {
+        guard !ready, !loading else { return }
+        loading = true
+        defer { loading = false }
         loadFailed = false
         #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--initialize-cloudkit-schema") {
@@ -194,6 +203,10 @@ final class AppStore {
                 })
             }
         #endif
+        if let activityCoordinator {
+            let allEvents = try babies.flatMap { try persistence.events(babyID: $0.id) }
+            activityCoordinator.reconcile(events: allEvents, babies: babies, allowStart: allowsActivityStart())
+        }
     }
 
     func saveFamilyProfile(memberID: String, name: String, role: ParentRole) throws {
@@ -374,15 +387,55 @@ final class AppStore {
     }
 
     func finish(_ event: CareEvent) {
-        var updated = event
-        updated.finish()
-        perform { try save(updated) }
+        perform { try finish(eventID: event.id, babyID: event.babyID) }
     }
 
     func switchSide(_ event: CareEvent) {
-        var updated = event
-        updated.switchSide()
-        perform { try save(updated) }
+        let desiredSide: BreastSide = event.side == .left ? .right : .left
+        perform { try switchSide(eventID: event.id, babyID: event.babyID, to: desiredSide) }
+    }
+
+    enum ActivityActionFailure: LocalizedError {
+        case unavailable, wrongKind
+
+        var errorDescription: String? {
+            switch self {
+            case .unavailable: "Запись больше недоступна. Откройте дневник и проверьте синхронизацию."
+            case .wrongKind: "Это действие недоступно для выбранной записи."
+            }
+        }
+    }
+
+    private func latestActivityEvent(eventID: UUID, babyID: UUID) throws -> CareEvent {
+        guard ready else { throw ActivityActionFailure.unavailable }
+        // Reconcile removals and remote edits before acting on a potentially stale card.
+        try reload()
+        guard try persistence.babyObject(id: babyID) != nil,
+              let event = try persistence.events(babyID: babyID).first(where: { $0.id == eventID })
+        else { throw ActivityActionFailure.unavailable }
+        guard event.kind == .breast || event.kind == .sleep else { throw ActivityActionFailure.wrongKind }
+        return event
+    }
+
+    func finish(eventID: UUID, babyID: UUID, at date: Date = Date()) throws {
+        var event = try latestActivityEvent(eventID: eventID, babyID: babyID)
+        guard event.end == nil else {
+            try reload()
+            return
+        }
+        event.finish(at: date)
+        try save(event)
+    }
+
+    func switchSide(eventID: UUID, babyID: UUID, to side: BreastSide, at date: Date = Date()) throws {
+        var event = try latestActivityEvent(eventID: eventID, babyID: babyID)
+        guard event.kind == .breast else { throw ActivityActionFailure.wrongKind }
+        guard event.end == nil, event.side != side else {
+            try reload()
+            return
+        }
+        event.switchSide(at: date)
+        try save(event)
     }
 
     func checkAccount() async {
