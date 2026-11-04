@@ -232,3 +232,10 @@ App Store Connect API отдельно подтвердил **1.1.6 (1)**: `VALI
 
 
 Отдельный повтор feature-теста управления грудным кормлением завершился с одной ошибкой на строке 134: `Application dev.dimensi.malysh does not have a process ID`. Это другая ошибка, поэтому повтор не подтверждает стабильное воспроизведение первоначальной проверки строки 24. Результат — `Artifacts/ProfileBreastSystemRerun.xcresult`, журнал — `/tmp/malysh-profile-breast-rerun.log`. Приёмка поведения Live Activities во время выполнения остаётся незавершённой; дальнейшие попытки в рамках PR1 не выполнялись. Временный диагностический Simulator удалён после завершения тестов; пользовательские устройства не менялись.
+
+
+## PR1 после rebase на свежий main `764579e` · 5 ноября 2026
+
+Сохранена базовая `Malysh.xcdatamodel` из main (структура прежней V2, version identifier 2), удалённая отдельная V2 не возвращена. Текущая V3 добавляет измерения; тест миграции использует именно базовую `Malysh.mom` и проверяет V2 → V3 для private/shared SQLite со старым JSON. Поддержка исходной V1, удалённая в main, не восстанавливалась. Предыдущие результаты PR1 выше остаются историческим свидетельством до rebase.
+
+После разрешения конфликтов и генерации Tuist прошли SwiftFormat lint (0/35), SwiftLint strict (0 нарушений), `git diff --check`, сборка приложения и widget extension и один последовательный прогон **83/83: все 80 текущих unit-тестов и 3 ProfileUITests**, без ошибок и пропусков. Среда: iPhone 18 Pro Simulator iOS 27.0; результат `Artifacts/ProfileRebase.xcresult`, журнал `/tmp/malysh-profile-rebase.log`, проверенное дерево исходников `abe04ca`. Сводка XCTest: runtimeWarnings пусты. Предупреждение build tools о пропущенном AppIntents metadata extraction test target сохраняется. Код функции после rebase не менялся. LiveActivityUITests повторно не запускались; их ранее зафиксированное ограничение приёмки и ограничения двух Apple ID остаются в силе. CloudKit-схема, подпись, релиз и TestFlight не менялись.
