@@ -27,9 +27,11 @@ final class AppStoreTests: XCTestCase {
         try store.reload()
         XCTAssertEqual(store.visibleBabies.map(\.id), [shared.id])
         XCTAssertEqual(store.selectedID, shared.id)
+        XCTAssertTrue(store.redundantBabies.isEmpty)
         XCTAssertTrue(store.isSharedDiary)
         XCTAssertEqual(UserDefaults.standard.string(forKey: "selectedBaby"), shared.id.uuidString)
-        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [placeholder.id, shared.id])
+        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [shared.id])
+        XCTAssertNil(try persistence.babyObject(id: placeholder.id))
 
         let relaunched = AppStore(persistence: persistence)
         await relaunched.load()
@@ -38,7 +40,7 @@ final class AppStoreTests: XCTestCase {
         XCTAssertTrue(relaunched.isSharedDiary)
     }
 
-    func testSharedDiaryPreservesLocalRecordsAndExplicitSelection() async throws {
+    func testSharedDiaryHidesRedundantDefaultWithoutDeletingRecordsUntilConfirmedAndRestoresAfterLeaving() async throws {
         let previous = UserDefaults.standard.object(forKey: "selectedBaby")
         defer { UserDefaults.standard.set(previous, forKey: "selectedBaby") }
         let persistence = Persistence(inMemory: true)
@@ -46,21 +48,141 @@ final class AppStoreTests: XCTestCase {
         await store.load()
         let local = try XCTUnwrap(store.baby)
         store.diaper(.mixed)
+        let originalEvents = try persistence.events(babyID: local.id)
+        XCTAssertEqual(originalEvents.count, 1)
         let namedLocal = Baby(name: "Личный малыш")
         try persistence.saveBaby(namedLocal)
         let shared = Baby(name: "Семейный малыш")
         try insertSharedBaby(shared, persistence: persistence)
         try store.reload()
-        XCTAssertEqual(Set(store.visibleBabies.map(\.id)), [local.id, namedLocal.id, shared.id])
-        XCTAssertEqual(store.selectedID, local.id)
-        XCTAssertEqual(store.events.count, 1)
-        XCTAssertFalse(store.isSharedDiary)
-        store.select(namedLocal.id)
+        XCTAssertEqual(Set(store.visibleBabies.map(\.id)), [namedLocal.id, shared.id])
+        XCTAssertEqual(store.redundantBabies, [local])
+        XCTAssertEqual(try persistence.events(babyID: local.id), originalEvents)
+        XCTAssertEqual(store.selectedID, shared.id)
+        XCTAssertTrue(store.isSharedDiary)
+        XCTAssertEqual(try persistence.events(babyID: local.id), originalEvents)
+        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [local.id, namedLocal.id, shared.id])
 
         let relaunched = AppStore(persistence: persistence)
         await relaunched.load()
+        XCTAssertEqual(relaunched.selectedID, shared.id)
+        XCTAssertEqual(relaunched.redundantBabies, [local])
+        XCTAssertEqual(relaunched.visibleBabies.count, 2)
+        relaunched.select(namedLocal.id)
         XCTAssertEqual(relaunched.selectedID, namedLocal.id)
-        XCTAssertEqual(relaunched.visibleBabies.count, 3)
+
+        let object = try XCTUnwrap(persistence.babyObject(id: shared.id))
+        persistence.container.viewContext.delete(object)
+        try persistence.container.viewContext.save()
+        try relaunched.reload()
+        XCTAssertTrue(relaunched.redundantBabies.isEmpty)
+        XCTAssertEqual(Set(relaunched.visibleBabies.map(\.id)), [local.id, namedLocal.id])
+        XCTAssertEqual(try persistence.events(babyID: local.id), originalEvents)
+        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [local.id, namedLocal.id])
+    }
+
+    func testConfirmedRedundantDiaryRemovalDeletesOnlyPrivateStarterAndItsEvents() async throws {
+        let persistence = Persistence(inMemory: true)
+        let store = AppStore(persistence: persistence)
+        await store.load()
+        let redundant = try XCTUnwrap(store.baby)
+        store.diaper(.mixed)
+        let named = Baby(name: "Личный малыш")
+        try persistence.saveBaby(named)
+        let namedEvent = CareEvent(babyID: named.id, kind: .bottle, volumeML: 90)
+        try persistence.saveEvent(namedEvent)
+        let shared = Baby(name: "Андрей")
+        try insertSharedBaby(shared, persistence: persistence)
+        let sharedEvent = CareEvent(babyID: shared.id, kind: .diaper)
+        try persistence.saveEvent(sharedEvent)
+        try store.reload()
+        XCTAssertEqual(store.redundantBabies, [redundant])
+        XCTAssertEqual(try store.redundantEventCount, 1)
+        XCTAssertEqual(try persistence.events(babyID: redundant.id).count, 1)
+
+        try store.removeRedundantDiaries()
+
+        XCTAssertTrue(store.redundantBabies.isEmpty)
+        XCTAssertEqual(try store.redundantEventCount, 0)
+        XCTAssertNil(try persistence.babyObject(id: redundant.id))
+        XCTAssertTrue(try persistence.events(babyID: redundant.id).isEmpty)
+        XCTAssertEqual(try persistence.events(babyID: shared.id), [sharedEvent])
+        XCTAssertEqual(try persistence.events(babyID: named.id), [namedEvent])
+        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [shared.id, named.id])
+        try store.removeRedundantDiaries()
+        XCTAssertEqual(try persistence.events(babyID: shared.id), [sharedEvent])
+    }
+
+    func testDeleteBabyBatchRejectsSharedProfileWithoutDeletingPrivateStarter() async throws {
+        let persistence = Persistence(inMemory: true)
+        try await persistence.load()
+        let local = Baby(name: "Малыш")
+        try persistence.saveBaby(local)
+        let localEvent = CareEvent(babyID: local.id, kind: .diaper)
+        try persistence.saveEvent(localEvent)
+        let shared = Baby(name: "Малыш")
+        try insertSharedBaby(shared, persistence: persistence)
+        XCTAssertThrowsError(try persistence.deleteBabyAndEvents(ids: [local.id, shared.id]))
+        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [local.id, shared.id])
+        XCTAssertEqual(try persistence.events(babyID: local.id), [localEvent])
+    }
+
+    func testDefaultShareWithoutAcceptedOtherParentDoesNotKeepStartupDiaryInPicker() {
+        let local = Baby(name: "Малыш")
+        let owner = FamilyMember(id: "owner", name: "Вы", role: "Владелец дневника",
+                                 status: "В семье", isCurrentUser: true)
+        let pending = FamilyMember(id: "pending", name: "Другой родитель", role: "Родитель",
+                                   status: "Приглашение отправлено", isCurrentUser: false)
+        let accepted = FamilyMember(id: "accepted", name: "Другой родитель", role: "Мама",
+                                    status: "В семье", isCurrentUser: false)
+        XCTAssertTrue(AppStore.isPreSharedDefault(local, isShared: false, hasSharedDiary: true,
+                                                  family: FamilySnapshot(isOwner: true, members: [owner])))
+        XCTAssertTrue(AppStore.isPreSharedDefault(local, isShared: false, hasSharedDiary: true,
+                                                  family: FamilySnapshot(isOwner: true, members: [owner, pending])))
+        XCTAssertFalse(AppStore.isPreSharedDefault(local, isShared: false, hasSharedDiary: true,
+                                                   family: FamilySnapshot(isOwner: true, members: [owner, accepted])))
+        let ownerWithoutCurrentIdentity = FamilyMember(id: "owner", name: "Другой родитель", role: "Папа",
+                                                       status: "В семье", isCurrentUser: false, isOwner: true)
+        XCTAssertTrue(AppStore.isPreSharedDefault(local, isShared: false, hasSharedDiary: true,
+                                                  family: FamilySnapshot(
+                                                      isOwner: true,
+                                                      members: [ownerWithoutCurrentIdentity]
+                                                  )))
+        XCTAssertFalse(AppStore.isPreSharedDefault(local, isShared: true, hasSharedDiary: true, family: nil))
+        XCTAssertFalse(AppStore.isPreSharedDefault(local, isShared: false, hasSharedDiary: false, family: nil))
+        XCTAssertFalse(AppStore.isPreSharedDefault(Baby(name: "Андрей"), isShared: false,
+                                                   hasSharedDiary: true, family: nil))
+    }
+
+    func testRevokingLastSharedDiaryCreatesUsablePrivateStarterWithoutRelaunch() async throws {
+        let previous = UserDefaults.standard.object(forKey: "selectedBaby")
+        defer { UserDefaults.standard.set(previous, forKey: "selectedBaby") }
+        let persistence = Persistence(inMemory: true)
+        let store = AppStore(persistence: persistence)
+        await store.load()
+        let oldStarter = try XCTUnwrap(store.baby)
+        let shared = Baby(name: "Андрей")
+        try insertSharedBaby(shared, persistence: persistence)
+        try store.reload()
+        XCTAssertNil(try persistence.babyObject(id: oldStarter.id))
+        XCTAssertEqual(store.selectedID, shared.id)
+
+        let sharedObject = try XCTUnwrap(persistence.babyObject(id: shared.id))
+        persistence.container.viewContext.delete(sharedObject)
+        try persistence.container.viewContext.save()
+        try store.reload()
+
+        let replacement = try XCTUnwrap(store.baby)
+        XCTAssertTrue(store.ready)
+        XCTAssertEqual(replacement.name, "Малыш")
+        XCTAssertNotEqual(replacement.id, oldStarter.id)
+        XCTAssertEqual(store.visibleBabies, [replacement])
+        XCTAssertEqual(store.selectedID, replacement.id)
+        XCTAssertTrue(store.redundantBabies.isEmpty)
+        XCTAssertFalse(store.isSharedDiary)
+        XCTAssertEqual(try persistence.babies(), [replacement])
+        let replacementObject = try XCTUnwrap(persistence.babyObject(id: replacement.id))
+        XCTAssertEqual(replacementObject.objectID.persistentStore, persistence.privateStore)
     }
 
     func testDefaultBabyRemainsVisibleWithoutSharedDiary() async {

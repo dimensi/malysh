@@ -8,6 +8,7 @@ final class AppStore {
     let persistence: Persistence
     var babies: [Baby] = []
     var visibleBabies: [Baby] = []
+    var redundantBabies: [Baby] = []
     var family: FamilySnapshot?
     var selectedID: UUID?
     var events: [CareEvent] = []
@@ -166,15 +167,46 @@ final class AppStore {
 
     func reload() throws {
         babies = try persistence.babies()
+        if babies.isEmpty {
+            let starter = Baby(name: "Малыш")
+            try persistence.saveBaby(starter)
+            babies = [starter]
+        }
         try updateVisibleBabiesAndSelection()
+        let emptyRedundantIDs = try Set(redundantBabies.filter { try persistence.events(babyID: $0.id).isEmpty }
+            .map(\.id))
+        if !emptyRedundantIDs.isEmpty {
+            try persistence.deleteBabyAndEvents(ids: emptyRedundantIDs)
+            babies = try persistence.babies()
+            try updateVisibleBabiesAndSelection()
+        }
         try selectAcceptedSharedBabyIfAvailable()
         events = try selectedID.map { try persistence.events(babyID: $0).sorted { $0.start > $1.start } } ?? []
         family = selectedID.flatMap { try? persistence.familySnapshot(babyID: $0) }
         #if DEBUG
             if let testingFamily {
-                family = testingFamily
+                family = FamilySnapshot(isOwner: testingFamily.isOwner, members: testingFamily.members.map { member in
+                    let profile = baby?.parentProfiles[member.id]
+                    return FamilyMember(id: member.id, name: profile?.name ?? member.name,
+                                        role: profile?.role.label ?? member.role, status: member.status,
+                                        isCurrentUser: member.isCurrentUser, isOwner: member.isOwner,
+                                        canEdit: member.canEdit)
+                })
             }
         #endif
+    }
+
+    func saveFamilyProfile(memberID: String, name: String, role: ParentRole) throws {
+        guard let selectedID, let member = family?.members.first(where: { $0.id == memberID }), member.canEdit,
+              var latest = try persistence.babies().first(where: { $0.id == selectedID })
+        else {
+            throw ParentProfileError.memberUnavailable
+        }
+        let profile = ParentProfile(name: name, role: role)
+        guard !profile.name.isEmpty else { throw ParentProfileError.emptyName }
+        latest.parentProfiles[memberID] = profile
+        try persistence.saveBaby(latest)
+        try reload()
     }
 
     #if DEBUG
@@ -195,10 +227,27 @@ final class AppStore {
                 try object.setValue(JSONEncoder().encode(baby), forKey: "payload")
                 try context.save()
             }
+            if ProcessInfo.processInfo.arguments.contains("--redundant-fixture"),
+               let starter = try persistence.babies().first(where: { $0.name == "Малыш" }),
+               try persistence.events(babyID: starter.id).isEmpty
+            {
+                let date = Date().addingTimeInterval(-3600)
+                try persistence.saveEvent(CareEvent(babyID: starter.id, kind: .diaper, start: date,
+                                                    end: date, note: "Запись до семьи"))
+            }
+            if ProcessInfo.processInfo.arguments.contains("--redundant-fixture"),
+               let shared = try persistence.babies().first(where: { baby in
+                   try persistence.babyObject(id: baby.id)?.objectID.persistentStore == sharedStore
+               }), try persistence.events(babyID: shared.id).isEmpty
+            {
+                let date = Date().addingTimeInterval(-1800)
+                try persistence.saveEvent(CareEvent(babyID: shared.id, kind: .bottle, start: date,
+                                                    end: date, note: "Семейная запись"))
+            }
             testingFamily = FamilySnapshot(isOwner: false, members: [
-                FamilyMember(id: "owner", name: "Другой родитель", role: "Владелец дневника",
-                             status: "В семье", isCurrentUser: false),
-                FamilyMember(id: "participant-1", name: "Вы", role: "Родитель", status: "В семье", isCurrentUser: true),
+                FamilyMember(id: "owner", name: "Алексей", role: "Папа",
+                             status: "В семье", isCurrentUser: false, isOwner: true),
+                FamilyMember(id: "participant-1", name: "Анна", role: "Мама", status: "В семье", isCurrentUser: true),
             ])
         }
     #endif
@@ -210,20 +259,61 @@ final class AppStore {
                   object.objectID.persistentStore == sharedStore else { return nil }
             return baby.id
         })
-        visibleBabies = try babies.filter { baby in
-            guard !sharedIDs.isEmpty, !sharedIDs.contains(baby.id), baby.name == "Малыш" else { return true }
-            // An owned share is meaningful even before its first care event.
-            if (try? persistence.familySnapshot(babyID: baby.id)) != nil {
-                return true
+        var visible: [Baby] = []
+        var redundant: [Baby] = []
+        for baby in babies {
+            let isDefaultCandidate = !sharedIDs.isEmpty && !sharedIDs.contains(baby.id) && baby.name == "Малыш"
+            let family: FamilySnapshot?
+            do {
+                family = isDefaultCandidate ? try persistence.familySnapshot(babyID: baby.id) : nil
+            } catch {
+                // Unavailable sharing metadata must never authorize deletion.
+                visible.append(baby)
+                continue
             }
-            return try !persistence.events(babyID: baby.id).isEmpty
+            if Self.isPreSharedDefault(baby, isShared: sharedIDs.contains(baby.id),
+                                       hasSharedDiary: !sharedIDs.isEmpty, family: family)
+            {
+                // Include empty starters so reload can remove them automatically.
+                redundant.append(baby)
+            } else {
+                visible.append(baby)
+            }
         }
+        visibleBabies = visible
+        redundantBabies = redundant
         if !visibleBabies.contains(where: { $0.id == selectedID }) {
             selectedID = visibleBabies.first(where: { sharedIDs.contains($0.id) })?.id ?? visibleBabies.first?.id
         }
         if let selectedID {
             UserDefaults.standard.set(selectedID.uuidString, forKey: "selectedBaby")
         }
+    }
+
+    var redundantEventCount: Int {
+        get throws {
+            try redundantBabies.reduce(0) { try $0 + persistence.events(babyID: $1.id).count }
+        }
+    }
+
+    func removeRedundantDiaries() throws {
+        // Re-read profiles, sharing metadata and records after the confirmation.
+        // If the shared diary vanished or another parent accepted, nothing is removed.
+        try reload()
+        let ids = Set(redundantBabies.map(\.id))
+        guard !ids.isEmpty else { return }
+        try persistence.deleteBabyAndEvents(ids: ids)
+        try reload()
+    }
+
+    static func isPreSharedDefault(_ baby: Baby, isShared: Bool, hasSharedDiary: Bool,
+                                   family: FamilySnapshot?) -> Bool
+    {
+        guard hasSharedDiary, !isShared, baby.name == "Малыш" else { return false }
+        let hasAcceptedOtherParent = family?.members.contains {
+            !$0.isOwner && !$0.isCurrentUser && $0.status == "В семье"
+        } ?? false
+        return !hasAcceptedOtherParent
     }
 
     private func selectAcceptedSharedBabyIfAvailable() throws {

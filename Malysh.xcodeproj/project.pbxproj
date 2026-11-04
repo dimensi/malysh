@@ -27,6 +27,8 @@
 		E7D8305AB0E7F78EA9DE5A7D /* Sharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10A8A91EE68D5D67909CCAA /* Sharing.swift */; };
 		EFD1383B5D7F307BB54F28E7 /* EventEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */; };
 		FA549E306B4C98F66025D754 /* TuistAssets+Malysh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5777AC8BD2FBB805A3988C6A /* TuistAssets+Malysh.swift */; };
+		9F89C8F74725200C3EC7A561 /* ParentProfileCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFBAACA39179BDCE9D3B7214 /* ParentProfileCache.swift */; };
+		91133169ED9FCD9E0D6D7A75 /* ParentProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F977BB4322C33F798653AE45 /* ParentProfileTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -108,6 +110,8 @@
 		ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		F73F474969B820A4837BA636 /* MalyshV2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MalyshV2.xcdatamodel; sourceTree = "<group>"; };
 		FA9534C35260971748388CB7 /* Malysh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Malysh.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BFBAACA39179BDCE9D3B7214 /* ParentProfileCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfileCache.swift; sourceTree = "<group>"; };
+		F977BB4322C33F798653AE45 /* ParentProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfileTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -167,6 +171,7 @@
 				C9853A4EBDA30D61756055C5 /* CloudFailureTests.swift */,
 				C111135A85BE95B43D4B2D1E /* AppStoreTests.swift */,
 				892C506F7C92B8100B9D1C01 /* DomainTests.swift */,
+				F977BB4322C33F798653AE45 /* ParentProfileTests.swift */,
 				298DBC1D5993065C443496CB /* PersistenceTests.swift */,
 			);
 			path = Tests;
@@ -213,6 +218,7 @@
 				176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */,
 				163EA23D70ABAF9E0B136375 /* MalyshApp.swift */,
 				ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */,
+				BFBAACA39179BDCE9D3B7214 /* ParentProfileCache.swift */,
 				44DC826FECF34A61D2341DF2 /* SettingsView.swift */,
 				C10A8A91EE68D5D67909CCAA /* Sharing.swift */,
 			);
@@ -382,6 +388,7 @@
 				EFD1383B5D7F307BB54F28E7 /* EventEditor.swift in Sources */,
 				B7163E483965FD4D0588C9C2 /* MalyshApp.swift in Sources */,
 				9FE1D2A66266DA19DC36E444 /* Persistence.swift in Sources */,
+				9F89C8F74725200C3EC7A561 /* ParentProfileCache.swift in Sources */,
 				80919B36A653A1958D132EE2 /* SettingsView.swift in Sources */,
 				E7D8305AB0E7F78EA9DE5A7D /* Sharing.swift in Sources */,
 				0FE6FE4CF9713709385F99DF /* Malysh.xcdatamodeld in Sources */,
@@ -395,6 +402,7 @@
 				EE4EEDDF946B0D7521FBAD72 /* CloudFailureTests.swift in Sources */,
 				954894A9AEA2163B02AD6E15 /* AppStoreTests.swift in Sources */,
 				E26E0EFC8953691AD67A597E /* DomainTests.swift in Sources */,
+				91133169ED9FCD9E0D6D7A75 /* ParentProfileTests.swift in Sources */,
 				09C5C8A5DC48FF563D2E37DA /* PersistenceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -107,11 +107,12 @@ final class CloudFailureTests: XCTestCase {
         let owner = FamilyMember.make(id: "owner", nameComponents: components, isOwner: true,
                                       acceptanceStatus: .accepted, isCurrentUser: false)
         XCTAssertTrue(owner.name.contains("Анна"))
-        XCTAssertEqual(owner.role, "Владелец дневника")
+        XCTAssertEqual(owner.role, "Родитель")
+        XCTAssertTrue(owner.isOwner)
         XCTAssertEqual(owner.status, "В семье")
         let current = FamilyMember.make(id: "current", nameComponents: components, isOwner: false,
                                         acceptanceStatus: .accepted, isCurrentUser: true)
-        XCTAssertEqual(current.name, "Вы")
+        XCTAssertEqual(current.name, "Анна")
         XCTAssertEqual(current.role, "Родитель")
         XCTAssertTrue(current.isCurrentUser)
     }
@@ -119,11 +120,11 @@ final class CloudFailureTests: XCTestCase {
     func testFamilyMemberWithoutNameUsesHonestInvitationStatus() {
         let pending = FamilyMember.make(id: "pending", nameComponents: nil, isOwner: false,
                                         acceptanceStatus: .pending, isCurrentUser: false)
-        XCTAssertEqual(pending.name, "Другой родитель")
+        XCTAssertTrue(pending.name.isEmpty)
         XCTAssertEqual(pending.status, "Приглашение отправлено")
         let removed = FamilyMember.make(id: "removed", nameComponents: PersonNameComponents(), isOwner: false,
                                         acceptanceStatus: .removed, isCurrentUser: false)
-        XCTAssertEqual(removed.name, "Другой родитель")
+        XCTAssertTrue(removed.name.isEmpty)
         XCTAssertEqual(removed.status, "Доступ прекращён")
         let unknown = FamilyMember.make(id: "unknown", nameComponents: nil, isOwner: false,
                                         acceptanceStatus: .unknown, isCurrentUser: false)

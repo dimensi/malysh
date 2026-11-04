@@ -1,10 +1,32 @@
 {
   "result": "Passed",
-  "totalTestCount": 35,
-  "passedTests": 35,
+  "totalTestCount": 51,
+  "passedTests": 51,
+  "unitTests": 43,
+  "uiTests": 8,
   "failedTests": 0,
   "skippedTests": 0,
   "runtimeWarnings": [],
   "verifiedDate": "2026-11-04",
-  "device": "iPhone 16 Pro (iOS Simulator 18.6)"
+  "device": "iPhone 18 Pro (arm64, iOS Simulator 27.0)",
+  "verification": "Combined coverage: FinalTests.xcresult passed 50 tests (42 unit + 8 UI); subsequent FinalUnitTests.xcresult passed 43 unit tests after the revocation guard. This is not one complete 51-test run; CI with 51 tests is pending.",
+  "sources": [
+    {"bundle": "FinalTests.xcresult", "unitTests": 42, "uiTests": 8, "passedTests": 50},
+    {"bundle": "FinalUnitTests.xcresult", "unitTests": 43, "uiTests": 0, "passedTests": 43}
+  ],
+  "ci51Tests": "pending",
+  "latestVerifiedTestFlight": {
+    "version": "1.0.7",
+    "build": "1",
+    "minimumOS": "26.0",
+    "sourceCommit": "c491f3a",
+    "workflowRunID": "41883874325",
+    "unitTests": 29,
+    "uiTests": 6,
+    "processingState": "VALID",
+    "internalBuildState": "IN_BETA_TESTING",
+    "assignedGroup": "parents",
+    "usesNonExemptEncryption": false
+  },
+  "nextTestFlight": {"version": "1.0.8", "status": "not uploaded"}
 }

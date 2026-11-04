@@ -189,16 +189,17 @@ final class MalyshUITests: XCTestCase {
         XCTAssertTrue(owner.waitForExistence(timeout: 5))
         reveal(owner, in: app)
         XCTAssertTrue(owner.isHittable)
-        XCTAssertTrue(owner.label.contains("Другой родитель"))
-        XCTAssertTrue(owner.label.contains("Владелец дневника"))
+        XCTAssertTrue(owner.label.contains("Алексей"))
+        XCTAssertTrue(owner.label.contains("Папа"))
         XCTAssertTrue(owner.label.contains("В семье"))
 
         let participant = app.descendants(matching: .any).matching(identifier: "family.member.participant-1").firstMatch
         XCTAssertTrue(participant.waitForExistence(timeout: 5))
         reveal(participant, in: app)
         XCTAssertTrue(participant.isHittable)
-        XCTAssertTrue(participant.label.contains("Вы"))
-        XCTAssertTrue(participant.label.contains("Родитель"))
+        XCTAssertTrue(participant.label.contains("Анна"))
+        XCTAssertTrue(participant.label.contains("Мама"))
+        XCTAssertTrue(participant.label.contains("Это вы"))
         XCTAssertTrue(participant.label.contains("В семье"))
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "family.loading").firstMatch.exists)
         capture(app, name: screenshot)
@@ -206,6 +207,99 @@ final class MalyshUITests: XCTestCase {
         let access = app.buttons["invite-family"]
         reveal(access, in: app)
         XCTAssertTrue(access.label.contains("Управлять доступом"))
+    }
+
+    func testFamilyParentNameAndRolePersistAfterRelaunch() {
+        let app = launch(appearance: ["--family-fixture", "--light-mode"])
+        tap(app, id: "settings.open")
+        let participant = app.buttons.matching(identifier: "family.member.participant-1").firstMatch
+        XCTAssertTrue(participant.waitForExistence(timeout: 5))
+        reveal(participant, in: app)
+        participant.tap()
+        let name = app.textFields["family.profile.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        if let existing = name.value as? String, existing != "Имя" {
+            name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: existing.count))
+        }
+        name.typeText("   ")
+        XCTAssertFalse(app.buttons["family.profile.save"].isEnabled)
+        name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 3))
+        name.typeText("Александр")
+        let role = app.buttons.matching(identifier: "family.profile.role").firstMatch
+        XCTAssertTrue(role.waitForExistence(timeout: 5))
+        role.tap()
+        let father = app.buttons["Папа"].firstMatch
+        XCTAssertTrue(father.waitForExistence(timeout: 5))
+        father.tap()
+        tap(app, id: "family.profile.save")
+        XCTAssertTrue(app.navigationBars["Настройки"].waitForExistence(timeout: 5))
+        XCTAssertTrue(participant.label.contains("Александр"))
+        XCTAssertTrue(participant.label.contains("Папа"))
+        XCTAssertTrue(participant.label.contains("Это вы"))
+        app.terminate()
+        app.launchArguments = ["--ui-testing", "--family-fixture", "--light-mode"]
+        app.launch()
+        XCTAssertTrue(app.buttons["settings.open"].waitForExistence(timeout: 10))
+        tap(app, id: "settings.open")
+        let restored = app.buttons.matching(identifier: "family.member.participant-1").firstMatch
+        XCTAssertTrue(restored.waitForExistence(timeout: 5))
+        reveal(restored, in: app)
+        XCTAssertTrue(restored.label.contains("Александр"))
+        XCTAssertTrue(restored.label.contains("Папа"))
+        XCTAssertTrue(restored.label.contains("Это вы"))
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "diary-picker").firstMatch.exists)
+        capture(app, name: "Имя и роль родителя после перезапуска")
+    }
+
+    func testRedundantProfileCleanupRequiresConfirmationAndPreservesFamily() {
+        let app = launch(appearance: ["--family-fixture", "--redundant-fixture", "--light-mode"])
+        let familyEvents = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "event."))
+            .allElementsBoundByIndex.map(\.label)
+        XCTAssertTrue(familyEvents.contains { $0.contains("Семейная запись") })
+        tap(app, id: "settings.open")
+        XCTAssertEqual(app.textFields["baby-name"].value as? String, "Семейный малыш")
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "diary-picker").firstMatch.exists)
+        let cleanup = app.buttons["family.cleanup"]
+        XCTAssertTrue(cleanup.waitForExistence(timeout: 5))
+        reveal(cleanup, in: app)
+        cleanup.tap()
+        let dialog = app.sheets["Удалить лишний «Малыш»?"].firstMatch
+        XCTAssertTrue(dialog.waitForExistence(timeout: 5))
+        XCTAssertTrue(dialog.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Записей для удаления: 1"))
+            .firstMatch.waitForExistence(timeout: 5))
+        let cancel = dialog.buttons["Отмена"].firstMatch
+        if cancel.exists {
+            cancel.tap()
+        } else {
+            // The native popover omits Cancel; tapping its backdrop cancels without choosing an action.
+            dialog.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: -0.1)).tap()
+        }
+        let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: dialog)
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
+        XCTAssertTrue(cleanup.exists)
+        reveal(cleanup, in: app)
+        cleanup.tap()
+        XCTAssertTrue(dialog.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Записей для удаления: 1"))
+            .firstMatch.waitForExistence(timeout: 5))
+        let confirm = dialog.buttons.matching(identifier: "family.cleanup.confirm").firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
+        let removed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: cleanup)
+        XCTAssertEqual(XCTWaiter.wait(for: [removed], timeout: 5), .completed)
+        XCTAssertEqual(app.textFields["baby-name"].value as? String, "Семейный малыш")
+        app.terminate()
+        app.launchArguments = ["--ui-testing", "--family-fixture", "--light-mode"]
+        app.launch()
+        XCTAssertTrue(app.buttons["settings.open"].waitForExistence(timeout: 10))
+        let restoredEvents = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "event."))
+            .allElementsBoundByIndex.map(\.label)
+        XCTAssertEqual(restoredEvents, familyEvents)
+        tap(app, id: "settings.open")
+        XCTAssertEqual(app.textFields["baby-name"].value as? String, "Семейный малыш")
+        XCTAssertFalse(app.buttons["family.cleanup"].exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "diary-picker").firstMatch.exists)
+        capture(app, name: "Семья после удаления лишнего профиля")
     }
 
     func testManualSleepAppearsInHistory() {

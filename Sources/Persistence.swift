@@ -10,6 +10,7 @@ final class Persistence {
     private(set) var cloudEnabled: Bool
     private(set) var cloudStartupError: Error?
     private let modelFound: Bool
+    private let parentProfileCache: ParentProfileCache
     private var loaded = false
 
     enum Failure: LocalizedError {
@@ -32,6 +33,7 @@ final class Persistence {
         modelFound = model != nil
         container = NSPersistentCloudKitContainer(name: "Malysh", managedObjectModel: model ?? NSManagedObjectModel())
         let root = directory ?? NSPersistentContainer.defaultDirectoryURL()
+        parentProfileCache = ParentProfileCache(directory: root, inMemory: inMemory)
         container.persistentStoreDescriptions = ["private", "shared"].map { name in
             let description = NSPersistentStoreDescription(url: root.appendingPathComponent("Malysh-\(name).sqlite"))
             description.type = inMemory ? NSInMemoryStoreType : NSSQLiteStoreType
@@ -111,7 +113,26 @@ final class Persistence {
     }
 
     func babies() throws -> [Baby] {
-        try objects(entity: "BabyRecord", predicate: nil, sort: "birthDate").map { try decode($0) }
+        let records = try objects(entity: "BabyRecord", predicate: nil, sort: "birthDate")
+        var values: [Baby] = []
+        try transaction {
+            for record in records {
+                var value: Baby = try decode(record)
+                let merged = try ParentProfile.merging(
+                    value.parentProfiles,
+                    parentProfileCache.profiles(babyID: value.id)
+                )
+                if merged != value.parentProfiles {
+                    value.parentProfiles = merged
+                    try record.setValue(JSONEncoder().encode(value), forKey: "payload")
+                }
+                values.append(value)
+            }
+        }
+        for value in values {
+            try parentProfileCache.remember(babyID: value.id, profiles: value.parentProfiles)
+        }
+        return values
     }
 
     func events(babyID: UUID) throws -> [CareEvent] {
@@ -123,13 +144,22 @@ final class Persistence {
     }
 
     func saveBaby(_ baby: Baby) throws {
+        var mergedBaby = baby
         try transaction {
             let object = try babyObject(id: baby.id) ?? insert(entity: "BabyRecord", store: privateStore)
+            let stored: Baby? = object.value(forKey: "payload") == nil ? nil : try decode(object)
+            let cached = try parentProfileCache.profiles(babyID: baby.id)
+            mergedBaby.parentProfiles = ParentProfile.merging(
+                ParentProfile.merging(stored?.parentProfiles ?? [:], cached), baby.parentProfiles
+            )
             object.setValue(baby.id, forKey: "id")
             object.setValue(baby.name, forKey: "name")
             object.setValue(baby.birthDate, forKey: "birthDate")
-            try object.setValue(JSONEncoder().encode(baby), forKey: "payload")
+            if stored != mergedBaby {
+                try object.setValue(JSONEncoder().encode(mergedBaby), forKey: "payload")
+            }
         }
+        try parentProfileCache.remember(babyID: baby.id, profiles: mergedBaby.parentProfiles)
     }
 
     func saveEvent(_ event: CareEvent) throws {
@@ -150,6 +180,35 @@ final class Persistence {
             try object.setValue(JSONEncoder().encode(event), forKey: "payload")
             object.setValue(baby, forKey: "baby")
         }
+    }
+
+    func deleteBabyAndEvents(ids: Set<UUID>) throws {
+        guard !ids.isEmpty else { return }
+        try transaction {
+            guard let privateStore else { throw Failure.missingStore }
+            let babies = try ids.flatMap { id in
+                try objects(entity: "BabyRecord", predicate: NSPredicate(format: "id == %@", id as NSUUID))
+            }
+            // Validate the complete batch before making any changes.
+            for baby in babies {
+                let value: Baby = try decode(baby)
+                guard baby.objectID.persistentStore == privateStore, value.name == "Малыш" else {
+                    throw Failure.missingBaby
+                }
+            }
+            for baby in babies {
+                guard let id = baby.value(forKey: "id") as? UUID else { throw Failure.missingBaby }
+                let events = try objects(
+                    entity: "EventRecord",
+                    predicate: NSPredicate(format: "babyID == %@", id as NSUUID)
+                )
+                for event in events where event.objectID.persistentStore == privateStore {
+                    container.viewContext.delete(event)
+                }
+                container.viewContext.delete(baby)
+            }
+        }
+        try parentProfileCache.forget(babyIDs: ids)
     }
 
     func deleteEvent(id: UUID) throws {

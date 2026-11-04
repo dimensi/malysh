@@ -8,6 +8,9 @@ struct SettingsView: View {
     @State private var babyName = ""
     @State private var saveError: String?
     @State private var saved = false
+    @State private var confirmsCleanup = false
+    @State private var redundantEventCount = 0
+    @State private var cleanupError: String?
 
     var body: some View {
         NavigationStack {
@@ -55,6 +58,23 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Настройки")
+            .confirmationDialog("Удалить лишний «Малыш»?", isPresented: $confirmsCleanup, titleVisibility: .visible) {
+                Button("Удалить лишний «Малыш»", role: .destructive) {
+                    do {
+                        try store.removeRedundantDiaries()
+                        cleanupError = nil
+                    } catch {
+                        cleanupError = "Не удалось удалить лишний профиль. Попробуйте снова."
+                    }
+                }
+                .accessibilityIdentifier("family.cleanup.confirm")
+                Button("Отмена", role: .cancel) {}
+                    .accessibilityIdentifier("family.cleanup.cancel")
+            } message: {
+                Text(
+                    "Записей для удаления: \(redundantEventCount). Семейный дневник останется. Восстановить удалённое не получится."
+                )
+            }
             .onAppear { babyName = store.baby?.name ?? "" }
             .onChange(of: store.selectedID) { _, _ in
                 babyName = store.baby?.name ?? ""
@@ -100,18 +120,17 @@ struct SettingsView: View {
             }
             if let family = store.family {
                 ForEach(family.members) { member in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(member.isCurrentUser && member.name != "Вы" ? "\(member.name) (вы)" : member.name)
-                            .font(.body.weight(.medium))
-                        Text(member.role)
-                            .font(.subheadline)
-                        Text(member.status)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                    if member.canEdit {
+                        NavigationLink {
+                            FamilyProfileEditor(store: store, member: member)
+                        } label: {
+                            familyMemberLabel(member)
+                        }
+                        .accessibilityIdentifier("family.member.\(member.id)")
+                    } else {
+                        familyMemberLabel(member)
+                            .accessibilityIdentifier("family.member.\(member.id)")
                     }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("family.member.\(member.id)")
                 }
             } else if store.isSharedDiary {
                 Label("Синхронизируем список участников", systemImage: "arrow.triangle.2.circlepath")
@@ -138,6 +157,22 @@ struct SettingsView: View {
             }
             .disabled(!store.cloudSharingReady || !cloudEnabled || store.cloudBusy || store.baby == nil)
             .accessibilityIdentifier("invite-family")
+            if !store.redundantBabies.isEmpty {
+                Button("Удалить лишний «Малыш»", role: .destructive) {
+                    do {
+                        redundantEventCount = try store.redundantEventCount
+                        cleanupError = nil
+                        confirmsCleanup = true
+                    } catch {
+                        cleanupError = "Не удалось проверить записи лишнего профиля. Попробуйте снова."
+                    }
+                }
+                .frame(minHeight: 44)
+                .accessibilityIdentifier("family.cleanup")
+            }
+            if let cleanupError {
+                Text(cleanupError).foregroundStyle(.red)
+            }
         } header: {
             Text("Семья")
         } footer: {
@@ -145,6 +180,32 @@ struct SettingsView: View {
                 "Для общего дневника нужен iCloud у обоих родителей. Приглашение даёт доступ только к выбранному профилю малыша."
             )
         }
+    }
+
+    private func familyMemberLabel(_ member: FamilyMember) -> some View {
+        let hasName = !member.name.isEmpty && member.name != member.role
+            && !["Вы", "Другой родитель"].contains(member.name)
+        return VStack(alignment: .leading, spacing: 4) {
+            Text(hasName ? member.name : member.role)
+                .font(.body.weight(.medium))
+            if hasName {
+                Text(member.role).font(.subheadline)
+            }
+            if member.isCurrentUser {
+                Text("Это вы").font(.subheadline).foregroundStyle(.secondary)
+            }
+            Text(member.status).font(.subheadline).foregroundStyle(.secondary)
+            if !hasName {
+                if member.canEdit {
+                    Text("Добавить имя").font(.subheadline).foregroundStyle(.tint)
+                } else {
+                    Text("Имя пока не указано").font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .frame(minHeight: 44, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
     }
 
     private func saveName() {
@@ -157,5 +218,58 @@ struct SettingsView: View {
             saveError = nil
             saved = true
         } catch { saveError = "Не удалось сохранить имя: \(error.localizedDescription)" }
+    }
+}
+
+@MainActor
+private struct FamilyProfileEditor: View {
+    @Environment(\.dismiss) private var dismiss
+    let store: AppStore
+    let member: FamilyMember
+    @State private var name: String
+    @State private var role: ParentRole
+    @State private var errorMessage: String?
+
+    init(store: AppStore, member: FamilyMember) {
+        self.store = store
+        self.member = member
+        let profile = store.baby?.parentProfiles[member.id]
+        let fallbackName = member.name == member.role || ["Вы", "Другой родитель"].contains(member.name) ? "" : member
+            .name
+        _name = State(initialValue: profile?.name ?? fallbackName)
+        _role = State(initialValue: profile?.role ?? ParentRole.allCases.first { $0.label == member.role } ?? .parent)
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                TextField("Имя", text: $name)
+                    .textContentType(.givenName)
+                    .textInputAutocapitalization(.words)
+                    .accessibilityIdentifier("family.profile.name")
+                Picker("Роль", selection: $role) {
+                    ForEach(ParentRole.allCases, id: \.self) { role in Text(role.label).tag(role) }
+                }
+                .accessibilityIdentifier("family.profile.role")
+            } footer: {
+                Text("Имя и роль видны обоим родителям")
+            }
+            if let errorMessage {
+                Text(errorMessage).foregroundStyle(.red)
+            }
+            Button("Сохранить") {
+                do {
+                    try store.saveFamilyProfile(memberID: member.id, name: name, role: role)
+                    dismiss()
+                } catch {
+                    errorMessage = "Не удалось сохранить имя и роль. Попробуйте снова."
+                }
+            }
+            .frame(minHeight: 44)
+            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .accessibilityIdentifier("family.profile.save")
+        }
+        .navigationTitle("Имя и роль")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

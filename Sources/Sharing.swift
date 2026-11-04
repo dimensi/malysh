@@ -10,13 +10,29 @@ struct FamilyMember: Identifiable, Equatable {
     let role: String
     let status: String
     let isCurrentUser: Bool
+    let isOwner: Bool
+    let canEdit: Bool
+
+    init(id: String, name: String, role: String, status: String, isCurrentUser: Bool,
+         isOwner: Bool = false, canEdit: Bool = true)
+    {
+        self.id = id
+        self.name = name
+        self.role = role
+        self.status = status
+        self.isCurrentUser = isCurrentUser
+        self.isOwner = isOwner
+        self.canEdit = canEdit
+    }
 
     static func make(
         id: String,
         nameComponents: PersonNameComponents?,
         isOwner: Bool,
         acceptanceStatus: CKShare.ParticipantAcceptanceStatus,
-        isCurrentUser: Bool
+        isCurrentUser: Bool,
+        profile: ParentProfile? = nil,
+        canEdit: Bool = true
     ) -> FamilyMember {
         let formattedName = nameComponents.map {
             PersonNameComponentsFormatter.localizedString(from: $0, style: .default)
@@ -31,10 +47,12 @@ struct FamilyMember: Identifiable, Equatable {
         }
         return FamilyMember(
             id: id,
-            name: isCurrentUser ? "Вы" : (formattedName.isEmpty ? "Другой родитель" : formattedName),
-            role: isOwner ? "Владелец дневника" : "Родитель",
+            name: profile.flatMap { $0.name.isEmpty ? nil : $0.name } ?? formattedName,
+            role: profile?.role.label ?? ParentRole.parent.label,
             status: status,
-            isCurrentUser: isCurrentUser
+            isCurrentUser: isCurrentUser,
+            isOwner: isOwner,
+            canEdit: canEdit
         )
     }
 }
@@ -49,6 +67,7 @@ extension Persistence {
     func familySnapshot(babyID: UUID) throws -> FamilySnapshot? {
         guard let baby = try babyObject(id: babyID) else { throw Failure.missingBaby }
         guard let share = try container.fetchShares(matching: [baby.objectID])[baby.objectID] else { return nil }
+        let profiles = try babies().first { $0.id == babyID }?.parentProfiles ?? [:]
         let owner = share.owner
         let current = share.currentUserParticipant
         let isOwner: Bool = if let current {
@@ -70,12 +89,19 @@ extension Persistence {
         let members = participants.enumerated().map { index, participant in
             let participantIsOwner = index == 0
             let isCurrent = (participantIsOwner && isOwner) || (current.map { participant.isEqual($0) } ?? false)
+            // Owner is stable within this diary; other profiles use CloudKit's user identity,
+            // never participant array order, email addresses or contact names.
+            let recordName = participant.userIdentity.userRecordID?.recordName
+            let stableIdentity = recordName.flatMap { $0.isEmpty || $0 == CKCurrentUserDefaultName ? nil : $0 }
+            let identity = participantIsOwner ? "owner" : stableIdentity.map { "user-\($0)" } ?? "pending-\(index)"
             return FamilyMember.make(
-                id: participantIsOwner ? "owner" : "participant-\(index)",
+                id: identity,
                 nameComponents: participant.userIdentity.nameComponents,
                 isOwner: participantIsOwner,
                 acceptanceStatus: participant.acceptanceStatus,
-                isCurrentUser: isCurrent
+                isCurrentUser: isCurrent,
+                profile: profiles[identity],
+                canEdit: participantIsOwner || stableIdentity != nil
             )
         }
         return FamilySnapshot(isOwner: isOwner, members: members)

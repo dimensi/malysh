@@ -37,15 +37,88 @@ public enum DiaperType: String, Codable, CaseIterable, Sendable {
     }
 }
 
+public enum ParentRole: String, Codable, CaseIterable, Sendable {
+    case father, mother, parent
+
+    public var label: String {
+        switch self {
+        case .father: "Папа"
+        case .mother: "Мама"
+        case .parent: "Родитель"
+        }
+    }
+}
+
+public enum ParentProfileError: Error, LocalizedError {
+    case emptyName, memberUnavailable
+
+    public var errorDescription: String? {
+        switch self {
+        case .emptyName: "Введите имя родителя."
+        case .memberUnavailable: "Участник семьи пока недоступен. Откройте настройки снова."
+        }
+    }
+}
+
+public struct ParentProfile: Codable, Sendable, Equatable {
+    public var name: String
+    public var role: ParentRole
+    public var updatedAt: Date
+
+    public init(name: String, role: ParentRole = .parent, updatedAt: Date = Date()) {
+        self.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.role = role
+        self.updatedAt = updatedAt
+    }
+
+    private enum CodingKeys: String, CodingKey { case name, role, updatedAt }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        name = try values.decode(String.self, forKey: .name)
+        role = try values.decode(ParentRole.self, forKey: .role)
+        updatedAt = try values.decodeIfPresent(Date.self, forKey: .updatedAt) ?? .distantPast
+    }
+
+    /// Union independent parent edits; equal timestamps resolve identically on every device.
+    public static func merging(_ first: [String: Self], _ second: [String: Self]) -> [String: Self] {
+        first.merging(second) { existing, incoming in
+            if existing.updatedAt != incoming.updatedAt {
+                return existing.updatedAt > incoming.updatedAt ? existing : incoming
+            }
+            let existingKey = existing.role.rawValue + "\0" + existing.name
+            let incomingKey = incoming.role.rawValue + "\0" + incoming.name
+            return existingKey >= incomingKey ? existing : incoming
+        }
+    }
+}
+
 public struct Baby: Identifiable, Codable, Sendable, Equatable {
     public var id: UUID
     public var name: String
     public var birthDate: Date
+    public var parentProfiles: [String: ParentProfile]
 
-    public init(id: UUID = UUID(), name: String, birthDate: Date = Date()) {
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        birthDate: Date = Date(),
+        parentProfiles: [String: ParentProfile] = [:]
+    ) {
         self.id = id
         self.name = name
         self.birthDate = birthDate
+        self.parentProfiles = parentProfiles
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, name, birthDate, parentProfiles }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        name = try values.decode(String.self, forKey: .name)
+        birthDate = try values.decode(Date.self, forKey: .birthDate)
+        parentProfiles = try values.decodeIfPresent([String: ParentProfile].self, forKey: .parentProfiles) ?? [:]
     }
 }
 
