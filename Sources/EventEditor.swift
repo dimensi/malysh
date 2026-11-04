@@ -108,6 +108,17 @@ struct EventEditor: View {
                         }
                         .frame(minHeight: 44)
                         .accessibilityIdentifier("editor.delete")
+                        .confirmationDialog(
+                            "Удалить запись?",
+                            isPresented: $confirmsDeletion,
+                            titleVisibility: .visible
+                        ) {
+                            Button("Удалить запись", role: .destructive, action: delete)
+                                .accessibilityIdentifier("editor.confirm-delete")
+                            Button("Отмена", role: .cancel) {}
+                        } message: {
+                            Text("Восстановить удалённую запись не получится.")
+                        }
                     }
                 }
             }
@@ -128,13 +139,6 @@ struct EventEditor: View {
                 if let end = draft.end, end < newStart {
                     draft.end = newStart
                 }
-            }
-            .confirmationDialog("Удалить запись?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
-                Button("Удалить запись", role: .destructive, action: delete)
-                    .accessibilityIdentifier("editor.confirm-delete")
-                Button("Отмена", role: .cancel) {}
-            } message: {
-                Text("Восстановить удалённую запись не получится.")
             }
         }
     }

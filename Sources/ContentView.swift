@@ -135,6 +135,13 @@ struct ContentView: View {
                         color: Color("Feeding"),
                         id: "action.feed"
                     ) { showFeed = true }
+                        .confirmationDialog("Кормление", isPresented: $showFeed, titleVisibility: .visible) {
+                            Button("Левая грудь") { store.start(.breast, side: .left) }
+                                .accessibilityIdentifier("feed.left")
+                            Button("Правая грудь") { store.start(.breast, side: .right) }
+                                .accessibilityIdentifier("feed.right")
+                            Button("Бутылочка") { addManual(.bottle) }.accessibilityIdentifier("feed.bottle")
+                        }
                     ActionTile(
                         title: "Подгузник",
                         subtitle: "Записать смену",
@@ -142,6 +149,12 @@ struct ContentView: View {
                         color: Color("Diaper"),
                         id: "action.diaper"
                     ) { showDiaper = true }
+                        .confirmationDialog("Подгузник", isPresented: $showDiaper, titleVisibility: .visible) {
+                            ForEach(DiaperType.allCases, id: \.self) { type in
+                                Button(type.label) { store.diaper(type) }
+                                    .accessibilityIdentifier("diaper.\(type.rawValue)")
+                            }
+                        }
                     ActionTile(
                         title: "Сон",
                         subtitle: store.active
@@ -194,16 +207,6 @@ struct ContentView: View {
                 } label: { Image(systemName: "plus") }
                     .accessibilityLabel("Добавить запись за прошлое время")
                     .accessibilityIdentifier("manual.add")
-            }
-        }
-        .confirmationDialog("Кормление", isPresented: $showFeed, titleVisibility: .visible) {
-            Button("Левая грудь") { store.start(.breast, side: .left) }.accessibilityIdentifier("feed.left")
-            Button("Правая грудь") { store.start(.breast, side: .right) }.accessibilityIdentifier("feed.right")
-            Button("Бутылочка") { addManual(.bottle) }.accessibilityIdentifier("feed.bottle")
-        }
-        .confirmationDialog("Подгузник", isPresented: $showDiaper, titleVisibility: .visible) {
-            ForEach(DiaperType.allCases, id: \.self) { type in
-                Button(type.label) { store.diaper(type) }.accessibilityIdentifier("diaper.\(type.rawValue)")
             }
         }
     }
