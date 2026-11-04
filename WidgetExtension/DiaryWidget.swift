@@ -98,65 +98,65 @@ struct DiaryWidgetView: View {
         .widgetURL(WidgetRoute(.today, babyID: babyID).url)
         .containerBackground(for: .widget) {
             if family == .systemSmall, renderingMode == .fullColor {
-                Color("Feeding")
+                AppDesign.Palette.feeding
             } else {
-                Color(uiColor: .systemBackground)
+                AppDesign.Palette.cardBackground
             }
         }
     }
 
     private var small: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
             Label("Кормление", systemImage: "heart.fill")
-                .font(.caption.weight(.semibold)).widgetAccentable()
+                .font(AppDesign.Typography.note.weight(.semibold)).widgetAccentable()
             Spacer(minLength: 0)
-            feedElapsed.font(.title2.bold()).minimumScaleFactor(0.65)
-            feedDetail.font(.caption)
+            feedElapsed.font(AppDesign.Typography.itemTitle.bold())
+            feedDetail.font(AppDesign.Typography.note)
         }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 
     private var medium: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppDesign.Spacing.row) {
             small.frame(maxWidth: .infinity)
-            VStack(alignment: .leading, spacing: 4) {
-                shortcut("Грудь", symbol: "heart.fill", destination: .breast, asset: "Feeding")
-                shortcut("Подгузник", symbol: "drop.fill", destination: .diaper, asset: "Diaper")
-                shortcut("Сон", symbol: "moon.zzz.fill", destination: .sleep, asset: "Sleep")
-            }.font(.caption.weight(.semibold))
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+                shortcut("Грудь", symbol: "heart.fill", destination: .breast, kind: .breast)
+                shortcut("Подгузник", symbol: "drop.fill", destination: .diaper, kind: .diaper)
+                shortcut("Сон", symbol: "moon.zzz.fill", destination: .sleep, kind: .sleep)
+            }.font(AppDesign.Typography.note.weight(.semibold))
         }
     }
 
     private var large: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.cardContent) {
             HStack {
-                Text("Сегодня").font(.headline)
+                Text("Сегодня").font(AppDesign.Typography.itemTitle)
                 Spacer()
-                Text(entry.date, format: .dateTime.day().month()).font(.caption)
+                Text(entry.date, format: .dateTime.day().month()).font(AppDesign.Typography.note)
             }
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: AppDesign.Spacing.row) {
                 metric("Кормлений", value: isReady ? String(summary?.feeds ?? 0) : "—", kind: .breast)
                 metric("Мокрых", value: isReady ? String(summary?.wetDiapers ?? 0) : "—", kind: .diaper)
                 metric("Сон", value: isReady ? duration(summary?.sleepSeconds ?? 0) : "—", kind: .sleep)
             }
             Divider()
-            HStack(spacing: 8) {
+            HStack(spacing: AppDesign.Spacing.group) {
                 Image(systemName: "heart.fill").widgetAccentable()
-                feedElapsed.font(.subheadline.weight(.semibold))
+                feedElapsed.font(AppDesign.Typography.detail.weight(.semibold))
                 Spacer(minLength: 0)
             }
-            Text("Последние события").font(.subheadline.weight(.semibold))
+            Text("Последние события").font(AppDesign.Typography.detail.weight(.semibold))
             if let events = summary?.recentEvents, !events.isEmpty {
                 ForEach(events) { event in
-                    HStack(spacing: 8) {
+                    HStack(spacing: AppDesign.Spacing.group) {
                         Image(systemName: symbol(event.kind)).frame(width: 20).widgetAccentable()
                         Text(event.kind.label).lineLimit(1)
                         Spacer(minLength: 4)
                         Text(event.start, format: .dateTime.hour().minute()).monospacedDigit()
-                    }.font(.caption)
+                    }.font(AppDesign.Typography.note)
                 }
             } else {
                 Text(isReady ? "Пока нет завершённых событий" : "Откройте «Малыш», чтобы увидеть дневник")
-                    .font(.caption)
+                    .font(AppDesign.Typography.note)
             }
             Spacer(minLength: 0)
             if let generatedAt = summary?.generatedAt {
@@ -168,15 +168,15 @@ struct DiaryWidgetView: View {
 
     private var rectangular: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Label("Кормление", systemImage: "heart.fill").font(.caption.weight(.semibold))
-            feedElapsed.font(.headline).minimumScaleFactor(0.7)
-            feedDetail.font(.caption)
+            Label("Кормление", systemImage: "heart.fill").font(AppDesign.Typography.note.weight(.semibold))
+            feedElapsed.font(AppDesign.Typography.itemTitle)
+            feedDetail.font(AppDesign.Typography.note)
         }
     }
 
     private var circular: some View {
         VStack(spacing: 1) {
-            Image(systemName: "drop.fill").font(.caption).widgetAccentable()
+            Image(systemName: "drop.fill").font(AppDesign.Typography.note).widgetAccentable()
             Text(isReady ? String(summary?.wetDiapers ?? 0) : "—").font(.title2.bold()).monospacedDigit()
             Text("сегодня").font(.caption2)
         }
@@ -197,7 +197,7 @@ struct DiaryWidgetView: View {
 
     @ViewBuilder private var feedElapsed: some View {
         if let feed = summary?.lastFeeding {
-            Text("\(feed.end, style: .relative) назад").monospacedDigit().lineLimit(1)
+            Text("\(feed.end, style: .relative) назад").monospacedDigit().lineLimit(2)
         } else {
             Text(isReady ? "Нет кормлений" : "Нет данных").lineLimit(2)
         }
@@ -213,27 +213,28 @@ struct DiaryWidgetView: View {
     }
 
     private func shortcut(_ title: String, symbol: String, destination: WidgetRoute.Destination,
-                          asset: String) -> some View
+                          kind: EventKind) -> some View
     {
         Link(destination: WidgetRoute(destination, babyID: babyID).url) {
             Label { Text(title) } icon: {
-                Image(systemName: symbol).font(.caption)
-                    .foregroundStyle(Color.primary)
+                Image(systemName: symbol).font(AppDesign.Typography.note)
+                    .foregroundStyle(AppDesign.Palette.primaryText)
                     .frame(width: 26, height: 26)
-                    .background(renderingMode == .fullColor ? Color(asset) : .clear, in: Circle())
+                    .background(renderingMode == .fullColor ? color(kind) : .clear, in: Circle())
             }.frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
-                .foregroundStyle(Color.primary)
+                .contentShape(Rectangle())
+                .foregroundStyle(AppDesign.Palette.primaryText)
                 .widgetAccentable()
         }.accessibilityLabel("Открыть: " + title)
     }
 
     private func metric(_ title: String, value: String, kind: EventKind) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Image(systemName: symbol(kind)).font(.caption)
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+            Image(systemName: symbol(kind)).font(AppDesign.Typography.note)
                 .frame(width: 26, height: 26)
-                .background(renderingMode == .fullColor ? Color(asset(kind)) : .clear, in: Circle())
+                .background(renderingMode == .fullColor ? color(kind) : .clear, in: Circle())
                 .widgetAccentable()
-            Text(value).font(.title3.bold()).monospacedDigit().lineLimit(1).minimumScaleFactor(0.7)
+            Text(value).font(.title3.bold()).monospacedDigit().lineLimit(2)
             Text(title).font(.caption2)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -252,11 +253,11 @@ struct DiaryWidgetView: View {
         }
     }
 
-    private func asset(_ kind: EventKind) -> String {
+    private func color(_ kind: EventKind) -> Color {
         switch kind {
-        case .breast, .bottle: "Feeding"
-        case .diaper: "Diaper"
-        case .sleep: "Sleep"
+        case .breast, .bottle: AppDesign.Palette.feeding
+        case .diaper: AppDesign.Palette.diaper
+        case .sleep: AppDesign.Palette.sleep
         }
     }
 }

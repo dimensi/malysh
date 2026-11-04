@@ -11,6 +11,7 @@ final class AppStore {
     let persistence: Persistence
     private let activityCoordinator: (any CareActivityCoordinating)?
     private let widgetSnapshotStore: WidgetSnapshotStore
+    private let reloadsWidgetTimelines: Bool
     private var widgetRefreshObservers: Set<AnyCancellable> = []
     var allowsActivityStart: () -> Bool = { false }
     private var loading = false
@@ -119,6 +120,7 @@ final class AppStore {
                 publishesWidgets = true
             }
         #endif
+        reloadsWidgetTimelines = publishesWidgets
         self.widgetSnapshotStore = widgetSnapshotStore ?? (publishesWidgets
             ? WidgetSnapshotStore() : WidgetSnapshotStore(directory: nil))
         if let injectedPersistence {
@@ -160,7 +162,7 @@ final class AppStore {
     private func refreshWidgetSnapshot() {
         // A failed cache write must never fail a successful diary save.
         do {
-            if try widgetSnapshotStore.write(WidgetSnapshot(baby: baby, events: events)) {
+            if try widgetSnapshotStore.write(WidgetSnapshot(baby: baby, events: events)), reloadsWidgetTimelines {
                 WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotStore.widgetKind)
             }
         } catch {

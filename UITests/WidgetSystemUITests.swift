@@ -147,7 +147,14 @@ final class WidgetSystemUITests: XCTestCase {
             XCTFail("Installed medium widget has no accessible " + label + " shortcut")
             return
         }
-        shortcut.tap()
+        // Tap the observed title outside the 26-point glyph to prove the whole row links.
+        let title = springboard.staticTexts[label].firstMatch
+        guard title.waitForExistence(timeout: 5) else {
+            attach(springboard, stage: "Ordinary widget — missing tappable title " + label)
+            XCTFail("Installed shortcut must expose its visible title outside the glyph")
+            return
+        }
+        title.tap()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
     }
 

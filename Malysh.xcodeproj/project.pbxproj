@@ -31,9 +31,11 @@
 		58EF15D6CF6C765AF6023572 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D8997C83101EAF0BB70AF5B /* WidgetSnapshot.swift */; };
 		5AA41CD247C9B1BE457ED211 /* CareLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 476759839648658E6C4E8EDD /* CareLiveActivityWidget.swift */; };
 		5EF90387E386D7A3E1BECAF5 /* CareActivityRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC026ED73F1E5888713E7176 /* CareActivityRuntime.swift */; };
+		6B55CD9DFB2C58A44771BADA /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE7445CB125A24CB62679A8 /* DesignSystem.swift */; };
 		7025B0FDC1D339B34AC1BCA1 /* WidgetSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE10751315B4204C1A49AB /* WidgetSnapshotStore.swift */; };
 		7664046950551F14BE43BEE1 /* DiaryWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3196271A6AFAD4C78051CC /* DiaryWidget.swift */; };
 		7855B56CF4539FCE44E201C1 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D8997C83101EAF0BB70AF5B /* WidgetSnapshot.swift */; };
+		7B1BDEEEB2EB3316A613FF33 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE7445CB125A24CB62679A8 /* DesignSystem.swift */; };
 		80919B36A653A1958D132EE2 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44DC826FECF34A61D2341DF2 /* SettingsView.swift */; };
 		870006EE96AB31B6BF0DD86E /* CareActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 754529FCC0E07F606825A2B8 /* CareActivityAttributes.swift */; };
 		891A56698AC608E53300989F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3EC1589C84F4006C41A0DDA4 /* Assets.xcassets */; };
@@ -643,6 +645,7 @@
 			files = (
 				D505360A7AEBEC59100C87E6 /* TuistAssets+MalyshWidgets.swift in Sources */,
 				228E388971D3954E88EC9311 /* TuistBundle+MalyshWidgets.swift in Sources */,
+				6B55CD9DFB2C58A44771BADA /* DesignSystem.swift in Sources */,
 				C4DCD121F98897D5E6D67BED /* Domain.swift in Sources */,
 				AC51A80628E140BB694B5B9F /* CareActivityAttributes.swift in Sources */,
 				A52AB186DDDC5DFF3BB920C6 /* CareActivityIntents.swift in Sources */,
@@ -692,6 +695,7 @@
 			files = (
 				E2ED8596F8C0450E43ADFD1D /* TuistAssets+MalyshWidgetTests.swift in Sources */,
 				FC27DD3F62BE4469F5D67BB6 /* TuistBundle+MalyshWidgetTests.swift in Sources */,
+				7B1BDEEEB2EB3316A613FF33 /* DesignSystem.swift in Sources */,
 				3E235F1E13D9DFF70F9A76FB /* Domain.swift in Sources */,
 				F2F164CF48CA52CD4CBEF1BB /* WidgetRoute.swift in Sources */,
 				93B8C3EAB2D7B9487C9A4DE1 /* WidgetSnapshot.swift in Sources */,
