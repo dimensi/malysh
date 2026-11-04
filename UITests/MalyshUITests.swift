@@ -49,8 +49,13 @@ final class MalyshUITests: XCTestCase {
                 return
             }
             let scrollView = app.scrollViews.firstMatch
-            guard scrollView.exists else { return }
-            scrollView.swipeUp()
+            if scrollView.exists {
+                scrollView.swipeUp()
+            } else if app.collectionViews.firstMatch.exists {
+                app.collectionViews.firstMatch.swipeUp()
+            } else {
+                app.swipeUp()
+            }
         }
     }
 
@@ -156,6 +161,51 @@ final class MalyshUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["action.feed"].waitForExistence(timeout: 10))
         capture(app, name: "Сегодня — светлая тема")
+    }
+
+    func testFamilySettingsLightWithLargeText() {
+        assertFamilySettings(appearance: "--light-mode", screenshot: "Семья — светлая тема и крупный текст")
+    }
+
+    func testFamilySettingsDarkWithLargeText() {
+        assertFamilySettings(appearance: "--dark-mode", screenshot: "Семья — тёмная тема и крупный текст")
+    }
+
+    /// A local rendering fixture: these checks do not exercise CloudKit delivery or acceptance.
+    private func assertFamilySettings(appearance: String, screenshot: String) {
+        let app = launch(appearance: ["--family-fixture", "--large-text", appearance])
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "family.header").firstMatch.exists)
+        tap(app, id: "settings.open")
+        XCTAssertTrue(app.navigationBars["Настройки"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.textFields["baby-name"].value as? String, "Семейный малыш")
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "diary-picker").firstMatch.exists)
+
+        let status = app.staticTexts.matching(identifier: "family.status").firstMatch
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        reveal(status, in: app)
+        XCTAssertTrue(status.label.contains("Общий дневник"))
+
+        let owner = app.descendants(matching: .any).matching(identifier: "family.member.owner").firstMatch
+        XCTAssertTrue(owner.waitForExistence(timeout: 5))
+        reveal(owner, in: app)
+        XCTAssertTrue(owner.isHittable)
+        XCTAssertTrue(owner.label.contains("Другой родитель"))
+        XCTAssertTrue(owner.label.contains("Владелец дневника"))
+        XCTAssertTrue(owner.label.contains("В семье"))
+
+        let participant = app.descendants(matching: .any).matching(identifier: "family.member.participant-1").firstMatch
+        XCTAssertTrue(participant.waitForExistence(timeout: 5))
+        reveal(participant, in: app)
+        XCTAssertTrue(participant.isHittable)
+        XCTAssertTrue(participant.label.contains("Вы"))
+        XCTAssertTrue(participant.label.contains("Родитель"))
+        XCTAssertTrue(participant.label.contains("В семье"))
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "family.loading").firstMatch.exists)
+        capture(app, name: screenshot)
+
+        let access = app.buttons["invite-family"]
+        reveal(access, in: app)
+        XCTAssertTrue(access.label.contains("Управлять доступом"))
     }
 
     func testManualSleepAppearsInHistory() {

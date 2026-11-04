@@ -7,6 +7,8 @@ import SwiftUI
 final class AppStore {
     let persistence: Persistence
     var babies: [Baby] = []
+    var visibleBabies: [Baby] = []
+    var family: FamilySnapshot?
     var selectedID: UUID?
     var events: [CareEvent] = []
     var ready = false
@@ -18,8 +20,21 @@ final class AppStore {
     private var cloudAccountAvailable = false
     var pendingShare: CKShare?
     private var pendingAcceptedShareID: CKRecord.ID?
+    #if DEBUG
+        private var testingFamily: FamilySnapshot?
+    #endif
     var baby: Baby? {
         babies.first { $0.id == selectedID }
+    }
+
+    var isSharedDiary: Bool {
+        guard let selectedID else { return false }
+        if family != nil {
+            return true
+        }
+        guard let sharedStore = persistence.sharedStore,
+              let object = try? persistence.babyObject(id: selectedID) else { return false }
+        return object.objectID.persistentStore == sharedStore
     }
 
     var active: [CareEvent] {
@@ -126,8 +141,15 @@ final class AppStore {
                 try persistence.saveBaby(baby)
                 babies = [baby]
             }
+            #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
+                   ProcessInfo.processInfo.arguments.contains("--family-fixture")
+                {
+                    try prepareFamilyFixture()
+                }
+            #endif
             let saved = UserDefaults.standard.string(forKey: "selectedBaby").flatMap(UUID.init(uuidString:))
-            selectedID = babies.first(where: { $0.id == saved })?.id ?? babies.first?.id
+            selectedID = babies.first(where: { $0.id == saved })?.id
             try reload()
             ready = true
             if let cloudError = persistence.cloudStartupError {
@@ -144,11 +166,64 @@ final class AppStore {
 
     func reload() throws {
         babies = try persistence.babies()
-        if !babies.contains(where: { $0.id == selectedID }) {
-            selectedID = babies.first?.id
-        }
+        try updateVisibleBabiesAndSelection()
         try selectAcceptedSharedBabyIfAvailable()
         events = try selectedID.map { try persistence.events(babyID: $0).sorted { $0.start > $1.start } } ?? []
+        family = selectedID.flatMap { try? persistence.familySnapshot(babyID: $0) }
+        #if DEBUG
+            if let testingFamily {
+                family = testingFamily
+            }
+        #endif
+    }
+
+    #if DEBUG
+        /// Uses only the isolated UI-testing store; no iCloud connection or real identities.
+        private func prepareFamilyFixture() throws {
+            guard let sharedStore = persistence.sharedStore else { throw Persistence.Failure.missingStore }
+            let existing = try persistence.babies().contains { baby in
+                try persistence.babyObject(id: baby.id)?.objectID.persistentStore == sharedStore
+            }
+            if !existing {
+                let baby = Baby(name: "Семейный малыш")
+                let context = persistence.container.viewContext
+                let object = NSEntityDescription.insertNewObject(forEntityName: "BabyRecord", into: context)
+                context.assign(object, to: sharedStore)
+                object.setValue(baby.id, forKey: "id")
+                object.setValue(baby.name, forKey: "name")
+                object.setValue(baby.birthDate, forKey: "birthDate")
+                try object.setValue(JSONEncoder().encode(baby), forKey: "payload")
+                try context.save()
+            }
+            testingFamily = FamilySnapshot(isOwner: false, members: [
+                FamilyMember(id: "owner", name: "Другой родитель", role: "Владелец дневника",
+                             status: "В семье", isCurrentUser: false),
+                FamilyMember(id: "participant-1", name: "Вы", role: "Родитель", status: "В семье", isCurrentUser: true),
+            ])
+        }
+    #endif
+
+    private func updateVisibleBabiesAndSelection() throws {
+        let sharedStore = persistence.sharedStore
+        let sharedIDs = try Set(babies.compactMap { baby -> UUID? in
+            guard let sharedStore, let object = try persistence.babyObject(id: baby.id),
+                  object.objectID.persistentStore == sharedStore else { return nil }
+            return baby.id
+        })
+        visibleBabies = try babies.filter { baby in
+            guard !sharedIDs.isEmpty, !sharedIDs.contains(baby.id), baby.name == "Малыш" else { return true }
+            // An owned share is meaningful even before its first care event.
+            if (try? persistence.familySnapshot(babyID: baby.id)) != nil {
+                return true
+            }
+            return try !persistence.events(babyID: baby.id).isEmpty
+        }
+        if !visibleBabies.contains(where: { $0.id == selectedID }) {
+            selectedID = visibleBabies.first(where: { sharedIDs.contains($0.id) })?.id ?? visibleBabies.first?.id
+        }
+        if let selectedID {
+            UserDefaults.standard.set(selectedID.uuidString, forKey: "selectedBaby")
+        }
     }
 
     private func selectAcceptedSharedBabyIfAvailable() throws {

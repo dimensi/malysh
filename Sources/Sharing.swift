@@ -3,7 +3,84 @@
 import SwiftUI
 import UIKit
 
+/// Presentation-only identities; never persist this snapshot or display its internal IDs.
+struct FamilyMember: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let role: String
+    let status: String
+    let isCurrentUser: Bool
+
+    static func make(
+        id: String,
+        nameComponents: PersonNameComponents?,
+        isOwner: Bool,
+        acceptanceStatus: CKShare.ParticipantAcceptanceStatus,
+        isCurrentUser: Bool
+    ) -> FamilyMember {
+        let formattedName = nameComponents.map {
+            PersonNameComponentsFormatter.localizedString(from: $0, style: .default)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        } ?? ""
+        let status = switch acceptanceStatus {
+        case .accepted: "В семье"
+        case .pending: "Приглашение отправлено"
+        case .removed: "Доступ прекращён"
+        case .unknown: "Статус пока неизвестен"
+        @unknown default: "Статус пока неизвестен"
+        }
+        return FamilyMember(
+            id: id,
+            name: isCurrentUser ? "Вы" : (formattedName.isEmpty ? "Другой родитель" : formattedName),
+            role: isOwner ? "Владелец дневника" : "Родитель",
+            status: status,
+            isCurrentUser: isCurrentUser
+        )
+    }
+}
+
+struct FamilySnapshot {
+    let isOwner: Bool
+    let members: [FamilyMember]
+}
+
 extension Persistence {
+    /// Reads Core Data's locally maintained share, including while offline.
+    func familySnapshot(babyID: UUID) throws -> FamilySnapshot? {
+        guard let baby = try babyObject(id: babyID) else { throw Failure.missingBaby }
+        guard let share = try container.fetchShares(matching: [baby.objectID])[baby.objectID] else { return nil }
+        let owner = share.owner
+        let current = share.currentUserParticipant
+        let isOwner: Bool = if let current {
+            current.role == .owner || current.isEqual(owner)
+        } else {
+            // A share in this user's private store belongs to them. A shared store
+            // proves they are a participant, but does not identify which participant.
+            privateStore != nil && baby.objectID.persistentStore == privateStore
+        }
+        var participants = [owner]
+        for participant in share.participants {
+            guard participant.role != .owner,
+                  !participants.contains(where: { $0.isEqual(participant) }) else { continue }
+            participants.append(participant)
+        }
+        if let current, !isOwner, !participants.contains(where: { $0.isEqual(current) }) {
+            participants.append(current)
+        }
+        let members = participants.enumerated().map { index, participant in
+            let participantIsOwner = index == 0
+            let isCurrent = (participantIsOwner && isOwner) || (current.map { participant.isEqual($0) } ?? false)
+            return FamilyMember.make(
+                id: participantIsOwner ? "owner" : "participant-\(index)",
+                nameComponents: participant.userIdentity.nameComponents,
+                isOwner: participantIsOwner,
+                acceptanceStatus: participant.acceptanceStatus,
+                isCurrentUser: isCurrent
+            )
+        }
+        return FamilySnapshot(isOwner: isOwner, members: members)
+    }
+
     func share(babyID: UUID) async throws -> CKShare {
         guard cloudEnabled else { throw Failure.cloudDisabled }
         guard let baby = try babyObject(id: babyID) else { throw Failure.missingBaby }

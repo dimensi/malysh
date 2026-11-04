@@ -1,8 +1,78 @@
+import CoreData
 @testable import Malysh
 import XCTest
 
 @MainActor
 final class AppStoreTests: XCTestCase {
+    private func insertSharedBaby(_ baby: Baby, persistence: Persistence) throws {
+        let context = persistence.container.viewContext
+        let object = NSEntityDescription.insertNewObject(forEntityName: "BabyRecord", into: context)
+        try context.assign(object, to: XCTUnwrap(persistence.sharedStore))
+        object.setValue(baby.id, forKey: "id")
+        object.setValue(baby.name, forKey: "name")
+        object.setValue(baby.birthDate, forKey: "birthDate")
+        try object.setValue(JSONEncoder().encode(baby), forKey: "payload")
+        try context.save()
+    }
+
+    func testSharedDiaryHidesOnlyEmptyDefaultAndPersistsSelection() async throws {
+        let previous = UserDefaults.standard.object(forKey: "selectedBaby")
+        defer { UserDefaults.standard.set(previous, forKey: "selectedBaby") }
+        let persistence = Persistence(inMemory: true)
+        let store = AppStore(persistence: persistence)
+        await store.load()
+        let placeholder = try XCTUnwrap(store.baby)
+        let shared = Baby(name: "Семейный малыш")
+        try insertSharedBaby(shared, persistence: persistence)
+        try store.reload()
+        XCTAssertEqual(store.visibleBabies.map(\.id), [shared.id])
+        XCTAssertEqual(store.selectedID, shared.id)
+        XCTAssertTrue(store.isSharedDiary)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "selectedBaby"), shared.id.uuidString)
+        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [placeholder.id, shared.id])
+
+        let relaunched = AppStore(persistence: persistence)
+        await relaunched.load()
+        XCTAssertEqual(relaunched.visibleBabies.map(\.id), [shared.id])
+        XCTAssertEqual(relaunched.selectedID, shared.id)
+        XCTAssertTrue(relaunched.isSharedDiary)
+    }
+
+    func testSharedDiaryPreservesLocalRecordsAndExplicitSelection() async throws {
+        let previous = UserDefaults.standard.object(forKey: "selectedBaby")
+        defer { UserDefaults.standard.set(previous, forKey: "selectedBaby") }
+        let persistence = Persistence(inMemory: true)
+        let store = AppStore(persistence: persistence)
+        await store.load()
+        let local = try XCTUnwrap(store.baby)
+        store.diaper(.mixed)
+        let namedLocal = Baby(name: "Личный малыш")
+        try persistence.saveBaby(namedLocal)
+        let shared = Baby(name: "Семейный малыш")
+        try insertSharedBaby(shared, persistence: persistence)
+        try store.reload()
+        XCTAssertEqual(Set(store.visibleBabies.map(\.id)), [local.id, namedLocal.id, shared.id])
+        XCTAssertEqual(store.selectedID, local.id)
+        XCTAssertEqual(store.events.count, 1)
+        XCTAssertFalse(store.isSharedDiary)
+        store.select(namedLocal.id)
+
+        let relaunched = AppStore(persistence: persistence)
+        await relaunched.load()
+        XCTAssertEqual(relaunched.selectedID, namedLocal.id)
+        XCTAssertEqual(relaunched.visibleBabies.count, 3)
+    }
+
+    func testDefaultBabyRemainsVisibleWithoutSharedDiary() async {
+        let persistence = Persistence(inMemory: true)
+        let store = AppStore(persistence: persistence)
+        await store.load()
+        XCTAssertEqual(store.visibleBabies, store.babies)
+        XCTAssertEqual(store.visibleBabies.count, 1)
+        XCTAssertEqual(store.baby?.name, "Малыш")
+        XCTAssertFalse(store.isSharedDiary)
+    }
+
     func testDisabledCloudExplainsHowToAcceptInvitation() {
         let message = CloudFailure.message(for: Persistence.Failure.cloudDisabled)
         XCTAssertTrue(message.contains("Включите iCloud"))

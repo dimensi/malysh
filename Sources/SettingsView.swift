@@ -13,7 +13,7 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Профиль малыша") {
-                    if store.babies.count > 1 {
+                    if store.visibleBabies.count > 1 {
                         Picker(
                             "Дневник",
                             selection: Binding(get: { store.selectedID }, set: {
@@ -22,8 +22,9 @@ struct SettingsView: View {
                                 }
                             })
                         ) {
-                            ForEach(store.babies) { baby in Text(baby.name).tag(Optional(baby.id)) }
+                            ForEach(store.visibleBabies) { baby in Text(baby.name).tag(Optional(baby.id)) }
                         }
+                        .accessibilityIdentifier("diary-picker")
                     }
                     TextField("Имя малыша", text: $babyName)
                         .textContentType(.givenName)
@@ -37,6 +38,7 @@ struct SettingsView: View {
                         Label("Имя сохранено", systemImage: "checkmark.circle").foregroundStyle(.green)
                     }
                 }
+                familySection
                 Section {
                     Toggle("Синхронизация через iCloud", isOn: $cloudEnabled)
                         .accessibilityIdentifier("cloud-toggle")
@@ -49,26 +51,6 @@ struct SettingsView: View {
                     Text(
                         "Дневник хранится на этом iPhone. iCloud синхронизирует его между устройствами. "
                             + "После изменения настройки перезапустите приложение."
-                    )
-                }
-                Section {
-                    Button {
-                        Task { await store.invite() }
-                    } label: {
-                        HStack {
-                            Label("Пригласить близкого", systemImage: "person.badge.plus")
-                            Spacer()
-                            if store.cloudBusy {
-                                ProgressView()
-                            }
-                        }
-                    }
-                    .disabled(!store.cloudSharingReady || !cloudEnabled || store.cloudBusy || store.baby == nil)
-                    .accessibilityIdentifier("invite-family")
-                } header: { Text("Общий дневник") } footer: {
-                    Text(
-                        "Близкий сможет читать и добавлять записи выбранного малыша. "
-                            + "Для приглашения нужен iCloud у обоих участников."
                     )
                 }
             }
@@ -97,6 +79,71 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var familySection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                Label(
+                    store.isSharedDiary ? "Общий дневник" : "Дневник на этом iPhone",
+                    systemImage: store.isSharedDiary ? "person.2.fill" : "iphone"
+                )
+                .font(.headline)
+                .accessibilityIdentifier("family.status")
+                Text(store.isSharedDiary
+                    ? "Записи этого малыша доступны участникам семьи и синхронизируются через iCloud."
+                    : "Пригласите второго родителя, чтобы вместе вести дневник малыша.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let family = store.family {
+                ForEach(family.members) { member in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(member.isCurrentUser && member.name != "Вы" ? "\(member.name) (вы)" : member.name)
+                            .font(.body.weight(.medium))
+                        Text(member.role)
+                            .font(.subheadline)
+                        Text(member.status)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("family.member.\(member.id)")
+                }
+            } else if store.isSharedDiary {
+                Label("Синхронизируем список участников", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("family.loading")
+            }
+            Button {
+                Task { await store.invite() }
+            } label: {
+                HStack {
+                    Label(
+                        store.family != nil ? "Управлять доступом" : "Пригласить второго родителя",
+                        systemImage: store.family != nil ? "person.2.badge.gearshape" : "person.badge.plus"
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    if store.cloudBusy {
+                        ProgressView()
+                    }
+                }
+                .frame(minHeight: 44)
+            }
+            .disabled(!store.cloudSharingReady || !cloudEnabled || store.cloudBusy || store.baby == nil)
+            .accessibilityIdentifier("invite-family")
+        } header: {
+            Text("Семья")
+        } footer: {
+            Text(
+                "Для общего дневника нужен iCloud у обоих родителей. Приглашение даёт доступ только к выбранному профилю малыша."
+            )
         }
     }
 
