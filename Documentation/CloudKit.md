@@ -2,7 +2,7 @@
 
 ## Подписание и контейнер
 
-Для подписанной сборки и полноценной проверки нужны платная Apple Developer Program, доступ к команде разработчика и два физических iPhone с iOS 17 или новее. Назначьте приложению свою команду и зарегистрируйте заданный Bundle ID `dev.dimensi.malysh` в настройках проекта. Зарегистрируйте контейнер `iCloud.dev.dimensi.malysh`, разрешите его для App ID и включите возможности iCloud / CloudKit и Background Modes / Remote notifications. Обновите provisioning profiles после изменения возможностей.
+Для подписанной сборки и полноценной проверки нужны платная Apple Developer Program, доступ к команде разработчика и два физических iPhone с iOS 26 или новее. Назначьте приложению свою команду и зарегистрируйте заданный Bundle ID `dev.dimensi.malysh` в настройках проекта. Зарегистрируйте контейнер `iCloud.dev.dimensi.malysh`, разрешите его для App ID и включите возможности iCloud / CloudKit и Background Modes / Remote notifications. Обновите provisioning profiles после изменения возможностей.
 
 Проверьте, что подписанная сборка содержит entitlement `com.apple.developer.icloud-container-identifiers` с `iCloud.dev.dimensi.malysh`, сервис `CloudKit` и корректное значение `com.apple.developer.icloud-container-environment`. Сборки разработки должны использовать Development, а распространяемые сборки — Production. В проекте значение задано через `$(CLOUDKIT_ENVIRONMENT)`: Debug → Development, Release → Production. APNs сохраняет исходную настройку development; при экспорте для распространения Xcode формирует подпись по distribution-профилю. Подписание и provisioning profile должны разрешать выбранную среду. Одного изменения файла недостаточно без настройки Apple Developer.
 

@@ -108,3 +108,10 @@ App Store Connect API подтвердил доступность **1.0.5 (1)** 
 App Store Connect API с фильтром версии независимо подтвердил `processingState=VALID`, `internalBuildState=IN_BETA_TESTING`, `usesNonExemptEncryption=false`, назначение группе `parents` и её `hasAccessToAllBuilds=true`. Это подтверждает полный путь от тега до готовой внутренней TestFlight-сборки. Существующее приглашение CloudKit и записи не изменяются обновлением приложения.
 
 После успешной загрузки удалены созданные для настройки локальные копии `.p12`, временный пароль экспорта и JSON-копия API-ключа. Исходный пользовательский `.p8`, сертификаты Keychain и рабочие provisioning profiles сохранены. Материалы подписи в артефакты GitHub не включались; секреты доступны только через GitHub Secrets.
+
+
+## Минимальная система iOS 26 — 4 ноября 2026
+
+Минимальная версия приложения и обеих тестовых целей поднята до **iOS 26.0**. Локальная проверка и CI выбирают доступный iPhone Simulator с самой ранней установленной версией iOS не ниже 26; явный DESTINATION в локальном скрипте сохраняется. Fastlane дополнительно проверяет MinimumOSVersion=26.0 в подписанном архиве до загрузки.
+
+Полный локальный прогон: **35/35** (29 unit + 6 UI), 0 ошибок и пропусков, без runtime warnings, iPhone 18 Pro / arm64 / iOS Simulator 27.0 (24A434). Результат: `Artifacts/TestFlightSetup/IOS26MinimumTests.xcresult`. В собранном приложении подтверждён MinimumOSVersion=26.0; SDK 27.2. SwiftFormat, SwiftLint strict, actionlint и проверки синтаксиса прошли. Исторические результаты на iOS 18.6 выше относятся к прежним выпускам и сохранены без изменений.

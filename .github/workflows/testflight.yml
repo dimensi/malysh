@@ -58,16 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p Artifacts
-          SIMULATOR_ID="$(xcrun simctl list devices available -j | python3 -c '
-          import json, sys
-          data = json.load(sys.stdin)
-          candidates = [device for runtime, devices in data["devices"].items()
-                        if "iOS" in runtime for device in devices
-                        if device.get("isAvailable") and device["name"].startswith("iPhone")]
-          if not candidates:
-              sys.exit("No available iPhone simulator")
-          print(candidates[0]["udid"])
-          ')"
+          SIMULATOR_ID="$(xcrun simctl list devices available -j | python3 Scripts/simulator-id.py)"
           xcodebuild \
             -workspace Malysh.xcworkspace \
             -scheme Malysh \

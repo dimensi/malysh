@@ -4,7 +4,10 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
-DESTINATION="${DESTINATION:-platform=iOS Simulator,name=iPhone 16 Pro}"
+if [[ -z "${DESTINATION:-}" ]]; then
+    SIMULATOR_ID="$(xcrun simctl list devices available -j | python3 Scripts/simulator-id.py)"
+    DESTINATION="platform=iOS Simulator,id=$SIMULATOR_ID"
+fi
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-DerivedData}"
 RESULT_BUNDLE_PATH="${RESULT_BUNDLE_PATH:-Artifacts/Tests.xcresult}"
 
