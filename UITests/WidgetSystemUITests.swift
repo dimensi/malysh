@@ -86,7 +86,7 @@ final class WidgetSystemUITests: XCTestCase {
         XCTAssertTrue(timers(app).firstMatch.waitForExistence(timeout: 5))
         let timerID = timers(app).firstMatch.identifier
         _ = home()
-        attach(springboard, stage: "Ordinary widget — Home widget alongside running sleep Live Activity")
+        attach(springboard, stage: "Ordinary widget — Home widget while sleep timer is active")
         openShortcut("Сон", springboard: springboard, app: app)
         XCTAssertTrue(timers(app).firstMatch.waitForExistence(timeout: 5))
         XCTAssertEqual(timers(app).count, 1)
