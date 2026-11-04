@@ -1,0 +1,27 @@
+# Local builds, databases and reports
+DerivedData/
+DeviceValidation/
+.build/
+Tuist/.build/
+Artifacts/
+*.xcresult/
+*.xcarchive/
+*.ipa
+*.zip
+*.sqlite
+*.sqlite-*
+
+# Signing material and local environment
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.p8
+*.key
+.env
+.env.*
+!.env.example
+
+# Xcode user state and macOS files
+xcuserdata/
+*.xcuserstate
+.DS_Store

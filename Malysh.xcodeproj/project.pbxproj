@@ -1,0 +1,789 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		EE4EEDDF946B0D7521FBAD72 /* CloudFailureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9853A4EBDA30D61756055C5 /* CloudFailureTests.swift */; };
+		7BA41CDB76516340C46E279A /* CloudFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94312DA0CC72E421C39FE40D /* CloudFailure.swift */; };
+		067E7D5BBDA60231BD35C71B /* Domain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */; };
+		09C5C8A5DC48FF563D2E37DA /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298DBC1D5993065C443496CB /* PersistenceTests.swift */; };
+		0FE6FE4CF9713709385F99DF /* Malysh.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 226833D8083308456F270E4A /* Malysh.xcdatamodeld */; };
+		4B5FF6B389F9108A573AF2FE /* MalyshUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BA1A613F665DF51301DE63B /* MalyshUITests.swift */; };
+		80919B36A653A1958D132EE2 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44DC826FECF34A61D2341DF2 /* SettingsView.swift */; };
+		954894A9AEA2163B02AD6E15 /* AppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C111135A85BE95B43D4B2D1E /* AppStoreTests.swift */; };
+		968DC1846F5F47343910AE58 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4210B00AFA4D4AF6758D41C2 /* ContentView.swift */; };
+		9761D7F5D866652F67387C29 /* TuistBundle+Malysh.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA01728ECAE9C538E98ADFE2 /* TuistBundle+Malysh.swift */; };
+		976CF09E6A2DFC1AF66EB399 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3EC1589C84F4006C41A0DDA4 /* Assets.xcassets */; };
+		9FE1D2A66266DA19DC36E444 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */; };
+		B7163E483965FD4D0588C9C2 /* MalyshApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 163EA23D70ABAF9E0B136375 /* MalyshApp.swift */; };
+		CF0054F95D706E885B88C65F /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DD992A50110540FC676286B /* AppStore.swift */; };
+		D28CAA9F1FC6CD2A8B38164F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1C8F15FAB8ABEF7E07B2A0C7 /* PrivacyInfo.xcprivacy */; };
+		E26E0EFC8953691AD67A597E /* DomainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 892C506F7C92B8100B9D1C01 /* DomainTests.swift */; };
+		E7D8305AB0E7F78EA9DE5A7D /* Sharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10A8A91EE68D5D67909CCAA /* Sharing.swift */; };
+		EFD1383B5D7F307BB54F28E7 /* EventEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */; };
+		FA549E306B4C98F66025D754 /* TuistAssets+Malysh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5777AC8BD2FBB805A3988C6A /* TuistAssets+Malysh.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		89530A5BADC6E412734B6C50 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F45FA8F27B2953D850FBCD02 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2D0F71CE36F0490413A4EFFB;
+			remoteInfo = Malysh;
+		};
+		B2426E59EFE33DA1847FC4C8 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F45FA8F27B2953D850FBCD02 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2D0F71CE36F0490413A4EFFB;
+			remoteInfo = Malysh;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		40B7C44C7EBD4D04DE9FBA1D /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB9766CB59B7492BBC236F80 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D12CCFE91237C9A6B00997A0 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		C9853A4EBDA30D61756055C5 /* CloudFailureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudFailureTests.swift; sourceTree = "<group>"; };
+		94312DA0CC72E421C39FE40D /* CloudFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudFailure.swift; sourceTree = "<group>"; };
+		080D9C43EA2BC9BE4E5C72EB /* MalyshTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MalyshTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		13DF3E543DEE8C3368B64A42 /* Malysh.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Malysh.entitlements; sourceTree = "<group>"; };
+		163EA23D70ABAF9E0B136375 /* MalyshApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MalyshApp.swift; sourceTree = "<group>"; };
+		176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditor.swift; sourceTree = "<group>"; };
+		1C8F15FAB8ABEF7E07B2A0C7 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		298DBC1D5993065C443496CB /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
+		2BA1A613F665DF51301DE63B /* MalyshUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MalyshUITests.swift; sourceTree = "<group>"; };
+		360B73AD796C81E904835C22 /* Malysh-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Malysh-Info.plist"; sourceTree = "<group>"; };
+		3DD992A50110540FC676286B /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		3EC1589C84F4006C41A0DDA4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4210B00AFA4D4AF6758D41C2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		44DC826FECF34A61D2341DF2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		464A0EA584BC2C6471469377 /* MalyshUITests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "MalyshUITests-Info.plist"; sourceTree = "<group>"; };
+		5777AC8BD2FBB805A3988C6A /* TuistAssets+Malysh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TuistAssets+Malysh.swift"; sourceTree = "<group>"; };
+		604CCA56F679D50A48F5E04A /* MalyshTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "MalyshTests-Info.plist"; sourceTree = "<group>"; };
+		8221E9168F2FE8C1DC2F6FA7 /* MalyshUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MalyshUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		892C506F7C92B8100B9D1C01 /* DomainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainTests.swift; sourceTree = "<group>"; };
+		C10A8A91EE68D5D67909CCAA /* Sharing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sharing.swift; sourceTree = "<group>"; };
+		C111135A85BE95B43D4B2D1E /* AppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreTests.swift; sourceTree = "<group>"; };
+		CA01728ECAE9C538E98ADFE2 /* TuistBundle+Malysh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TuistBundle+Malysh.swift"; sourceTree = "<group>"; };
+		DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Domain.swift; sourceTree = "<group>"; };
+		E2DA251C68BAE8B6BD4189EA /* Malysh.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Malysh.xcdatamodel; sourceTree = "<group>"; };
+		ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		F73F474969B820A4837BA636 /* MalyshV2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MalyshV2.xcdatamodel; sourceTree = "<group>"; };
+		FA9534C35260971748388CB7 /* Malysh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Malysh.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		13D23F8CE67C1908CB8B6CC1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		89A2DD2681E55624AD04E524 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B376EB06129156B142FCBFB3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		23134292E7596889A6A3B927 /* InfoPlists */ = {
+			isa = PBXGroup;
+			children = (
+				360B73AD796C81E904835C22 /* Malysh-Info.plist */,
+				604CCA56F679D50A48F5E04A /* MalyshTests-Info.plist */,
+				464A0EA584BC2C6471469377 /* MalyshUITests-Info.plist */,
+			);
+			path = InfoPlists;
+			sourceTree = "<group>";
+		};
+		3F83B5EF800B1D7671745958 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				2BA1A613F665DF51301DE63B /* MalyshUITests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
+		6C2EC21A14473CE3516F8CCB = {
+			isa = PBXGroup;
+			children = (
+				F53A3E9839B23C3D3E6C8A2D /* Products */,
+				963BD34598E9428BBF0B626C /* Project */,
+			);
+			sourceTree = "<group>";
+		};
+		6C3F1F6E9097AC9FD2A31899 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				C9853A4EBDA30D61756055C5 /* CloudFailureTests.swift */,
+				C111135A85BE95B43D4B2D1E /* AppStoreTests.swift */,
+				892C506F7C92B8100B9D1C01 /* DomainTests.swift */,
+				298DBC1D5993065C443496CB /* PersistenceTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		963BD34598E9428BBF0B626C /* Project */ = {
+			isa = PBXGroup;
+			children = (
+				A58E3DA20C4682AAAD3DE338 /* Derived */,
+				B9209EF77B7C00DE31AAB2E0 /* Resources */,
+				A8E055385573A42FA8C77264 /* Sources */,
+				6C3F1F6E9097AC9FD2A31899 /* Tests */,
+				3F83B5EF800B1D7671745958 /* UITests */,
+			);
+			name = Project;
+			sourceTree = "<group>";
+		};
+		A58E3DA20C4682AAAD3DE338 /* Derived */ = {
+			isa = PBXGroup;
+			children = (
+				23134292E7596889A6A3B927 /* InfoPlists */,
+				A85672CFA7713482527376F2 /* Sources */,
+			);
+			path = Derived;
+			sourceTree = "<group>";
+		};
+		A85672CFA7713482527376F2 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				5777AC8BD2FBB805A3988C6A /* TuistAssets+Malysh.swift */,
+				CA01728ECAE9C538E98ADFE2 /* TuistBundle+Malysh.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A8E055385573A42FA8C77264 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				94312DA0CC72E421C39FE40D /* CloudFailure.swift */,
+				3DD992A50110540FC676286B /* AppStore.swift */,
+				4210B00AFA4D4AF6758D41C2 /* ContentView.swift */,
+				DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */,
+				176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */,
+				163EA23D70ABAF9E0B136375 /* MalyshApp.swift */,
+				ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */,
+				44DC826FECF34A61D2341DF2 /* SettingsView.swift */,
+				C10A8A91EE68D5D67909CCAA /* Sharing.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		B9209EF77B7C00DE31AAB2E0 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				226833D8083308456F270E4A /* Malysh.xcdatamodeld */,
+				3EC1589C84F4006C41A0DDA4 /* Assets.xcassets */,
+				13DF3E543DEE8C3368B64A42 /* Malysh.entitlements */,
+				1C8F15FAB8ABEF7E07B2A0C7 /* PrivacyInfo.xcprivacy */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		F53A3E9839B23C3D3E6C8A2D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FA9534C35260971748388CB7 /* Malysh.app */,
+				080D9C43EA2BC9BE4E5C72EB /* MalyshTests.xctest */,
+				8221E9168F2FE8C1DC2F6FA7 /* MalyshUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2D0F71CE36F0490413A4EFFB /* Malysh */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF86C8D35AC99908FABB984D /* Build configuration list for PBXNativeTarget "Malysh" */;
+			buildPhases = (
+				4C86AD005E28CAB446E53FDC /* Sources */,
+				3346887A7C8CBEB18EA01192 /* Resources */,
+				13D23F8CE67C1908CB8B6CC1 /* Frameworks */,
+				D12CCFE91237C9A6B00997A0 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Malysh;
+			packageProductDependencies = (
+			);
+			productName = Malysh;
+			productReference = FA9534C35260971748388CB7 /* Malysh.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4207602E9A512851377389D4 /* MalyshTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 77011675F3B070A33789289E /* Build configuration list for PBXNativeTarget "MalyshTests" */;
+			buildPhases = (
+				AA0F03FDED35ED2887910DC1 /* Sources */,
+				908A86877AB95ED7BAEE2F56 /* Resources */,
+				B376EB06129156B142FCBFB3 /* Frameworks */,
+				40B7C44C7EBD4D04DE9FBA1D /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2528925E29F2DAAEFB1064B4 /* PBXTargetDependency */,
+			);
+			name = MalyshTests;
+			packageProductDependencies = (
+			);
+			productName = MalyshTests;
+			productReference = 080D9C43EA2BC9BE4E5C72EB /* MalyshTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		BE3FD267594B65B9622D8B45 /* MalyshUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1725A1E968448F195E973677 /* Build configuration list for PBXNativeTarget "MalyshUITests" */;
+			buildPhases = (
+				DDC3B0947251800056BB45A1 /* Sources */,
+				9C13C2979B67EBF58B1EF37D /* Resources */,
+				89A2DD2681E55624AD04E524 /* Frameworks */,
+				AB9766CB59B7492BBC236F80 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				78C8317A9310E1B46B54AE2E /* PBXTargetDependency */,
+			);
+			name = MalyshUITests;
+			packageProductDependencies = (
+			);
+			productName = MalyshUITests;
+			productReference = 8221E9168F2FE8C1DC2F6FA7 /* MalyshUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F45FA8F27B2953D850FBCD02 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				TargetAttributes = {
+					4207602E9A512851377389D4 = {
+						TestTargetID = 2D0F71CE36F0490413A4EFFB;
+					};
+					BE3FD267594B65B9622D8B45 = {
+						TestTargetID = 2D0F71CE36F0490413A4EFFB;
+					};
+				};
+			};
+			buildConfigurationList = 994381C68A932D621B474276 /* Build configuration list for PBXProject "Malysh" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 6C2EC21A14473CE3516F8CCB;
+			productRefGroup = F53A3E9839B23C3D3E6C8A2D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2D0F71CE36F0490413A4EFFB /* Malysh */,
+				4207602E9A512851377389D4 /* MalyshTests */,
+				BE3FD267594B65B9622D8B45 /* MalyshUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3346887A7C8CBEB18EA01192 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				976CF09E6A2DFC1AF66EB399 /* Assets.xcassets in Resources */,
+				D28CAA9F1FC6CD2A8B38164F /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		908A86877AB95ED7BAEE2F56 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9C13C2979B67EBF58B1EF37D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4C86AD005E28CAB446E53FDC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7BA41CDB76516340C46E279A /* CloudFailure.swift in Sources */,
+				FA549E306B4C98F66025D754 /* TuistAssets+Malysh.swift in Sources */,
+				9761D7F5D866652F67387C29 /* TuistBundle+Malysh.swift in Sources */,
+				CF0054F95D706E885B88C65F /* AppStore.swift in Sources */,
+				968DC1846F5F47343910AE58 /* ContentView.swift in Sources */,
+				067E7D5BBDA60231BD35C71B /* Domain.swift in Sources */,
+				EFD1383B5D7F307BB54F28E7 /* EventEditor.swift in Sources */,
+				B7163E483965FD4D0588C9C2 /* MalyshApp.swift in Sources */,
+				9FE1D2A66266DA19DC36E444 /* Persistence.swift in Sources */,
+				80919B36A653A1958D132EE2 /* SettingsView.swift in Sources */,
+				E7D8305AB0E7F78EA9DE5A7D /* Sharing.swift in Sources */,
+				0FE6FE4CF9713709385F99DF /* Malysh.xcdatamodeld in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0F03FDED35ED2887910DC1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EE4EEDDF946B0D7521FBAD72 /* CloudFailureTests.swift in Sources */,
+				954894A9AEA2163B02AD6E15 /* AppStoreTests.swift in Sources */,
+				E26E0EFC8953691AD67A597E /* DomainTests.swift in Sources */,
+				09C5C8A5DC48FF563D2E37DA /* PersistenceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DDC3B0947251800056BB45A1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4B5FF6B389F9108A573AF2FE /* MalyshUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2528925E29F2DAAEFB1064B4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Malysh;
+			target = 2D0F71CE36F0490413A4EFFB /* Malysh */;
+			targetProxy = B2426E59EFE33DA1847FC4C8 /* PBXContainerItemProxy */;
+		};
+		78C8317A9310E1B46B54AE2E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Malysh;
+			target = 2D0F71CE36F0490413A4EFFB /* Malysh */;
+			targetProxy = 89530A5BADC6E412734B6C50 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		24CC1871AF7F20142A745F42 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = "Derived/InfoPlists/MalyshUITests-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dimensi.malysh.uitests;
+				PRODUCT_NAME = MalyshUITests;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_COMPILATION_MODE = singlefile;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Malysh;
+			};
+			name = Debug;
+		};
+		25E86E934861DBB02CF28B1F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = "Derived/InfoPlists/MalyshUITests-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dimensi.malysh.uitests;
+				PRODUCT_NAME = MalyshUITests;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Malysh;
+			};
+			name = Release;
+		};
+		485ECE69102E62DE880EBBFC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		98568A763CA1B3612CD3A7D3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A1F411EE3AFA562620649FB4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = "Derived/InfoPlists/MalyshTests-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dimensi.malysh.tests;
+				PRODUCT_NAME = MalyshTests;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_COMPILATION_MODE = singlefile;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Malysh.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Malysh";
+				TEST_TARGET_NAME = Malysh;
+			};
+			name = Debug;
+		};
+		B904E101B8091D3D125F4F84 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLOUDKIT_ENVIRONMENT = Production;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Resources/Malysh.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = YBBAN7R28K;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = "Derived/InfoPlists/Malysh-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Малыш";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dimensi.malysh;
+				PRODUCT_NAME = Malysh;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		C8402081374641F12B486F2A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLOUDKIT_ENVIRONMENT = Development;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Resources/Malysh.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = YBBAN7R28K;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = "Derived/InfoPlists/Malysh-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Малыш";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dimensi.malysh;
+				PRODUCT_NAME = Malysh;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
+				SWIFT_COMPILATION_MODE = singlefile;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		DAADDDF5F10B9B5FBE0E7D5A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = "Derived/InfoPlists/MalyshTests-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dimensi.malysh.tests;
+				PRODUCT_NAME = MalyshTests;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Malysh.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Malysh";
+				TEST_TARGET_NAME = Malysh;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1725A1E968448F195E973677 /* Build configuration list for PBXNativeTarget "MalyshUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				24CC1871AF7F20142A745F42 /* Debug */,
+				25E86E934861DBB02CF28B1F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		77011675F3B070A33789289E /* Build configuration list for PBXNativeTarget "MalyshTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1F411EE3AFA562620649FB4 /* Debug */,
+				DAADDDF5F10B9B5FBE0E7D5A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		994381C68A932D621B474276 /* Build configuration list for PBXProject "Malysh" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				485ECE69102E62DE880EBBFC /* Debug */,
+				98568A763CA1B3612CD3A7D3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF86C8D35AC99908FABB984D /* Build configuration list for PBXNativeTarget "Malysh" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C8402081374641F12B486F2A /* Debug */,
+				B904E101B8091D3D125F4F84 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		226833D8083308456F270E4A /* Malysh.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				E2DA251C68BAE8B6BD4189EA /* Malysh.xcdatamodel */,
+				F73F474969B820A4837BA636 /* MalyshV2.xcdatamodel */,
+			);
+			currentVersion = F73F474969B820A4837BA636 /* MalyshV2.xcdatamodel */;
+			path = Malysh.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+	};
+	rootObject = F45FA8F27B2953D850FBCD02 /* Project object */;
+}

@@ -1,0 +1,16 @@
+# Малыш
+<!-- impeccable:product-schema 1 -->
+## Platform
+ios
+## Stack
+Swift 6, SwiftUI, Core Data, NSPersistentCloudKitContainer, CloudKit Sharing, Swift Charts. iOS 17+.
+## Users
+Два родителя новорождённого с разными Apple ID, в том числе ночью и одной рукой.
+## Product Purpose
+Мгновенно записывать уход, видеть последнее кормление, активные таймеры, историю и суточные итоги.
+## Capabilities and Constraints
+Локальное сохранение до сетевой синхронизации. Грудь с переключением сторон, бутылочка, подгузники, сон, редактирование и удаление. Никаких медицинских рекомендаций. CloudKit требует внешней настройки Apple Developer.
+## Brand Commitments
+Название «Малыш», dev.dimensi.malysh. Заданный пользователем главный экран с сеткой 2×2, пастельные жёлтый, голубой, сиреневый. Два спящих медвежонка под полумесяцем без текста.
+## Accessibility & Inclusion
+VoiceOver, Dynamic Type, светлая и тёмная темы, крупные цели касания.
