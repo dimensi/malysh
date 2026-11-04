@@ -7,9 +7,11 @@
   "failedTests": 0,
   "skippedTests": 0,
   "runtimeWarnings": [],
+  "runtimeWarningsScope": "Local FinalTests and FinalUnitTests results; CI warning count not separately summarized",
   "verifiedDate": "2026-11-04",
-  "device": "iPhone 18 Pro (arm64, iOS Simulator 27.0)",
-  "verification": "Local combined coverage: FinalTests.xcresult passed 50 tests (42 unit + 8 UI); subsequent FinalUnitTests.xcresult passed 43 unit tests after the revocation guard. CI 1.0.8 then passed 43 unit and 7 UI but failed one popover cancellation UI test; no binary was uploaded. After replacing the product confirmation with an explicit native alert, ExplicitAlertTests.xcresult passed the targeted UI scenario 1/1. Full CI for 1.0.9 is pending; this is not one complete 51-test pass on the alert change.",
+  "device": "Compatible iPhone Simulator on Intel CI runner; exact runtime recorded in workflow test artifacts",
+  "localDevice": "iPhone 18 Pro (arm64, iOS Simulator 27.0)",
+  "verification": "CI v1.0.9 passed all 51 tests in one run: 43 unit and 8 UI, zero failed. Workflow 41896860503, source 8b0c1e2b78174e80e6b64da167f269e004d50a5a, duration 25m26s, TEST SUCCEEDED at 19:51:15 UTC. Signing, archive/export, binary upload, cleanup and artifact upload passed. ASC independently confirmed 1.0.9 (1) VALID / IN_BETA_TESTING and assigned to parents; this does not verify two-live-Apple-ID synchronization.",
   "sources": [
     {"bundle": "FinalTests.xcresult", "unitTests": 42, "uiTests": 8, "passedTests": 50},
     {"bundle": "FinalUnitTests.xcresult", "unitTests": 43, "uiTests": 0, "passedTests": 43},
@@ -30,20 +32,35 @@
       "cleanup": "passed",
       "artifactUpload": "passed"
     },
-    "next109": "pending"
+    "passed109": {
+      "workflowRunID": "41896860503",
+      "sourceCommit": "8b0c1e2b78174e80e6b64da167f269e004d50a5a",
+      "duration": "25m26s",
+      "unitPassed": 43,
+      "uiPassed": 8,
+      "failedTests": 0,
+      "testSucceededUTC": "19:51:15",
+      "signing": "passed",
+      "export": "passed",
+      "upload": "passed",
+      "cleanup": "passed",
+      "artifactUpload": "passed"
+    }
   },
   "latestVerifiedTestFlight": {
-    "version": "1.0.7",
+    "version": "1.0.9",
     "build": "1",
     "minimumOS": "26.0",
-    "sourceCommit": "c491f3a",
-    "workflowRunID": "41883874325",
-    "unitTests": 29,
-    "uiTests": 6,
+    "sourceCommit": "8b0c1e2b78174e80e6b64da167f269e004d50a5a",
+    "workflowRunID": "41896860503",
+    "unitTests": 43,
+    "uiTests": 8,
     "processingState": "VALID",
     "internalBuildState": "IN_BETA_TESTING",
     "assignedGroup": "parents",
+    "automaticGroupAccess": true,
+    "statusEvidence": "Artifacts/TestFlightSetup/testflight-status-109.json",
     "usesNonExemptEncryption": false
   },
-  "nextTestFlight": {"version": "1.0.9", "status": "not uploaded"}
+  "nextTestFlight": null
 }
