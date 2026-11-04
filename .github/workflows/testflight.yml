@@ -1,0 +1,112 @@
+name: TestFlight
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Test, sign and upload
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      FASTLANE_SKIP_UPDATE_CHECK: '1'
+      FASTLANE_HIDE_CHANGELOG: '1'
+      FASTLANE_DISABLE_COLORS: '1'
+      FASTLANE_OPT_OUT_USAGE: '1'
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - name: Check out release
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate tag and main ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_TYPE" == tag ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo 'Release tag must match vX.Y.Z' >&2
+            exit 1
+          }
+          git show-ref --verify --quiet refs/remotes/origin/main
+          git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main || {
+            echo 'Release commit must belong to origin/main' >&2
+            exit 1
+          }
+          xcodebuild -version
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+
+      - name: Test on an available iPhone simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p Artifacts
+          SIMULATOR_ID="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)
+          candidates = [device for runtime, devices in data["devices"].items()
+                        if "iOS" in runtime for device in devices
+                        if device.get("isAvailable") and device["name"].startswith("iPhone")]
+          if not candidates:
+              sys.exit("No available iPhone simulator")
+          print(candidates[0]["udid"])
+          ')"
+          xcodebuild \
+            -workspace Malysh.xcworkspace \
+            -scheme Malysh \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -derivedDataPath DerivedData/CI \
+            -resultBundlePath Artifacts/Tests.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            -parallel-testing-enabled NO \
+            test 2>&1 | tee Artifacts/tests.log
+
+      - name: Install temporary signing material
+        shell: bash
+        env:
+          IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+          IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+        run: bash Scripts/ci-signing.sh setup
+
+      - name: Upload version to TestFlight
+        shell: bash
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: bundle exec fastlane ios beta
+
+      - name: Remove temporary signing material
+        if: always()
+        shell: bash
+        run: bash Scripts/ci-signing.sh cleanup
+
+      - name: Save test results and build logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: testflight-validation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            Artifacts/Tests.xcresult
+            Artifacts/tests.log
+            Artifacts/BuildLogs/*.log
+          if-no-files-found: ignore
+          retention-days: 7

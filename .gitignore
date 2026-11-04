@@ -25,3 +25,9 @@ Artifacts/
 xcuserdata/
 *.xcuserstate
 .DS_Store
+
+# Ruby tooling and generated Fastlane output
+.bundle/
+vendor/bundle/
+fastlane/report.xml
+fastlane/README.md

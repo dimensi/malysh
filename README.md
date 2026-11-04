@@ -48,3 +48,5 @@ DESTINATION='platform=iOS Simulator,name=iPhone 16 Pro' RESULT_BUNDLE_PATH=Artif
 RTK необязателен: скрипт проверок использует его только при наличии в системе.
 
 В Info.plist задано `ITSAppUsesNonExemptEncryption = false`: текущий MVP использует только системное шифрование Apple. При добавлении собственной криптографии или сторонних криптобиблиотек декларацию необходимо пересмотреть.
+
+Автозагрузка в TestFlight настраивается для тегов `vX.Y.Z`; запуск, секреты и ограничения описаны в [TestFlight.md](Documentation/TestFlight.md).

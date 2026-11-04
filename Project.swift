@@ -3,6 +3,7 @@ import ProjectDescription
 let settings: Settings = .settings(base: [
     "SWIFT_VERSION": "6.0", "SWIFT_STRICT_CONCURRENCY": "complete",
     "DEVELOPMENT_TEAM": "YBBAN7R28K", "CODE_SIGN_STYLE": "Automatic",
+    "APS_ENVIRONMENT": "development",
     "IPHONEOS_DEPLOYMENT_TARGET": "17.0", "TARGETED_DEVICE_FAMILY": "1",
     "MARKETING_VERSION": "1.0.0", "CURRENT_PROJECT_VERSION": "1",
 ], configurations: [
