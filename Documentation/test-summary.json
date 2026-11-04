@@ -1,21 +1,25 @@
 {
   "result": "Passed",
-  "totalTestCount": 51,
-  "passedTests": 51,
-  "unitTests": 43,
-  "uiTests": 8,
+  "totalTestCount": 75,
+  "passedTests": 75,
+  "unitTests": 63,
+  "uiTests": 12,
   "failedTests": 0,
   "skippedTests": 0,
   "runtimeWarnings": [],
-  "runtimeWarningsScope": "Local FinalTests and FinalUnitTests results; CI warning count not separately summarized",
   "verifiedDate": "2026-11-04",
-  "device": "Compatible iPhone Simulator on Intel CI runner; exact runtime recorded in workflow test artifacts",
-  "localDevice": "iPhone 18 Pro (arm64, iOS Simulator 27.0)",
-  "verification": "CI v1.0.9 passed all 51 tests in one run: 43 unit and 8 UI, zero failed. Workflow 41896860503, source 8b0c1e2b78174e80e6b64da167f269e004d50a5a, duration 25m26s, TEST SUCCEEDED at 19:51:15 UTC. Signing, archive/export, binary upload, cleanup and artifact upload passed. ASC independently confirmed 1.0.9 (1) VALID / IN_BETA_TESTING and assigned to parents; this does not verify two-live-Apple-ID synchronization.",
+  "device": "iPhone 18 Pro (arm64, iOS Simulator 27.0)",
+  "verification": "One complete final Live Activities run passed 75/75 (63 unit + 12 UI), with no skipped tests or runtime warnings, after rebasing onto the explicit diary-cleanup alert fix. Two additional cold-process system tests passed in an isolated project copy on a fresh simulator. Unsigned Release app and embedded Widget Extension build passed. This does not verify signed distribution or two-Apple-ID CloudKit delivery.",
   "sources": [
-    {"bundle": "FinalTests.xcresult", "unitTests": 42, "uiTests": 8, "passedTests": 50},
-    {"bundle": "FinalUnitTests.xcresult", "unitTests": 43, "uiTests": 0, "passedTests": 43},
-    {"bundle": "Artifacts/FamilyProfiles/ExplicitAlertTests.xcresult", "unitTests": 0, "uiTests": 1, "passedTests": 1, "failedTests": 0, "skippedTests": 0, "runtimeWarnings": []}
+    {
+      "bundle": "Artifacts/LiveActivities/VerifiedTests.xcresult",
+      "unitTests": 63,
+      "uiTests": 12,
+      "passedTests": 75,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "runtimeWarnings": []
+    }
   ],
   "ci51Tests": {
     "failed108": {
@@ -62,5 +66,34 @@
     "statusEvidence": "Artifacts/TestFlightSetup/testflight-status-109.json",
     "usesNonExemptEncryption": false
   },
-  "nextTestFlight": null
+  "nextTestFlight": null,
+  "liveActivitiesColdLaunch": {
+    "bundle": "Artifacts/LiveActivities/ColdLaunch/ColdControls-2.xcresult",
+    "passedTests": 2,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "runtimeWarnings": [],
+    "device": "Fresh iPhone 18 Pro / iOS Simulator 27.0",
+    "storage": "Normal app paths, no --ui-testing flags, no iCloud account",
+    "actions": [
+      "breast side switch",
+      "breast finish",
+      "sleep finish"
+    ],
+    "processEvidence": "requiredLaunch: YES, didForeground: NO for all three actions; persisted results verified after relaunch"
+  },
+  "liveActivitiesBuild": {
+    "debugSimulator": "passed, app and Widget Extension",
+    "releaseDeviceUnsigned": "passed, app and embedded MalyshWidgets.appex",
+    "signedDistribution": "not tested; separate widget provisioning profile and IOS_WIDGET_PROVISIONING_PROFILE_BASE64 secret required"
+  },
+  "runtimeWarningsScope": "Local Live Activities VerifiedTests and isolated cold-process tests; CI 1.0.9 warning count not separately summarized",
+  "ciVerification": {
+    "totalTestCount": 51,
+    "passedTests": 51,
+    "unitTests": 43,
+    "uiTests": 8,
+    "device": "Compatible iPhone Simulator on Intel CI runner; exact runtime recorded in workflow test artifacts",
+    "verification": "CI v1.0.9 passed all 51 tests in one run: 43 unit and 8 UI, zero failed. Workflow 41896860503, source 8b0c1e2b78174e80e6b64da167f269e004d50a5a, duration 25m26s, TEST SUCCEEDED at 19:51:15 UTC. Signing, archive/export, binary upload, cleanup and artifact upload passed. ASC independently confirmed 1.0.9 (1) VALID / IN_BETA_TESTING and assigned to parents; this does not verify two-live-Apple-ID synchronization."
+  }
 }

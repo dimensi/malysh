@@ -48,6 +48,20 @@
                ReferencedContainer = "container:Malysh.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "B071ACBF0BC8211711810046"
+               BuildableName = "MalyshWidgets.appex"
+               BlueprintName = "MalyshWidgets"
+               ReferencedContainer = "container:Malysh.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

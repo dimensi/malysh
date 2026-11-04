@@ -20,7 +20,7 @@ run() {
     fi
 }
 
-run swiftformat Sources Tests UITests Project.swift --lint
+run swiftformat Sources Tests UITests WidgetExtension Project.swift --lint
 run swiftlint lint --strict
 run tuist generate --no-open
 mkdir -p "$(dirname "$RESULT_BUNDLE_PATH")"
