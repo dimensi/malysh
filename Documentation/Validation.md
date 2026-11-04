@@ -68,3 +68,9 @@ CloudKit Sharing реализован настоящими API: два persisten
 Локальная проверка обнаружила, что первоначальный App Store профиль управляется Xcode и несовместим с ручной подписью. Создан отдельный ручной профиль CI с тем же существующим сертификатом, секрет GitHub обновлён. Подписанные архивы успешно собираются. Текущий сертификат и профиль действуют до 4 декабря 2026; условия обновления описаны в [TestFlight.md](TestFlight.md).
 
 Проверка IPA также выявила фиксированные значения версии в сгенерированном Info.plist. Project.swift и действующий plist теперь используют MARKETING_VERSION/CURRENT_PROJECT_VERSION; Fastlane проверяет версию, номер сборки и декларацию шифрования до загрузки. В архиве подтверждены версия **1.0.3 (1)** и ITSAppUsesNonExemptEncryption=false. Повторный полный прогон на iPhone 16 Pro, iOS Simulator 18.6: **25/25** (21 unit + 4 UI), 0 ошибок и пропусков. Результат: `Artifacts/TestFlightSetup/Release103Tests.xcresult`.
+
+## TestFlight 1.0.3 доступен
+
+Сборка **1.0.3 (1)** собрана, экспортирована и загружена с этого Mac. App Store Connect API независимо подтвердил `processingState=VALID`, `internalBuildState=IN_BETA_TESTING`, `usesNonExemptEncryption=false` и назначение внутренней группе `parents`. У группы включён `hasAccessToAllBuilds`, поэтому её существующим участникам доступен выпуск без повторного приглашения.
+
+Локальный загрузчик Xcode сообщил `UPLOAD SUCCEEDED`, но Fastlane завершился с ошибкой локального файла состояния `CDUploaderStateInfoResumeFilePath`. Повторная отправка не выполнялась: результат подтверждён сервером после обработки. Тег `v1.0.3` запускает [отдельную проверку автоматической публикации](https://github.com/dimensi/malysh/actions/runs/41858121840); успешная загрузка именно этим workflow пока не подтверждена.
