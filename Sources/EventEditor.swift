@@ -4,7 +4,6 @@ struct EventEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State private var draft: CareEvent
     @State private var errorMessage: String?
-    @State private var confirmsDeletion = false
 
     private let onSave: (CareEvent) throws -> Void
     private let onDelete: (() throws -> Void)?
@@ -103,22 +102,9 @@ struct EventEditor: View {
 
                 if onDelete != nil {
                     Section {
-                        Button("Удалить запись", role: .destructive) {
-                            confirmsDeletion = true
-                        }
-                        .frame(minHeight: 44)
-                        .accessibilityIdentifier("editor.delete")
-                        .confirmationDialog(
-                            "Удалить запись?",
-                            isPresented: $confirmsDeletion,
-                            titleVisibility: .visible
-                        ) {
-                            Button("Удалить запись", role: .destructive, action: delete)
-                                .accessibilityIdentifier("editor.confirm-delete")
-                            Button("Отмена", role: .cancel) {}
-                        } message: {
-                            Text("Восстановить удалённую запись не получится.")
-                        }
+                        Button("Удалить запись", role: .destructive, action: delete)
+                            .frame(minHeight: 44)
+                            .accessibilityIdentifier("editor.delete")
                     }
                 }
             }

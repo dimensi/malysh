@@ -98,9 +98,6 @@ final class MalyshUITests: XCTestCase {
         }
         XCTAssertTrue(delete.waitForExistence(timeout: 5))
         delete.tap()
-        let confirm = app.descendants(matching: .any).matching(identifier: "editor.confirm-delete").firstMatch
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        confirm.tap()
         let absent = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false"),
             object: button(app, prefix: "event.")
