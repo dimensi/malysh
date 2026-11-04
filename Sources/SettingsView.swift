@@ -58,7 +58,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Настройки")
-            .confirmationDialog("Удалить лишний «Малыш»?", isPresented: $confirmsCleanup, titleVisibility: .visible) {
+            .alert("Удалить лишний «Малыш»?", isPresented: $confirmsCleanup) {
                 Button("Удалить лишний «Малыш»", role: .destructive) {
                     do {
                         try store.removeRedundantDiaries()

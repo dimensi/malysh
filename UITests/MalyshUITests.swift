@@ -264,17 +264,14 @@ final class MalyshUITests: XCTestCase {
         XCTAssertTrue(cleanup.waitForExistence(timeout: 5))
         reveal(cleanup, in: app)
         cleanup.tap()
-        let dialog = app.sheets["Удалить лишний «Малыш»?"].firstMatch
+        let dialog = app.alerts["Удалить лишний «Малыш»?"].firstMatch
         XCTAssertTrue(dialog.waitForExistence(timeout: 5))
         XCTAssertTrue(dialog.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Записей для удаления: 1"))
             .firstMatch.waitForExistence(timeout: 5))
+        capture(app, name: "Подтверждение удаления лишнего дневника")
         let cancel = dialog.buttons["Отмена"].firstMatch
-        if cancel.exists {
-            cancel.tap()
-        } else {
-            // The native popover omits Cancel; tapping its backdrop cancels without choosing an action.
-            dialog.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: -0.1)).tap()
-        }
+        XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+        cancel.tap()
         let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: dialog)
         XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
         XCTAssertTrue(cleanup.exists)
@@ -282,7 +279,7 @@ final class MalyshUITests: XCTestCase {
         cleanup.tap()
         XCTAssertTrue(dialog.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Записей для удаления: 1"))
             .firstMatch.waitForExistence(timeout: 5))
-        let confirm = dialog.buttons.matching(identifier: "family.cleanup.confirm").firstMatch
+        let confirm = dialog.buttons["Удалить лишний «Малыш»"].firstMatch
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
         confirm.tap()
         let removed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: cleanup)

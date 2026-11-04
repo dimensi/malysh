@@ -9,12 +9,29 @@
   "runtimeWarnings": [],
   "verifiedDate": "2026-11-04",
   "device": "iPhone 18 Pro (arm64, iOS Simulator 27.0)",
-  "verification": "Combined coverage: FinalTests.xcresult passed 50 tests (42 unit + 8 UI); subsequent FinalUnitTests.xcresult passed 43 unit tests after the revocation guard. This is not one complete 51-test run; CI with 51 tests is pending.",
+  "verification": "Local combined coverage: FinalTests.xcresult passed 50 tests (42 unit + 8 UI); subsequent FinalUnitTests.xcresult passed 43 unit tests after the revocation guard. CI 1.0.8 then passed 43 unit and 7 UI but failed one popover cancellation UI test; no binary was uploaded. After replacing the product confirmation with an explicit native alert, ExplicitAlertTests.xcresult passed the targeted UI scenario 1/1. Full CI for 1.0.9 is pending; this is not one complete 51-test pass on the alert change.",
   "sources": [
     {"bundle": "FinalTests.xcresult", "unitTests": 42, "uiTests": 8, "passedTests": 50},
-    {"bundle": "FinalUnitTests.xcresult", "unitTests": 43, "uiTests": 0, "passedTests": 43}
+    {"bundle": "FinalUnitTests.xcresult", "unitTests": 43, "uiTests": 0, "passedTests": 43},
+    {"bundle": "Artifacts/FamilyProfiles/ExplicitAlertTests.xcresult", "unitTests": 0, "uiTests": 1, "passedTests": 1, "failedTests": 0, "skippedTests": 0, "runtimeWarnings": []}
   ],
-  "ci51Tests": "pending",
+  "ci51Tests": {
+    "failed108": {
+      "workflowRunID": "41891802688",
+      "sourceCommit": "ae74e78",
+      "unitPassed": 43,
+      "uiPassed": 7,
+      "uiFailed": 1,
+      "reason": "Native popover did not dismiss after an outside-coordinate tap on iOS 26",
+      "signing": "skipped",
+      "export": "skipped",
+      "upload": "skipped",
+      "binaryUploaded": false,
+      "cleanup": "passed",
+      "artifactUpload": "passed"
+    },
+    "next109": "pending"
+  },
   "latestVerifiedTestFlight": {
     "version": "1.0.7",
     "build": "1",
@@ -28,5 +45,5 @@
     "assignedGroup": "parents",
     "usesNonExemptEncryption": false
   },
-  "nextTestFlight": {"version": "1.0.8", "status": "not uploaded"}
+  "nextTestFlight": {"version": "1.0.9", "status": "not uploaded"}
 }
