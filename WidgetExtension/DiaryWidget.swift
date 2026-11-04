@@ -109,9 +109,10 @@ struct DiaryWidgetView: View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
             Label("Кормление", systemImage: "heart.fill")
                 .font(AppDesign.Typography.note.weight(.semibold)).widgetAccentable()
-            Spacer(minLength: 0)
-            feedElapsed.font(AppDesign.Typography.itemTitle.bold())
-            feedDetail.font(AppDesign.Typography.note)
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+                feedElapsed.font(AppDesign.Typography.itemTitle.bold())
+                feedDetail.font(AppDesign.Typography.note)
+            }
         }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 
