@@ -15,6 +15,24 @@ final class MalyshUITests: XCTestCase {
     }
 
     private func tap(_ app: XCUIApplication, id: String, label: String? = nil) {
+        if id.hasPrefix("feed.") || id.hasPrefix("diaper.") {
+            let action = app.descendants(matching: .any).matching(identifier: id).firstMatch
+            if action.waitForExistence(timeout: 2) {
+                action.tap()
+                return
+            }
+            guard let label else { XCTFail("Не найдена кнопка \(id)"); return }
+            let sheetAction = app.sheets.buttons[label].firstMatch
+            if sheetAction.waitForExistence(timeout: 2) {
+                sheetAction.tap()
+                return
+            }
+            let fallback = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", label))
+                .firstMatch
+            XCTAssertTrue(fallback.waitForExistence(timeout: 5))
+            fallback.tap()
+            return
+        }
         let identified = app.buttons[id]
         if identified.waitForExistence(timeout: 2) {
             reveal(identified, in: app); identified.tap(); return
@@ -30,7 +48,9 @@ final class MalyshUITests: XCTestCase {
             if element.isHittable {
                 return
             }
-            app.swipeUp()
+            let scrollView = app.scrollViews.firstMatch
+            guard scrollView.exists else { return }
+            scrollView.swipeUp()
         }
     }
 
@@ -73,14 +93,9 @@ final class MalyshUITests: XCTestCase {
         }
         XCTAssertTrue(delete.waitForExistence(timeout: 5))
         delete.tap()
-        let confirm = app.alerts.buttons["Удалить запись"]
-        if confirm.waitForExistence(timeout: 2) {
-            confirm.tap()
-        } else {
-            let dialog = app.buttons["Удалить запись"].firstMatch
-            XCTAssertTrue(dialog.waitForExistence(timeout: 5))
-            dialog.tap()
-        }
+        let confirm = app.descendants(matching: .any).matching(identifier: "editor.confirm-delete").firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
         let absent = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false"),
             object: button(app, prefix: "event.")

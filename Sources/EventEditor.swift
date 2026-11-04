@@ -131,6 +131,7 @@ struct EventEditor: View {
             }
             .confirmationDialog("Удалить запись?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
                 Button("Удалить запись", role: .destructive, action: delete)
+                    .accessibilityIdentifier("editor.confirm-delete")
                 Button("Отмена", role: .cancel) {}
             } message: {
                 Text("Восстановить удалённую запись не получится.")
