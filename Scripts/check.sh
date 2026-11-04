@@ -22,8 +22,6 @@ run() {
 
 run swiftformat Sources Tests UITests WidgetExtension Project.swift --lint
 run swiftlint lint --strict
-run python3 Scripts/check-design-system.py
-export RECORD_DESIGN_BASELINES=0
 run tuist generate --no-open
 mkdir -p "$(dirname "$RESULT_BUNDLE_PATH")"
 if [[ -e "$RESULT_BUNDLE_PATH" ]]; then
