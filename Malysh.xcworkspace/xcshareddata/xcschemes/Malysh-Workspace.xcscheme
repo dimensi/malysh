@@ -56,20 +56,6 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BF08EC70ADF57E1350112B0C"
-               BuildableName = "MalyshWidgetTests.xctest"
-               BlueprintName = "MalyshWidgetTests"
-               ReferencedContainer = "container:Malysh.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "B071ACBF0BC8211711810046"
                BuildableName = "MalyshWidgets.appex"
                BlueprintName = "MalyshWidgets"
@@ -103,17 +89,6 @@
                BlueprintIdentifier = "BE3FD267594B65B9622D8B45"
                BuildableName = "MalyshUITests.xctest"
                BlueprintName = "MalyshUITests"
-               ReferencedContainer = "container:Malysh.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BF08EC70ADF57E1350112B0C"
-               BuildableName = "MalyshWidgetTests.xctest"
-               BlueprintName = "MalyshWidgetTests"
                ReferencedContainer = "container:Malysh.xcodeproj">
             </BuildableReference>
          </TestableReference>

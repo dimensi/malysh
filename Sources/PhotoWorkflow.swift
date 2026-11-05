@@ -147,19 +147,6 @@ final class PhotoGalleryStore {
                         pixelHeight: 240
                     )
                     try persistence.savePhoto(photo, imageData: image, thumbnailData: image)
-                    if index == 0, ProcessInfo.processInfo.arguments.contains("--photo-save-pending"),
-                       !journal.pending.contains(where: { $0.photo.id == photo.id })
-                    {
-                        try prepareDirectory()
-                        try image.write(to: originalURL(photo.id), options: .atomic)
-                        journal.pending.append(Pending(
-                            photo: photo,
-                            sourceKey: "fixture-pending",
-                            needsPhotos: true,
-                            writing: true
-                        ))
-                        try persist()
-                    }
                 }
             }
         #endif
@@ -217,7 +204,7 @@ final class PhotoGalleryStore {
             }
             if let assetIdentifier,
                try persistence.photos(babyID: babyID)
-               .contains(where: { journal.assets[$0.id.uuidString] == assetIdentifier })
+                   .contains(where: { journal.assets[$0.id.uuidString] == assetIdentifier })
             {
                 return
             }
@@ -428,14 +415,11 @@ final class PhotoGalleryStore {
     @MainActor
     private final class FixturePhotoWriter: PhotoLibraryWriting {
         func authorizeAdding() async -> Bool {
-            !ProcessInfo.processInfo.arguments.contains("--photo-permission-denied")
+            true
         }
 
         func saveOriginal(_: Data, capturedAt _: Date, requestPermission _: Bool) async throws -> String {
-            if ProcessInfo.processInfo.arguments.contains("--photo-permission-denied") {
-                throw PhotoFailure.permission
-            }
-            return "fixture-" + UUID().uuidString
+            "fixture-" + UUID().uuidString
         }
     }
 #endif

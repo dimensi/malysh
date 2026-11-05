@@ -46,14 +46,6 @@ struct PhotoCaptureView: UIViewControllerRepresentable {
             guard !started else { return }
             started = true
             view.backgroundColor = .systemBackground
-            #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
-                   ProcessInfo.processInfo.arguments.contains("--photo-camera-fixture")
-                {
-                    showFixture()
-                    return
-                }
-            #endif
             preparation = Task { await presentCamera() }
         }
 
@@ -142,32 +134,6 @@ struct PhotoCaptureView: UIViewControllerRepresentable {
             deactivate()
             onError(message)
         }
-
-        #if DEBUG
-            private func showFixture() {
-                let shutter = UIButton(type: .system)
-                shutter.setTitle("Сфотографировать", for: .normal)
-                shutter.accessibilityIdentifier = "photo.camera.shutter"
-                shutter.addTarget(self, action: #selector(captureFixture), for: .touchUpInside)
-                shutter.translatesAutoresizingMaskIntoConstraints = false
-                view.addSubview(shutter)
-                NSLayoutConstraint.activate([
-                    shutter.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                    shutter.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-                    shutter.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
-                ])
-            }
-
-            @objc private func captureFixture() {
-                guard isActive else { return }
-                let renderer = UIGraphicsImageRenderer(size: CGSize(width: 240, height: 240))
-                let data = renderer.pngData { context in
-                    UIColor.systemOrange.setFill()
-                    context.fill(CGRect(x: 0, y: 0, width: 240, height: 240))
-                }
-                finish(data)
-            }
-        #endif
     }
 }
 

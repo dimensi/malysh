@@ -39,7 +39,7 @@ git tag v1.2.3
 git push origin v1.2.3
 ```
 
-Workflow использует Apple Silicon runner `macos-15`, Xcode 26.3 и Ruby 4.0. Toolchain сверена с [описанием образа arm64](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-arm64-Readme.md). Fastlane закреплён на `2.237.0` в `Gemfile`. Сначала запускаются unit-, render- и UI-тесты: helper выбирает доступный iPhone Simulator с самой ранней установленной версией iOS не ниже 26.0. Затем устанавливаются материалы подписи и собирается уже сохранённый в репозитории `Malysh.xcworkspace`; Tuist в CI не запускается.
+Workflow использует Apple Silicon runner `macos-15`, Xcode 26.3 и Ruby 4.0. Toolchain сверена с [описанием образа arm64](https://github.com/actions/runner-images/blob/main/images/macos/macos-15-arm64-Readme.md). Fastlane закреплён на `2.237.0` в `Gemfile`. Сначала запускаются unit- и UI-тесты: helper выбирает доступный iPhone Simulator с самой ранней установленной версией iOS не ниже 26.0. Затем устанавливаются материалы подписи и собирается уже сохранённый в репозитории `Malysh.xcworkspace`; Tuist в CI не запускается.
 
 Версия приложения берётся из тега без `v`. Номер сборки — последний номер TestFlight для этой версии плюс один; при отсутствии сборок используется `1`. Это учитывает ранее загруженные вручную сборки. Существующий номер должен быть целым числом. Запуски TestFlight выполняются последовательно, без отмены предыдущего. Не загружайте вручную другую сборку той же версии одновременно с CI; перед повторным запуском после успешной загрузки дождитесь появления предыдущей сборки в App Store Connect.
 

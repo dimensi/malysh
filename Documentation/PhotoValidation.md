@@ -77,3 +77,7 @@ xcodebuild -workspace Malysh.xcworkspace -scheme Malysh -configuration Release \
 ```
 
 Для повторного запуска подставьте ID доступного симулятора и новые пути `.xcresult`. Логи, результаты и keepAlways-скриншоты светлой/тёмной галереи и шапки находятся локально в исключённом из Git `Artifacts/Photos`. Диагностические прогоны до исправлений сохранены отдельно и не считаются успешными проверками.
+
+## Подготовка выпуска 1.3.0 — 6 ноября 2026
+
+В CloudKit Console проверен diff и выполнен Deploy Schema Changes: добавлен только `CD_PhotoRecord` с индексами и правами нового типа. После подтверждения Changes Deployed штатная команда `bash Scripts/cloudkit-schema.sh verify-production` завершилась успешно: Production совпадает с версионируемой Development-схемой, семантический diff пуст. Отчёт сохранён в `Artifacts/Release130/production-schema-report.json`. Это подтверждает схему, но не заменяет проверку обмена фотографиями между двумя Apple ID.
