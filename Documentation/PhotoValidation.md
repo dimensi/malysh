@@ -6,19 +6,21 @@
 
 | Проверка | Результат |
 | --- | --- |
-| `Scripts/check.sh`, iPhone 17 Pro / iOS Simulator 26.0.1 (23A8464) | **144/144**, 0 ошибок, 0 пропусков: 111 unit, 2 render-теста виджетов, 31 UI |
-| Дополнительный последний unit-набор, iPhone 18 Pro / iOS Simulator 27.2 | **112/112 unit + 2/2 render**, включая исключение локального журнала из backup |
-| Отдельный набор `PhotoGalleryUITests`, iOS 26.0.1 | **8/8**: светлая/тёмная темы, крупный Dynamic Type, аватар, источник, просмотр, повторы и ошибки |
-| SwiftFormat / `swiftlint lint --strict` | Без замечаний |
-| `xcodebuild`, `Release`, `generic/platform=iOS`, `CODE_SIGNING_ALLOWED=NO` | Успешная сборка приложения и расширения; без подписи и распространения |
-| `momc`, старые модели V2/V3 и аддитивная V4 | Компиляция успешна; V2/V3 сохранены |
+| Финальный `Scripts/check.sh`, iPhone 17 Pro / iOS Simulator 26.0.1 (23A8464) | 151 тест: **148 прошли, 2 UI прерваны инфраструктурой, 1 opt-in пропущен**; отдельный повтор см. ниже. Все 10 фото UI, 4 Live Activities и настоящий системный виджет прошли |
+| SwiftFormat / `swiftlint lint --strict` в финальном `check.sh` | Без замечаний |
+| Финальный `xcodebuild`, `Release`, `generic/platform=iOS`, `CODE_SIGNING_ALLOWED=NO` | Успешная сборка приложения и расширения после замены камеры и исправления PhotoKit; без распространения |
+| Подписанный `Debug`, физический iPhone 16 Pro | Успешные сборка, установка, изолированная инициализация Development; последующая проверка камеры пользователем |
+| Настоящий PhotoKit, отдельный iOS Simulator 26.0.1 | **1/1**, подтверждённая запись, дата и неизменные сжатые данные JPEG; системный файл сохранился после удаления тестового приложения |
+| `momc`, старые модели V2/V3 и аддитивная V4 | Компиляция успешна; V2/V3 сохранены; миграции проверены unit-тестами |
 | `python3 -m unittest discover -s Scripts/tests -p test_cloudkit_schema.py`, после rebase | **14/14**, без ошибок |
-| `bash Scripts/cloudkit-schema.sh check`, живые схемы | Совместимы, семантический diff пуст; проверка read-only, это проверка предыдущей схемы, не готовности V4 |
-| Дополнительный прогон после rebase на `6e99701`, iOS 26.0.1 | **122/122**: 112 unit + 2 render + 8 фото UI, 0 ошибок/пропусков |
+| CloudKit DEBUG V4 + существующий workflow `prepare` | Успешная инициализация на iPhone; CI `compatible=true`, `errors=[]`; сохранён настоящий снимок Development |
 | Системный Dynamic Type `accessibility-extra-large` через `simctl ui`, iOS 26.0.1 | **1/1**: тёмная галерея, перенос дат, одна колонка, настройки/отказ; отдельный скриншот |
-| После исправления accessibility value аватара, iOS 26.0.1 | **8/8 фото UI** и Release-сборка успешны; озвучиваемые значения — дата/пустое состояние, без UUID |
 
-Полный прогон включает существующие четыре сценария Live Activities, установку настоящего системного Medium-виджета и его действия, переходы из виджетов, профиль/измерения и авторство событий. После небольших заключительных изменений журнала и интерфейса дополнительно запущены последние unit- и фото-UI-наборы. Основной результат не заменён суммой повторных прогонов.
+Исторический полный прогон до замечаний ревью прошёл **144/144**: 111 unit, 2 render, 31 UI. После rebase на `6e99701` дополнительный набор прошёл **122/122**: 112 unit, 2 render и 8 фото UI. Эти результаты не подменяют финальный прогон после исправления реального креша. Прерванный из-за нехватки диска промежуточный запуск не считается успешным.
+
+В финальном полном прогоне `testFamilySettingsLightWithLargeText` получил `signal term`, а `testManualSleepAppearsInHistory` — системную ошибку Accessibility `kAXError -25218` при получении списка приложений. Первый изолированный повтор не смог создать XCTest-сессию и остановлен; он не считается успешным. После перезапуска только этого симулятора оба теста прошли **2/2**, без изменений кода (`FinalRetryAfterBoot.xcresult`, exit 0). Полный исходный прогон остаётся результатом с двумя сбоями, а не объявляется зелёным задним числом.
+
+Таким образом, каждый обычный сценарий финального набора имеет успешный результат; единственный штатный пропуск — opt-in PhotoKit, отдельно выполненный успешно на выделенном симуляторе. Логи исходного прогона, неудачной подготовки и успешного повтора сохранены раздельно.
 
 ## Что проверено
 
@@ -31,33 +33,47 @@
 - Последнее фото по дате, закрепление **более старого** снимка, немедленная смена аватара и сохранение после перезапуска; удаление закреплённого, переход к последнему и возврат логотипа после удаления всех фото.
 - Значение доступности аватара содержит понятную дату снимка или «Фотографий пока нет». UUID остаются внутренними accessibility identifiers и не используются в озвучиваемых значениях. Тесты сравнивают семантические подписи до/после закрепления и перезапуска.
 - Галерея из профиля и аватара, группы дат, полноэкранное пролистывание, избранное, системный share sheet, непосредственная привязка диалога к камере, явное закрытие галереи и ошибки отказа/повтора.
+- Новое уведомление во время занятого автосохранения не теряется: приостановленная первая запись, добавление второго снимка и ещё одно уведомление приводят ровно к двум записям без дополнительного reload.
+- Импорт без EXIF и разрешения на чтение всей медиатеки не записывает дату импорта автоматически. Проверены пропуск, явный выбор даты и сохранение выбранного времени/возраста/порядка аватара; отмена пачки через widget route не открывает следующее окно даты.
 
 ## Граница симуляторных доказательств
 
-Workflow unit-тесты внедряют `PhotoLibraryWriting`. DEBUG UI fixtures включаются только с `--ui-testing`: синтетический encoded-снимок и mock writer проверяют интерфейс, очередь и момент добавления в галерею. Это **не подтверждение реальной камеры, TCC-диалогов, успешной системной записи PhotoKit, переживания удаления приложения или доставки CloudKit между Apple ID**.
+Большинство workflow unit-тестов внедряют `PhotoLibraryWriting`. DEBUG UI fixtures включаются только с `--ui-testing`: синтетический encoded-снимок и mock writer проверяют интерфейс, очередь и момент добавления в галерею. Сами по себе эти тесты **не подтверждают реальную камеру, TCC-диалоги, системную запись PhotoKit, сохранность после удаления приложения или доставку CloudKit между Apple ID**.
 
-Физический iPhone в рамках PR2 не использовался. Проверено на реальном iPhone: **ни одного сценария**. Два Apple ID, действующий CKShare после обновления, одновременные сетевые добавления, реальное удаление приложения, изменение разрешений и настройки iCloud/Shared Library остаются аппаратной приёмкой из [Photos.md](Photos.md#приёмка-на-физических-устройствах). Локальный shared store не выдаётся за успешную сетевую синхронизацию.
+Отдельно выполнен opt-in тест **настоящего PhotoKit** на новом выделенном iOS Simulator 26.0.1 с разрешением `.addOnly`. `PhotoLibraryService.saveOriginal` прошёл реальную transaction queue без креша и получил подтверждённый asset ID. Внешняя проверка собственной тестовой медиатеки подтвердила дату `1234567890` и неизменность JPEG DQT/DHT/SOF/SOS/сжатых данных. Photos добавила 62 байта EXIF, поэтому полное совпадение файла не требуется: изменение метаданных системой отделено от перекодирования изображения. После удаления только тестового приложения системный оригинал остался с тем же SHA-256. Это симуляторная проверка, не удаление приложения на личном iPhone.
 
-После подключения инструментов из свежего `main` запуск существующего изолированного DEBUG-инициализатора V4 на iOS Simulator 27.2 (`-cloudEnabled YES --initialize-cloudkit-schema`) завершился `SCHEMA_INITIALIZATION_FAILED: NSCocoaErrorDomain 134060`. Unified logs подтвердили первопричину: `134400`, `CKAccountStatusNoAccount`, затем `134406` (mirroring не инициализирован), `success=0`, `madeChanges=0`. Это не успешная подготовка Development. Повторный read-only `check` подтвердил пустой семантический diff. Снимок `CloudKit/development.ckdb` не подменён шаблоном и не изменён; Production не развёртывалась. Для подготовки V4 остаётся подписанный DEBUG-запуск с доступом к iCloud, затем существующий workflow `prepare`, проверка реального экспорта и ручной promotion перед будущим распространением.
+Тест `testRealPhotoKitWritesExactOriginalOnTransactionQueue` включается явно через `MALYSH_PHOTOKIT_INTEGRATION=1` на выделенном симуляторе; обычный CI пропускает его, не запрашивая разрешения. Если разрешение `.readWrite` уже есть, тест дополнительно читает ресурс через PhotoKit и сравнивает данные JPEG без служебных метаданных. В пути `.addOnly` ожидаемый исходник и receipt сохраняются в Documents тестового приложения для внешней проверки; это не продуктовый экспорт и не фотографии пользователя.
+
+## Реальный iPhone и исправленный креш
+
+Пользователь разрешил установить DEBUG-сборку на свой подключённый iPhone 16 Pro. Подпись проверена: Team `YBBAN7R28K`, `iCloud.dev.dimensi.malysh`, CloudKit environment `Development`. Существующий изолированный DEBUG-инициализатор завершился `SCHEMA_INITIALIZATION_SUCCEEDED`, exit 0. Дневник в служебном режиме не открывался.
+
+Пользовательская съёмка затем выявила реальный Swift 6-креш. Два `.ips` от 21:48 показывают `EXC_BREAKPOINT`, очередь `com.apple.PHPhotoLibrary.transaction.high`, `_swift_task_checkIsolatedSwift`, closure в `PhotoLibraryService.saveOriginal`. Блок PhotoKit ошибочно наследовал `MainActor`; workflow-моки это не выявили. Исправлено явным nonisolated `@Sendable` factory и `Mutex` для возвращаемого ID. Самодельная камера заменена системным `UIImagePickerController` по замечанию пользователя.
+
+Оба неуспешных исходника (2,8 и 3,3 MB) были сохранены в очереди и локально скопированы до восстановления. Только для этих двух подтверждённых крашами операций до входа в transaction body сброшен флаг `writing`; сравнение журнала подтвердило отсутствие других изменений. После установки исправленной сборки пользователь подтвердил работу. Журнал iPhone показал **0 pending**, подтверждённые Photos receipts обоих восстановленных снимков и всего **4 успешные записи камеры**. Импорт более старой фотографии отдельно проверен пользователем; он закономерно не заменяет более новый аватар, пока снимок не закреплён.
+
+Обмен двумя Apple ID, действующий CKShare после обновления, одновременные сетевые добавления, удаление приложения на реальном iPhone, реальный отказ TCC и конфигурации iCloud/Shared Library остаются аппаратной приёмкой из [Photos.md](Photos.md#приёмка-на-физических-устройствах). Локальный shared store не выдаётся за успешную сетевую синхронизацию. Полные crash logs и оригиналы восстановления остаются только в закрытом локальном `Artifacts/Photos`, в Git не добавляются.
+
+Первоначальная попытка подготовки на симуляторе закончилась `CKAccountStatusNoAccount`, `madeChanges=0`; она не считалась успехом. После успешного подписанного запуска на iPhone выполнен существующий [workflow prepare 42087780812](https://github.com/dimensi/malysh/actions/runs/42087780812): `test` и `manage` успешны, `compatible=true`, `errors=[]`, `dry_run=false`. Реальный CI artifact `snapshot/development.ckdb` совпал с локальным проверенным экспортом; в Git добавлен именно этот снимок. Изменение — только `CD_PhotoRecord` с бинарными/CKAsset полями. Production не импортировалась и не развёртывалась; ручной promotion остаётся условием будущего распространения.
 
 ## Воспроизведение
 
 ```sh
-DESTINATION='platform=iOS Simulator,id=4649F571-1CAC-4A7D-AB10-8C44CA08362A' \
+DESTINATION='platform=iOS Simulator,id=<доступный-симулятор>' \
 DERIVED_DATA_PATH=DerivedData/Photos26 \
-RESULT_BUNDLE_PATH=Artifacts/Photos/Full-final26.xcresult bash Scripts/check.sh
+RESULT_BUNDLE_PATH=Artifacts/Photos/FinalPostResume.xcresult bash Scripts/check.sh
 
 xcodebuild -workspace Malysh.xcworkspace -scheme Malysh \
-  -destination 'platform=iOS Simulator,id=CF83A3ED-A2AC-481F-A433-F9BC1C5D7CB3' \
-  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- -derivedDataPath DerivedData \
-  -parallel-testing-enabled NO -only-testing:MalyshTests -only-testing:MalyshWidgetTests \
-  -resultBundlePath Artifacts/Photos/Unit-final27.xcresult test
-
-xcodebuild -workspace Malysh.xcworkspace -scheme Malysh \
-  -destination 'platform=iOS Simulator,id=4649F571-1CAC-4A7D-AB10-8C44CA08362A' \
+  -destination 'platform=iOS Simulator,id=<доступный-симулятор>' \
   CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- -derivedDataPath DerivedData/Photos26 \
-  -parallel-testing-enabled NO -only-testing:MalyshUITests/PhotoGalleryUITests \
-  -resultBundlePath Artifacts/Photos/PhotoUI-final26.xcresult test
+  -parallel-testing-enabled NO \
+  -only-testing:MalyshUITests/MalyshUITests/testManualSleepAppearsInHistory \
+  -only-testing:MalyshUITests/MalyshUITests/testFamilySettingsLightWithLargeText \
+  -resultBundlePath Artifacts/Photos/FinalRetryAfterBoot.xcresult test
+
+xcodebuild -workspace Malysh.xcworkspace -scheme Malysh -configuration Release \
+  -destination 'generic/platform=iOS' -derivedDataPath DerivedData/PhotosRelease \
+  CODE_SIGNING_ALLOWED=NO build
 ```
 
-UDID относятся к машине проверки; для повторного запуска выберите доступный симулятор и новые пути `.xcresult`. Логи, результаты и keepAlways-скриншоты светлой/тёмной галереи и шапки находятся локально в исключённом из Git `Artifacts/Photos`. Диагностические прогоны до исправлений сохранены отдельно и не считаются успешными проверками.
+Для повторного запуска подставьте ID доступного симулятора и новые пути `.xcresult`. Логи, результаты и keepAlways-скриншоты светлой/тёмной галереи и шапки находятся локально в исключённом из Git `Artifacts/Photos`. Диагностические прогоны до исправлений сохранены отдельно и не считаются успешными проверками.

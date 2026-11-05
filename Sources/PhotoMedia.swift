@@ -17,23 +17,7 @@ struct PhotoMedia: Sendable {
             throw PhotoFailure.invalidImage
         }
         let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
-        let exif = properties?[kCGImagePropertyExifDictionary] as? [CFString: Any]
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
-        let tiff = properties?[kCGImagePropertyTIFFDictionary] as? [CFString: Any]
-        let rawDate = exif?[kCGImagePropertyExifDateTimeOriginal] as? String ??
-            tiff?[kCGImagePropertyTIFFDateTime] as? String
-        var date = rawDate.flatMap(formatter.date(from:)) ?? fallbackDate ?? Date()
-        if let rawDate, let offset = exif?["OffsetTimeOriginal" as CFString] as? String {
-            formatter.dateFormat = "yyyy:MM:dd HH:mm:ssXXX"
-            date = formatter.date(from: rawDate + offset) ?? date
-        }
-        if let fraction = exif?[kCGImagePropertyExifSubsecTimeOriginal] as? String,
-           let subseconds = Double("0." + fraction)
-        {
-            date.addTimeInterval(subseconds)
-        }
+        let date = metadataDate(in: properties) ?? fallbackDate ?? Date()
         struct Rendered {
             let data: Data
             let size: CGSize
@@ -70,5 +54,36 @@ struct PhotoMedia: Sendable {
             height: properties?[kCGImagePropertyPixelHeight] as? Int ?? Int(full.size.height),
             capturedAt: date
         )
+    }
+
+    static func metadataDate(_ data: Data) -> Date? {
+        guard data.count <= 100_000_000,
+              let source = CGImageSourceCreateWithData(
+                  data as CFData,
+                  [kCGImageSourceShouldCache: false] as CFDictionary
+              )
+        else { return nil }
+        return metadataDate(in: CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+    }
+
+    private static func metadataDate(in properties: [CFString: Any]?) -> Date? {
+        let exif = properties?[kCGImagePropertyExifDictionary] as? [CFString: Any]
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        let tiff = properties?[kCGImagePropertyTIFFDictionary] as? [CFString: Any]
+        let rawDate = exif?[kCGImagePropertyExifDateTimeOriginal] as? String ??
+            tiff?[kCGImagePropertyTIFFDateTime] as? String
+        guard var date = rawDate.flatMap(formatter.date(from:)) else { return nil }
+        if let rawDate, let offset = exif?["OffsetTimeOriginal" as CFString] as? String {
+            formatter.dateFormat = "yyyy:MM:dd HH:mm:ssXXX"
+            date = formatter.date(from: rawDate + offset) ?? date
+        }
+        if let fraction = exif?[kCGImagePropertyExifSubsecTimeOriginal] as? String,
+           let subseconds = Double("0." + fraction)
+        {
+            date.addTimeInterval(subseconds)
+        }
+        return date
     }
 }

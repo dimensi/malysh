@@ -37,6 +37,11 @@ struct PhotoAddButton: View {
     @State private var cameraCoverActive = false
     @State private var importBabyID: UUID?
     @State private var isImporting = false
+    @State private var choosingDate = false
+    @State private var chosenImportDate: Date?
+    @State private var dateContinuation: CheckedContinuation<Date?, Never>?
+    @State private var importSession: UUID?
+    @State private var importTask: Task<Void, Never>?
 
     var body: some View {
         Button { sourceDialog = true; isPresenting = true } label: {
@@ -59,8 +64,21 @@ struct PhotoAddButton: View {
                 camera = true
             }
             .accessibilityIdentifier("photo.source.camera")
-            Button("Выбрать из Фото") { importBabyID = store.baby?.id; picker = true }
-                .accessibilityIdentifier("photo.source.library")
+            Button("Выбрать из Фото") {
+                importBabyID = store.baby?.id
+                #if DEBUG
+                    if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
+                       ProcessInfo.processInfo.arguments.contains("--photo-import-date-fixture")
+                    {
+                        importDateFixture()
+                    } else {
+                        picker = true
+                    }
+                #else
+                    picker = true
+                #endif
+            }
+            .accessibilityIdentifier("photo.source.library")
             Button("Отмена", role: .cancel) { isPresenting = false }
         }
         .photosPicker(isPresented: $picker, selection: $items, maxSelectionCount: 30,
@@ -90,45 +108,54 @@ struct PhotoAddButton: View {
         }
         .onChange(of: items) { _, selected in
             guard !selected.isEmpty, let id = importBabyID else { return }
-            isImporting = true
-            Task {
-                defer { isImporting = false }
+            let session = beginImport()
+            importTask = Task {
                 var transferError: String?
                 for item in selected {
+                    guard isCurrentImport(session) else { return }
                     do {
                         guard let data = try await item.loadTransferable(type: Data.self) else {
                             transferError = "Не удалось загрузить фотографию. Выберите её снова."
                             continue
                         }
-                        await store.photoGallery.importPhoto(
-                            data: data,
-                            assetIdentifier: item.itemIdentifier,
-                            babyID: id
-                        )
+                        guard isCurrentImport(session) else { return }
+                        await importResource(data, assetIdentifier: item.itemIdentifier, babyID: id, session: session)
                     } catch { transferError = "Не удалось загрузить фотографию. Выберите её снова." }
                 }
-                if let transferError {
-                    localError = transferError
-                }
-                reportServiceError()
-                items = []
-                isPresenting = false
-                onDismiss()
+                finishImport(session, error: transferError)
             }
         }
         .onChange(of: sourceDialog) { _, visible in
-            if !visible, !picker, !camera {
+            if !visible, !picker, !camera, !isImporting {
                 isPresenting = false; onDismiss()
             }
         }
         .onChange(of: picker) { _, visible in
-            if !visible, items.isEmpty {
+            if !visible, items.isEmpty, !isImporting {
                 isPresenting = false; onDismiss()
             }
         }
         .onChange(of: isPresenting) { _, visible in
             if !visible {
+                let wasImporting = importSession != nil
+                let waitsForDateDismissal = choosingDate
                 sourceDialog = false; picker = false; camera = false
+                cancelImport()
+                if wasImporting, !waitsForDateDismissal {
+                    onDismiss()
+                }
+            }
+        }
+        .onDisappear { cancelImport() }
+        .sheet(isPresented: $choosingDate, onDismiss: {
+            finishDateChoice()
+            if importSession == nil {
+                onDismiss()
+            }
+        }) {
+            PhotoImportDateView { date in
+                chosenImportDate = date
+                choosingDate = false
             }
         }
         .alert("Не удалось добавить фотографию", isPresented: Binding(
@@ -141,6 +168,90 @@ struct PhotoAddButton: View {
         message: { Text(localError ?? "") }
     }
 
+    private func importResource(_ data: Data, assetIdentifier: String?, babyID: UUID, session: UUID) async {
+        guard isCurrentImport(session) else { return }
+        let metadataDate = await store.photoGallery.importDate(for: data, assetIdentifier: assetIdentifier)
+        guard isCurrentImport(session) else { return }
+        let date: Date? = if let metadataDate {
+            metadataDate
+        } else {
+            await withCheckedContinuation { continuation in
+                dateContinuation = continuation
+                chosenImportDate = nil
+                choosingDate = true
+            }
+        }
+        guard isCurrentImport(session), let date else { return }
+        await store.photoGallery.importPhoto(
+            data: data, assetIdentifier: assetIdentifier, babyID: babyID, capturedAt: date
+        )
+    }
+
+    private func beginImport() -> UUID {
+        cancelImport()
+        let session = UUID()
+        importSession = session
+        isImporting = true
+        return session
+    }
+
+    private func isCurrentImport(_ session: UUID) -> Bool {
+        importSession == session && !Task.isCancelled
+    }
+
+    private func cancelImport() {
+        items = []
+        importSession = nil
+        importTask?.cancel()
+        importTask = nil
+        isImporting = false
+        chosenImportDate = nil
+        choosingDate = false
+        finishDateChoice()
+    }
+
+    private func finishImport(_ session: UUID, error: String? = nil) {
+        guard isCurrentImport(session) else { return }
+        importSession = nil
+        importTask = nil
+        isImporting = false
+        if let error {
+            localError = error
+        }
+        reportServiceError()
+        items = []
+        isPresenting = false
+        onDismiss()
+    }
+
+    private func finishDateChoice() {
+        let continuation = dateContinuation
+        let date = chosenImportDate
+        dateContinuation = nil
+        chosenImportDate = nil
+        continuation?.resume(returning: date)
+    }
+
+    #if DEBUG
+        private func importDateFixture() {
+            guard let id = importBabyID else { return }
+            let session = beginImport()
+            let renderer = UIGraphicsImageRenderer(size: CGSize(width: 240, height: 240))
+            let data = renderer.pngData { context in
+                UIColor.systemTeal.setFill()
+                context.fill(CGRect(x: 0, y: 0, width: 240, height: 240))
+            }
+            importTask = Task {
+                let count = ProcessInfo.processInfo.arguments.contains("--photo-import-date-batch-fixture") ? 2 : 1
+                for _ in 0 ..< count {
+                    guard isCurrentImport(session) else { return }
+                    await importResource(data, assetIdentifier: nil, babyID: id, session: session)
+                }
+                finishImport(session)
+            }
+        }
+    #endif
+
     private func reportServiceError() {
         guard handlesServiceErrors, let error = store.photoGallery.errorMessage else { return }
         if cameraCoverActive {
@@ -149,6 +260,38 @@ struct PhotoAddButton: View {
             localError = error
         }
         store.photoGallery.errorMessage = nil
+    }
+}
+
+private struct PhotoImportDateView: View {
+    let onChoose: (Date?) -> Void
+    @State private var date = Date()
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    DatePicker("Дата съёмки", selection: $date, in: ...Date(), displayedComponents: .date)
+                        .accessibilityIdentifier("photo.import.date")
+                    Button("Снято сегодня") { onChoose(Date()) }
+                        .accessibilityIdentifier("photo.import.today")
+                } footer: {
+                    Text(
+                        "В файле нет даты съёмки. Укажите её, чтобы фотография появилась в нужном дне, а возраст малыша был рассчитан верно."
+                    )
+                }
+            }
+            .navigationTitle("Указать дату съёмки")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Пропустить") { onChoose(nil) }.accessibilityIdentifier("photo.import.skip")
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Использовать дату") { onChoose(date) }.accessibilityIdentifier("photo.import.confirm")
+                }
+            }
+        }
     }
 }
 

@@ -1,7 +1,9 @@
 @preconcurrency import AVFoundation
+import ImageIO
 import SwiftUI
+import UniformTypeIdentifiers
 
-/// Captures the encoded camera resource, including its metadata, without a UIImage round trip.
+/// Uses the system camera, including its capture, retake and confirmation controls.
 struct PhotoCaptureView: UIViewControllerRepresentable {
     let onCapture: (Data) -> Void
     let onError: (String) -> Void
@@ -17,15 +19,13 @@ struct PhotoCaptureView: UIViewControllerRepresentable {
         controller.deactivate()
     }
 
-    final class CameraController: UIViewController, AVCapturePhotoCaptureDelegate {
-        private let driver = CameraSessionDriver()
-        private var prepareTask: Task<Void, Never>?
-        private var isActive = true
-        private var preview: AVCaptureVideoPreviewLayer?
+    final class CameraController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         private let onCapture: (Data) -> Void
         private let onError: (String) -> Void
         private let onCancel: () -> Void
-        private let shutter = UIButton(type: .system)
+        private var preparation: Task<Void, Never>?
+        private var isActive = true
+        private var started = false
 
         init(onCapture: @escaping (Data) -> Void, onError: @escaping (String) -> Void,
              onCancel: @escaping () -> Void)
@@ -41,165 +41,148 @@ struct PhotoCaptureView: UIViewControllerRepresentable {
             fatalError("init(coder:) is unavailable")
         }
 
-        override func viewDidLoad() {
-            super.viewDidLoad()
-            view.backgroundColor = .black
-            shutter.setTitle("Сфотографировать", for: .normal)
-            shutter.accessibilityIdentifier = "photo.camera.shutter"
-            shutter.addTarget(self, action: #selector(capture), for: .touchUpInside)
-            shutter.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(shutter)
-            let cancel = UIButton(type: .system)
-            cancel.setTitle("Отмена", for: .normal)
-            cancel.addTarget(self, action: #selector(cancelCapture), for: .touchUpInside)
-            cancel.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(cancel)
-            NSLayoutConstraint.activate([
-                shutter.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                shutter.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-                shutter.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
-                cancel.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
-                cancel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-                cancel.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
-            ])
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            guard !started else { return }
+            started = true
+            view.backgroundColor = .systemBackground
             #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
                    ProcessInfo.processInfo.arguments.contains("--photo-camera-fixture")
                 {
+                    showFixture()
                     return
                 }
             #endif
-            prepareTask = Task { await prepare() }
+            preparation = Task { await presentCamera() }
         }
 
-        override func viewDidLayoutSubviews() {
-            super.viewDidLayoutSubviews()
-            preview?.frame = view.bounds
-        }
-
-        override func viewDidDisappear(_ animated: Bool) {
-            super.viewDidDisappear(animated)
-            deactivate()
+        override func viewWillDisappear(_ animated: Bool) {
+            super.viewWillDisappear(animated)
+            // Presenting the native camera also hides this host. Only invalidate when
+            // the host itself is being dismissed, not when its camera is presented.
+            if isBeingDismissed || presentingViewController?.isBeingDismissed == true {
+                deactivate()
+            }
         }
 
         func deactivate() {
             isActive = false
-            prepareTask?.cancel()
-            prepareTask = nil
-            driver.stop()
+            preparation?.cancel()
+            preparation = nil
         }
 
-        private func prepare() async {
+        private func presentCamera() async {
             let allowed = await AVCaptureDevice.requestAccess(for: .video)
             guard isActive, !Task.isCancelled else { return }
             guard allowed else {
-                deactivate()
-                onError("Разрешите доступ к камере в Настройках, чтобы сфотографировать малыша.")
+                fail("Разрешите доступ к камере в Настройках, чтобы сфотографировать малыша.")
                 return
             }
-            driver.start { [weak self] succeeded in
-                Task { @MainActor in
-                    guard let self, self.isActive else { return }
-                    guard succeeded else {
-                        self.deactivate()
-                        self.onError("Камера недоступна. Попробуйте снова или выберите фотографию из Фото.")
-                        return
-                    }
-                    let layer = AVCaptureVideoPreviewLayer(session: self.driver.session)
-                    layer.videoGravity = .resizeAspectFill
-                    self.view.layer.insertSublayer(layer, at: 0)
-                    self.preview = layer
-                    self.view.setNeedsLayout()
-                }
+            guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+                fail("Камера недоступна. Выберите фотографию из Фото.")
+                return
             }
+            let picker = UIImagePickerController()
+            picker.sourceType = .camera
+            picker.mediaTypes = [UTType.image.identifier]
+            picker.cameraCaptureMode = .photo
+            picker.allowsEditing = false
+            picker.delegate = self
+            picker.modalPresentationStyle = .fullScreen
+            present(picker, animated: true)
         }
 
-        @objc private func capture() {
+        func imagePickerControllerDidCancel(_: UIImagePickerController) {
             guard isActive else { return }
-            #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
-                   ProcessInfo.processInfo.arguments.contains("--photo-camera-fixture")
-                {
-                    let renderer = UIGraphicsImageRenderer(size: CGSize(width: 240, height: 240))
-                    let data = renderer.pngData { context in
-                        UIColor.systemOrange.setFill()
-                        context.fill(CGRect(x: 0, y: 0, width: 240, height: 240))
-                    }
-                    deactivate()
-                    onCapture(data)
-                    return
-                }
-            #endif
-            guard driver.session.isRunning else { return }
-            shutter.isEnabled = false
-            let settings = AVCapturePhotoSettings()
-            driver.output.capturePhoto(with: settings, delegate: self)
-        }
-
-        @objc private func cancelCapture() {
             deactivate()
             onCancel()
         }
 
-        nonisolated func photoOutput(_: AVCapturePhotoOutput,
-                                     didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?)
+        func imagePickerController(_: UIImagePickerController,
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any])
         {
-            let data = error == nil ? photo.fileDataRepresentation() : nil
-            Task { @MainActor in
-                guard self.isActive else { return }
-                self.deactivate()
-                if let data {
-                    self.onCapture(data)
-                } else {
-                    self.onError("Не удалось снять фотографию. Попробуйте снова.")
-                }
+            guard isActive else { return }
+            // When supplied, this is the camera file itself: no re-encoding.
+            if let url = info[.imageURL] as? URL, let data = try? Data(contentsOf: url) {
+                finish(data)
+                return
             }
+            // The system camera may only supply originalImage. Encode its full pixel buffer
+            // once, at maximum quality, retaining the camera metadata and EXIF orientation.
+            guard let image = info[.originalImage] as? UIImage, let pixels = image.cgImage else {
+                fail("Не удалось получить фотографию. Попробуйте снова.")
+                return
+            }
+            var metadata = info[.mediaMetadata] as? [String: Any] ?? [:]
+            metadata[kCGImagePropertyOrientation as String] = image.imageOrientation.exifOrientation
+            metadata[kCGImageDestinationLossyCompressionQuality as String] = 1.0
+            let data = NSMutableData()
+            guard let destination = CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil)
+            else {
+                fail("Не удалось сохранить фотографию. Попробуйте снова.")
+                return
+            }
+            CGImageDestinationAddImage(destination, pixels, metadata as CFDictionary)
+            guard CGImageDestinationFinalize(destination) else {
+                fail("Не удалось сохранить фотографию. Попробуйте снова.")
+                return
+            }
+            finish(data as Data)
         }
+
+        private func finish(_ data: Data) {
+            guard isActive else { return }
+            deactivate()
+            onCapture(data)
+        }
+
+        private func fail(_ message: String) {
+            guard isActive else { return }
+            deactivate()
+            onError(message)
+        }
+
+        #if DEBUG
+            private func showFixture() {
+                let shutter = UIButton(type: .system)
+                shutter.setTitle("Сфотографировать", for: .normal)
+                shutter.accessibilityIdentifier = "photo.camera.shutter"
+                shutter.addTarget(self, action: #selector(captureFixture), for: .touchUpInside)
+                shutter.translatesAutoresizingMaskIntoConstraints = false
+                view.addSubview(shutter)
+                NSLayoutConstraint.activate([
+                    shutter.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                    shutter.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                    shutter.heightAnchor.constraint(greaterThanOrEqualToConstant: 44),
+                ])
+            }
+
+            @objc private func captureFixture() {
+                guard isActive else { return }
+                let renderer = UIGraphicsImageRenderer(size: CGSize(width: 240, height: 240))
+                let data = renderer.pngData { context in
+                    UIColor.systemOrange.setFill()
+                    context.fill(CGRect(x: 0, y: 0, width: 240, height: 240))
+                }
+                finish(data)
+            }
+        #endif
     }
 }
 
-/// All configuration and running transitions share one queue. Invalidation is immediate,
-/// so a permission response or queued start cannot revive a dismissed camera.
-private final class CameraSessionDriver: @unchecked Sendable {
-    let session = AVCaptureSession()
-    let output = AVCapturePhotoOutput()
-    private let queue = DispatchQueue(label: "Malysh.PhotoCamera", qos: .userInitiated)
-    private let lock = NSLock()
-    private var active = true
-
-    private var isActive: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return active
-    }
-
-    func start(completion: @escaping @Sendable (Bool) -> Void) {
-        queue.async { [self] in
-            guard isActive else { return }
-            do {
-                guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
-                else { throw NSError(domain: "PhotoCamera", code: 1) }
-                let input = try AVCaptureDeviceInput(device: device)
-                session.beginConfiguration()
-                session.sessionPreset = .photo
-                guard session.canAddInput(input), session.canAddOutput(output) else {
-                    session.commitConfiguration()
-                    throw NSError(domain: "PhotoCamera", code: 1)
-                }
-                session.addInput(input)
-                session.addOutput(output)
-                session.commitConfiguration()
-                guard isActive else { return }
-                session.startRunning()
-                completion(true)
-            } catch { completion(false) }
+private extension UIImage.Orientation {
+    var exifOrientation: Int {
+        switch self {
+        case .up: 1
+        case .upMirrored: 2
+        case .down: 3
+        case .downMirrored: 4
+        case .leftMirrored: 5
+        case .right: 6
+        case .rightMirrored: 7
+        case .left: 8
+        @unknown default: 1
         }
-    }
-
-    func stop() {
-        lock.lock()
-        active = false
-        lock.unlock()
-        queue.async { [self] in session.stopRunning() }
     }
 }

@@ -125,6 +125,58 @@ final class PhotoGalleryUITests: XCTestCase {
         XCTAssertTrue(firstPhoto(app).waitForExistence(timeout: 5))
     }
 
+    func testUndatedImportRequiresChoiceAndSkipDoesNotCreatePhoto() throws {
+        let app = launch(["--photo-import-date-fixture", "--light-mode"])
+        func startImport() {
+            app.buttons["photo.add"].tap()
+            let source = app.buttons.matching(identifier: "photo.source.library").firstMatch
+            XCTAssertTrue(source.waitForExistence(timeout: 5))
+            source.tap()
+            XCTAssertTrue(app.navigationBars["Указать дату съёмки"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.datePickers["photo.import.date"].exists)
+        }
+        startImport()
+        app.buttons["photo.import.skip"].tap()
+        app.buttons["photo.gallery.open"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["photo.empty"].waitForExistence(timeout: 5))
+        app.buttons["photo.gallery.close"].tap()
+        startImport()
+        app.buttons["photo.import.today"].tap()
+        let avatar = app.buttons["photo.gallery.open"]
+        let saved = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value BEGINSWITH %@", "Главное фото от "), object: avatar
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [saved], timeout: 8), .completed)
+        avatar.tap()
+        XCTAssertTrue(firstPhoto(app).waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts.matching(identifier: "photo.date.group").count, 1)
+        let group = app.staticTexts.matching(identifier: "photo.date.group").firstMatch
+        let numbers = group.label.split(whereSeparator: { !$0.isNumber }).compactMap { Int($0) }
+        let today = Calendar.current.dateComponents([.day, .year], from: Date())
+        XCTAssertTrue(try numbers.contains(XCTUnwrap(today.day)))
+        XCTAssertTrue(try numbers.contains(XCTUnwrap(today.year)))
+    }
+
+    func testWidgetRouteCancelsUndatedBatchWithoutReopeningNextPrompt() throws {
+        let app = launch(["--photo-import-date-fixture", "--photo-import-date-batch-fixture"])
+        app.buttons["photo.add"].tap()
+        let source = app.buttons.matching(identifier: "photo.source.library").firstMatch
+        XCTAssertTrue(source.waitForExistence(timeout: 5))
+        source.tap()
+        let dateSheet = app.navigationBars["Указать дату съёмки"]
+        XCTAssertTrue(dateSheet.waitForExistence(timeout: 5))
+        app.launchArguments = ["--ui-testing", "--photo-import-date-fixture", "--photo-import-date-batch-fixture"]
+        try app.open(XCTUnwrap(URL(string: "malysh://widget/today")))
+        let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: dateSheet)
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 8), .completed)
+        let avatar = app.buttons["photo.gallery.open"]
+        XCTAssertTrue(avatar.waitForExistence(timeout: 5))
+        XCTAssertTrue(avatar.isHittable)
+        avatar.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["photo.empty"].waitForExistence(timeout: 5))
+        XCTAssertFalse(dateSheet.exists)
+    }
+
     func testDeniedCameraSaveShowsHomeErrorAndRetainsOriginalForRetry() {
         let app = launch(["--photo-camera-fixture", "--photo-permission-denied"])
         app.buttons["photo.add"].tap()

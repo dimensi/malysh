@@ -182,16 +182,26 @@ final class PhotoGalleryStore {
         )
     }
 
-    func importPhoto(data: Data, assetIdentifier: String?, babyID: UUID) async {
+    func importPhoto(data: Data, assetIdentifier: String?, babyID: UUID, capturedAt: Date? = nil) async {
         await add(
             data: data,
             assetIdentifier: assetIdentifier,
             babyID: babyID,
-            camera: false
+            camera: false,
+            capturedAt: capturedAt
         )
     }
 
-    private func add(data: Data, assetIdentifier: String?, babyID: UUID, camera: Bool) async {
+    func importDate(for data: Data, assetIdentifier: String?) async -> Date? {
+        if let metadataDate = await Task.detached(operation: { PhotoMedia.metadataDate(data) }).value {
+            return metadataDate
+        }
+        let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        guard let assetIdentifier, status == .authorized || status == .limited else { return nil }
+        return PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: nil).firstObject?.creationDate
+    }
+
+    private func add(data: Data, assetIdentifier: String?, babyID: UUID, camera: Bool, capturedAt: Date? = nil) async {
         guard !journalUnavailable else { return }
         await acquire()
         defer { release() }
@@ -229,13 +239,9 @@ final class PhotoGalleryStore {
             guard journal.pending.count < 30, stagedBytes + data.count <= 256_000_000 else {
                 throw PhotoFailure.storageFull
             }
-            var fallbackDate: Date?
-            let readStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-            if let assetIdentifier, readStatus == .authorized || readStatus == .limited {
-                fallbackDate = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: nil).firstObject?
-                    .creationDate
-            }
-            let sourceDate = fallbackDate
+            let knownDate = await importDate(for: data, assetIdentifier: assetIdentifier)
+            let sourceDate = knownDate ?? capturedAt
+            guard camera || sourceDate != nil else { throw PhotoFailure.missingDate }
             let media = try await Task.detached { try PhotoMedia.prepare(data, fallbackDate: sourceDate) }.value
             let photo = BabyPhoto(
                 babyID: babyID,
@@ -349,8 +355,9 @@ final class PhotoGalleryStore {
     }
 
     func saveReceivedIfEnabled() async {
-        guard autoSaveReceived, !isBusy else { return }
+        guard autoSaveReceived else { return }
         await acquire(); defer { release() }
+        guard autoSaveReceived else { return }
         do {
             for baby in try persistence.babies() {
                 guard let current = try persistence.currentEventAuthor(babyID: baby.id)?.id else { continue }

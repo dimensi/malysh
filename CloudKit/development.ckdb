@@ -66,6 +66,31 @@ DEFINE SCHEMA
         GRANT READ TO "_world"
     );
 
+    RECORD TYPE CD_PhotoRecord (
+        CD_baby                  STRING QUERYABLE SEARCHABLE SORTABLE,
+        CD_babyID                STRING QUERYABLE SEARCHABLE SORTABLE,
+        CD_capturedAt            TIMESTAMP QUERYABLE SORTABLE,
+        CD_entityName            STRING QUERYABLE SEARCHABLE SORTABLE,
+        CD_id                    STRING QUERYABLE SEARCHABLE SORTABLE,
+        CD_imageData             BYTES QUERYABLE SORTABLE,
+        CD_imageData_ckAsset     ASSET,
+        CD_moveReceipt           BYTES QUERYABLE SORTABLE,
+        CD_moveReceipt_ckAsset   ASSET,
+        CD_payload               BYTES QUERYABLE SORTABLE,
+        CD_payload_ckAsset       ASSET,
+        CD_thumbnailData         BYTES QUERYABLE SORTABLE,
+        CD_thumbnailData_ckAsset ASSET,
+        "___createTime"          TIMESTAMP,
+        "___createdBy"           REFERENCE,
+        "___etag"                STRING,
+        "___modTime"             TIMESTAMP,
+        "___modifiedBy"          REFERENCE,
+        "___recordID"            REFERENCE,
+        GRANT WRITE TO "_creator",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
     RECORD TYPE Users (
         "___createTime" TIMESTAMP,
         "___createdBy"  REFERENCE,

@@ -1,6 +1,8 @@
 import Foundation
 import ImageIO
 @testable import Malysh
+import Photos
+import Synchronization
 import UIKit
 import UniformTypeIdentifiers
 import XCTest
@@ -12,12 +14,29 @@ final class PhotoWorkflowTests: XCTestCase {
         var error: Error?
         var delay = false
         var onSave: (() throws -> Void)?
+        var holdFirstWrite = false
+        var firstWriteContinuation: CheckedContinuation<Void, Never>?
+        var firstStartedWaiter: CheckedContinuation<Void, Never>?
+        func waitForFirstWrite() async {
+            if firstWriteContinuation != nil {
+                return
+            }
+            await withCheckedContinuation { firstStartedWaiter = $0 }
+        }
+
         func authorizeAdding() async -> Bool {
             error == nil
         }
 
         func saveOriginal(_: Data, capturedAt _: Date, requestPermission _: Bool) async throws -> String {
             calls += 1
+            if holdFirstWrite, calls == 1 {
+                await withCheckedContinuation { continuation in
+                    firstWriteContinuation = continuation
+                    firstStartedWaiter?.resume()
+                    firstStartedWaiter = nil
+                }
+            }
             if delay {
                 try await Task.sleep(for: .milliseconds(20))
             }
@@ -63,12 +82,22 @@ final class PhotoWorkflowTests: XCTestCase {
         let writer = Writer()
         let gallery = PhotoGalleryStore(persistence: persistence, library: writer, directory: directory)
         for _ in 0 ..< 2 {
-            await gallery.importPhoto(data: image(), assetIdentifier: "existing", babyID: baby.id)
+            await gallery.importPhoto(
+                data: image(),
+                assetIdentifier: "existing",
+                babyID: baby.id,
+                capturedAt: Date(timeIntervalSince1970: 1_700_000_000)
+            )
         }
         XCTAssertEqual(writer.calls, 0)
         let photo = try XCTUnwrap(gallery.photos(babyID: baby.id).first)
         try gallery.delete(photo)
-        await gallery.importPhoto(data: image(), assetIdentifier: "existing", babyID: baby.id)
+        await gallery.importPhoto(
+            data: image(),
+            assetIdentifier: "existing",
+            babyID: baby.id,
+            capturedAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
         XCTAssertEqual(try gallery.photos(babyID: baby.id).count, 1)
         XCTAssertEqual(writer.calls, 0)
     }
@@ -117,7 +146,12 @@ final class PhotoWorkflowTests: XCTestCase {
         let gallery = PhotoGalleryStore(persistence: persistence, library: writer, directory: directory)
         let bytes = image()
         async let first: Void = gallery.capture(data: bytes, babyID: baby.id)
-        async let second: Void = gallery.importPhoto(data: bytes, assetIdentifier: "picker-second", babyID: baby.id)
+        async let second: Void = gallery.importPhoto(
+            data: bytes,
+            assetIdentifier: "picker-second",
+            babyID: baby.id,
+            capturedAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
         _ = await (first, second)
         XCTAssertEqual(try gallery.photos(babyID: baby.id).count, 2)
         XCTAssertEqual(writer.calls, 1)
@@ -196,7 +230,12 @@ final class PhotoWorkflowTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let writer = Writer()
         let gallery = PhotoGalleryStore(persistence: persistence, library: writer, directory: directory)
-        await gallery.importPhoto(data: image(), assetIdentifier: nil, babyID: baby.id)
+        await gallery.importPhoto(
+            data: image(),
+            assetIdentifier: nil,
+            babyID: baby.id,
+            capturedAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
         let photo = try XCTUnwrap(gallery.photos(babyID: baby.id).first)
         XCTAssertTrue(gallery.hasLocalAsset(photo))
         await gallery.saveToPhotos(photo)
@@ -208,7 +247,12 @@ final class PhotoWorkflowTests: XCTestCase {
                 UIColor.blue.setFill()
                 context.fill(CGRect(x: 0, y: 0, width: 20, height: 20))
             }.jpegData(compressionQuality: 0.9))
-        await gallery.importPhoto(data: other, assetIdentifier: nil, babyID: baby.id)
+        await gallery.importPhoto(
+            data: other,
+            assetIdentifier: nil,
+            babyID: baby.id,
+            capturedAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
         XCTAssertEqual(try gallery.photos(babyID: baby.id).count, 2)
         XCTAssertEqual(writer.calls, 0)
     }
@@ -222,7 +266,12 @@ final class PhotoWorkflowTests: XCTestCase {
         let gallery = PhotoGalleryStore(persistence: persistence, library: writer, directory: directory)
         let bytes = image()
         await gallery.capture(data: bytes, babyID: baby.id)
-        await gallery.importPhoto(data: bytes, assetIdentifier: "asset-1", babyID: baby.id)
+        await gallery.importPhoto(
+            data: bytes,
+            assetIdentifier: "asset-1",
+            babyID: baby.id,
+            capturedAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
         XCTAssertEqual(try gallery.photos(babyID: baby.id).count, 1)
         XCTAssertEqual(writer.calls, 1)
     }
@@ -233,9 +282,177 @@ final class PhotoWorkflowTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let gallery = PhotoGalleryStore(persistence: persistence, library: Writer(), directory: directory)
-        await gallery.importPhoto(data: image(), assetIdentifier: "existing", babyID: baby.id)
+        await gallery.importPhoto(
+            data: image(),
+            assetIdentifier: "existing",
+            babyID: baby.id,
+            capturedAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
         XCTAssertNil(gallery.errorMessage)
         let values = try directory.resourceValues(forKeys: [.isExcludedFromBackupKey])
         XCTAssertEqual(values.isExcludedFromBackup, true)
+    }
+
+    func testReceivedNotificationDuringBusyWriteQueuesFreshRescan() async throws {
+        let persistence = Persistence(inMemory: true); try await persistence.load()
+        let baby = Baby(name: "Test"); try persistence.saveBaby(baby)
+        let bytes = image()
+        let first = BabyPhoto(
+            babyID: baby.id,
+            capturedAt: Date(),
+            addedBy: "user-other",
+            pixelWidth: 16,
+            pixelHeight: 16
+        )
+        try persistence.savePhoto(first, imageData: bytes, thumbnailData: bytes)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let writer = Writer(); writer.holdFirstWrite = true
+        let gallery = PhotoGalleryStore(persistence: persistence, library: writer, directory: directory)
+        let enabling = Task { await gallery.setAutoSaveReceived(true) }
+        await writer.waitForFirstWrite()
+        let second = BabyPhoto(
+            babyID: baby.id,
+            capturedAt: Date(),
+            addedBy: "user-other",
+            pixelWidth: 16,
+            pixelHeight: 16
+        )
+        try persistence.savePhoto(second, imageData: bytes, thumbnailData: bytes)
+        let receivedNotification = Task { await gallery.saveReceivedIfEnabled() }
+        await Task.yield()
+        writer.firstWriteContinuation?.resume()
+        writer.firstWriteContinuation = nil
+        await enabling.value
+        await receivedNotification.value
+        XCTAssertEqual(writer.calls, 2)
+        XCTAssertTrue(gallery.hasLocalAsset(first))
+        XCTAssertTrue(gallery.hasLocalAsset(second))
+    }
+
+    func testUndatedImportRequiresExplicitDateAndPreservesUserChoice() async throws {
+        let persistence = Persistence(inMemory: true); try await persistence.load()
+        let baby = Baby(name: "Test"); try persistence.saveBaby(baby)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let writer = Writer()
+        let gallery = PhotoGalleryStore(persistence: persistence, library: writer, directory: directory)
+        let bytes = image()
+        let extracted = await gallery.importDate(for: bytes, assetIdentifier: nil)
+        XCTAssertNil(extracted)
+        await gallery.importPhoto(data: bytes, assetIdentifier: nil, babyID: baby.id)
+        XCTAssertTrue(try gallery.photos(babyID: baby.id).isEmpty)
+        XCTAssertEqual(gallery.pendingCount, 0)
+        XCTAssertNotNil(gallery.errorMessage)
+        let chosenDate = Date(timeIntervalSince1970: 1_600_000_000)
+        await gallery.importPhoto(data: bytes, assetIdentifier: nil, babyID: baby.id, capturedAt: chosenDate)
+        let photos = try gallery.photos(babyID: baby.id)
+        XCTAssertEqual(photos.count, 1)
+        XCTAssertEqual(photos.first?.capturedAt, chosenDate)
+        XCTAssertEqual(BabyPhoto.avatar(in: photos, pinnedID: nil)?.capturedAt, chosenDate)
+        XCTAssertEqual(writer.calls, 0)
+    }
+
+    func testOriginalComparisonAllowsMetadataEnrichmentButDetectsImagePayloadChange() throws {
+        let original = image()
+        var enriched = Data(original.prefix(2))
+        enriched.append(contentsOf: [0xFF, 0xE1, 0x00, 0x06, 0x74, 0x65, 0x73, 0x74])
+        enriched.append(original.dropFirst(2))
+        XCTAssertEqual(try jpegImagePayload(original), try jpegImagePayload(enriched))
+        var changed = original
+        changed[changed.count - 3] ^= 1
+        XCTAssertNotEqual(try jpegImagePayload(original), try jpegImagePayload(changed))
+    }
+
+    private func jpegImagePayload(_ data: Data) throws -> Data {
+        let bytes = [UInt8](data)
+        guard bytes.count >= 2, bytes[0] == 0xFF, bytes[1] == 0xD8 else { throw PhotoFailure.invalidImage }
+        var result = Data(bytes.prefix(2))
+        var offset = 2
+        while offset < bytes.count {
+            let start = offset
+            guard bytes[offset] == 0xFF else { throw PhotoFailure.invalidImage }
+            while offset < bytes.count, bytes[offset] == 0xFF {
+                offset += 1
+            }
+            guard offset < bytes.count else { throw PhotoFailure.invalidImage }
+            let marker = bytes[offset]
+            offset += 1
+            if marker == 0xDA || marker == 0xD9 {
+                result.append(contentsOf: bytes[start...])
+                return result
+            }
+            guard offset + 2 <= bytes.count else { throw PhotoFailure.invalidImage }
+            let length = Int(bytes[offset]) * 256 + Int(bytes[offset + 1])
+            guard length >= 2, offset + length <= bytes.count else { throw PhotoFailure.invalidImage }
+            offset += length
+            if !(0xE0 ... 0xEF).contains(marker), marker != 0xFE {
+                result.append(contentsOf: bytes[start ..< offset])
+            }
+        }
+        throw PhotoFailure.invalidImage
+    }
+
+    func testRealPhotoKitWritesExactOriginalOnTransactionQueue() async throws {
+        guard ProcessInfo.processInfo.environment["MALYSH_PHOTOKIT_INTEGRATION"] == "1" else {
+            throw XCTSkip(
+                "Opt-in integration test requires a dedicated simulator with Photos permissions already granted."
+            )
+        }
+        #if targetEnvironment(simulator)
+            XCTAssertEqual(PHPhotoLibrary.authorizationStatus(for: .addOnly), .authorized)
+            guard PHPhotoLibrary.authorizationStatus(for: .addOnly) == .authorized else { return }
+            let bytes = image()
+            let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            try FileManager.default.createDirectory(at: documents, withIntermediateDirectories: true)
+            try bytes.write(to: documents.appendingPathComponent("PhotoKitIntegrationExpected.jpg"), options: .atomic)
+            let capturedAt = Date(timeIntervalSince1970: 1_234_567_890)
+            let identifier = try await PhotoLibraryService().saveOriginal(
+                bytes,
+                capturedAt: capturedAt,
+                requestPermission: false
+            )
+            XCTAssertFalse(identifier.isEmpty)
+            let canRead = PHPhotoLibrary.authorizationStatus(for: .readWrite) == .authorized
+            let receipt: [String: Any] = [
+                "assetIdentifier": identifier,
+                "capturedAt": capturedAt.timeIntervalSince1970,
+                "readVerificationPerformed": canRead,
+            ]
+            try JSONSerialization.data(withJSONObject: receipt, options: [.prettyPrinted, .sortedKeys]).write(
+                to: documents.appendingPathComponent("PhotoKitIntegrationReceipt.json"), options: .atomic
+            )
+            // The shipped app deliberately declares add-only access. When read access
+            // is unavailable, the dedicated simulator's original is compared from the host.
+            guard canRead else { return }
+            let asset = try XCTUnwrap(PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil).firstObject)
+            XCTAssertEqual(
+                asset.creationDate?.timeIntervalSince1970 ?? 0,
+                capturedAt.timeIntervalSince1970,
+                accuracy: 1
+            )
+            let resource = try XCTUnwrap(PHAssetResource.assetResources(for: asset).first(where: { $0.type == .photo }))
+            let buffer = Mutex(Data())
+            let restored: Data = try await withCheckedThrowingContinuation { continuation in
+                PHAssetResourceManager.default().requestData(
+                    for: resource,
+                    options: nil,
+                    dataReceivedHandler: { @Sendable chunk in
+                        buffer.withLock { $0.append(chunk) }
+                    },
+                    completionHandler: { @Sendable error in
+                        if let error {
+                            continuation.resume(throwing: error)
+                        } else {
+                            continuation.resume(returning: buffer.withLock { $0 })
+                        }
+                    }
+                )
+            }
+            // Photos can enrich EXIF APP segments; the encoded image must remain unchanged.
+            XCTAssertEqual(try jpegImagePayload(restored), try jpegImagePayload(bytes))
+        #else
+            throw XCTSkip("This integration test only writes to a dedicated simulator library.")
+        #endif
     }
 }
