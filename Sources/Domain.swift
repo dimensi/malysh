@@ -31,7 +31,7 @@ public enum DiaperType: String, Codable, CaseIterable, Sendable {
     public var label: String {
         switch self {
         case .wet: "Мокрый"
-        case .dirty: "Грязный"
+        case .dirty: "Стул"
         case .mixed: "Смешанный"
         }
     }

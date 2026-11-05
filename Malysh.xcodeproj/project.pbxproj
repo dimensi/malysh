@@ -15,7 +15,9 @@
 		082C5BA9EF9254A995B8238E /* ChildProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA89BE4CAC87CCF203A92881 /* ChildProfileTests.swift */; };
 		09C5C8A5DC48FF563D2E37DA /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298DBC1D5993065C443496CB /* PersistenceTests.swift */; };
 		0BB408F1BF9B16E0F293D90F /* CloudFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FC9DCFAFEAB31295E2C73C9 /* CloudFailure.swift */; };
+		0EB555BE3621313EE0777A45 /* CareActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D59E1D6759F548114733AA4 /* CareActivityIntents.swift */; };
 		0FE6FE4CF9713709385F99DF /* Malysh.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 226833D8083308456F270E4A /* Malysh.xcdatamodeld */; };
+		14C1C2F0D1608A11A1787AFD /* CareActivityViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5E3FA6E2E9607DF4BAA2FE /* CareActivityViews.swift */; };
 		2043E5159FA215954B2A0B8C /* DiaryWidgetRenderingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06714FA66DA3AB1CC276B9E /* DiaryWidgetRenderingTests.swift */; };
 		228E388971D3954E88EC9311 /* TuistBundle+MalyshWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9E7AB507DAA687BD0BB74 /* TuistBundle+MalyshWidgets.swift */; };
 		2416CD96A4E21E4A0F36CA79 /* WidgetRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B5885ACCC409989C1F4056 /* WidgetRoute.swift */; };
@@ -39,12 +41,17 @@
 		5EF90387E386D7A3E1BECAF5 /* CareActivityRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC026ED73F1E5888713E7176 /* CareActivityRuntime.swift */; };
 		6B55CD9DFB2C58A44771BADA /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE7445CB125A24CB62679A8 /* DesignSystem.swift */; };
 		7025B0FDC1D339B34AC1BCA1 /* WidgetSnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE10751315B4204C1A49AB /* WidgetSnapshotStore.swift */; };
+		71B699458E5EEDDBF42CAFDF /* CareActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 754529FCC0E07F606825A2B8 /* CareActivityAttributes.swift */; };
 		7664046950551F14BE43BEE1 /* DiaryWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E3196271A6AFAD4C78051CC /* DiaryWidget.swift */; };
+		78440D4CE5B230B9E3CB9858 /* DiaryControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2147ABDEBC2B791FFF4C063 /* DiaryControls.swift */; };
 		7855B56CF4539FCE44E201C1 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D8997C83101EAF0BB70AF5B /* WidgetSnapshot.swift */; };
 		7B1BDEEEB2EB3316A613FF33 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE7445CB125A24CB62679A8 /* DesignSystem.swift */; };
 		80919B36A653A1958D132EE2 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44DC826FECF34A61D2341DF2 /* SettingsView.swift */; };
+		84BAB5B5282BFFED0CBB0E4B /* CareActivityViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5E3FA6E2E9607DF4BAA2FE /* CareActivityViews.swift */; };
 		870006EE96AB31B6BF0DD86E /* CareActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 754529FCC0E07F606825A2B8 /* CareActivityAttributes.swift */; };
+		8886130B58ED428FA3882547 /* WidgetCommandTiming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F8DAFA491923A13031F3D6 /* WidgetCommandTiming.swift */; };
 		891A56698AC608E53300989F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3EC1589C84F4006C41A0DDA4 /* Assets.xcassets */; };
+		9018789A63CD7F2FCA764977 /* WidgetCareIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */; };
 		91133169ED9FCD9E0D6D7A75 /* ParentProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F977BB4322C33F798653AE45 /* ParentProfileTests.swift */; };
 		93B8C3EAB2D7B9487C9A4DE1 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D8997C83101EAF0BB70AF5B /* WidgetSnapshot.swift */; };
 		954894A9AEA2163B02AD6E15 /* AppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C111135A85BE95B43D4B2D1E /* AppStoreTests.swift */; };
@@ -65,6 +72,7 @@
 		B2A7A83F97C181ECF436E190 /* WidgetRouteInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52776983C90FA0DFDE019FC6 /* WidgetRouteInbox.swift */; };
 		B7163E483965FD4D0588C9C2 /* MalyshApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 163EA23D70ABAF9E0B136375 /* MalyshApp.swift */; };
 		BC0692F9092F09E7BDDCE267 /* PhotoGalleryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A8E86027D81DA5E3D72D8A /* PhotoGalleryUITests.swift */; };
+		BD52D7330C5FAF70B3992BF8 /* WidgetCommandTiming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F8DAFA491923A13031F3D6 /* WidgetCommandTiming.swift */; };
 		C298B7DA824AEAA6A7422608 /* CloudFailureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894E384B7F7EBB9ADFCA1B45 /* CloudFailureTests.swift */; };
 		C4DCD121F98897D5E6D67BED /* Domain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */; };
 		C5ED665559A95E8811A8DC02 /* WidgetRouteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F36745A8E246E830575A5A /* WidgetRouteTests.swift */; };
@@ -75,7 +83,9 @@
 		D28CAA9F1FC6CD2A8B38164F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1C8F15FAB8ABEF7E07B2A0C7 /* PrivacyInfo.xcprivacy */; };
 		D505360A7AEBEC59100C87E6 /* TuistAssets+MalyshWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 712B3212847EDAC8E41B10CA /* TuistAssets+MalyshWidgets.swift */; };
 		D76D9CFEDAA24B9D35469785 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3EC1589C84F4006C41A0DDA4 /* Assets.xcassets */; };
+		D9A8C7BAE8621EC9A4FC9A66 /* WidgetCommandTiming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F8DAFA491923A13031F3D6 /* WidgetCommandTiming.swift */; };
 		DDBD78423EF94B06F03FDB9A /* DesignComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C1142AC4200083321BFC857 /* DesignComponents.swift */; };
+		E1A28A39225FE23B2743ABF9 /* WidgetCareIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */; };
 		E26E0EFC8953691AD67A597E /* DomainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 892C506F7C92B8100B9D1C01 /* DomainTests.swift */; };
 		E2ED8596F8C0450E43ADFD1D /* TuistAssets+MalyshWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05532716FCC21CF2EE86750F /* TuistAssets+MalyshWidgetTests.swift */; };
 		E5798656578ED946EFFF823A /* WidgetRouteInboxTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A774D07580179B9C25F5693 /* WidgetRouteInboxTests.swift */; };
@@ -85,6 +95,7 @@
 		EFBF5AC48A18D9C974746757 /* EventAuthorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD34A9F6DBDFE454C66BE51B /* EventAuthorTests.swift */; };
 		EFD1383B5D7F307BB54F28E7 /* EventEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */; };
 		F2F164CF48CA52CD4CBEF1BB /* WidgetRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B5885ACCC409989C1F4056 /* WidgetRoute.swift */; };
+		F9629CFC6378C7A36C5577C9 /* WidgetCareIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */; };
 		FA549E306B4C98F66025D754 /* TuistAssets+Malysh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5777AC8BD2FBB805A3988C6A /* TuistAssets+Malysh.swift */; };
 		FA79D7A9C836A7944AF1FAC5 /* ProfileUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC02A65EE936D70B32516130 /* ProfileUITests.swift */; };
 		FC27DD3F62BE4469F5D67BB6 /* TuistBundle+MalyshWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8737D4A4B9E827B02B1B8254 /* TuistBundle+MalyshWidgetTests.swift */; };
@@ -197,6 +208,7 @@
 		17EE10751315B4204C1A49AB /* WidgetSnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotStore.swift; sourceTree = "<group>"; };
 		1C8F15FAB8ABEF7E07B2A0C7 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		1FD7DDB542E49DFCFA6C8D69 /* PhotoWorkflowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoWorkflowTests.swift; sourceTree = "<group>"; };
+		25F8DAFA491923A13031F3D6 /* WidgetCommandTiming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCommandTiming.swift; sourceTree = "<group>"; };
 		298DBC1D5993065C443496CB /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
 		2A4168CA6855FEC2A480A92E /* ChildProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfile.swift; sourceTree = "<group>"; };
 		2BA1A613F665DF51301DE63B /* MalyshUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MalyshUITests.swift; sourceTree = "<group>"; };
@@ -211,6 +223,7 @@
 		44DC826FECF34A61D2341DF2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		464A0EA584BC2C6471469377 /* MalyshUITests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "MalyshUITests-Info.plist"; sourceTree = "<group>"; };
 		476759839648658E6C4E8EDD /* CareLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareLiveActivityWidget.swift; sourceTree = "<group>"; };
+		49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCareIntent.swift; sourceTree = "<group>"; };
 		4C1142AC4200083321BFC857 /* DesignComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignComponents.swift; sourceTree = "<group>"; };
 		4FC9DCFAFEAB31295E2C73C9 /* CloudFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudFailure.swift; sourceTree = "<group>"; };
 		52397D5545338436E2A4363B /* EventAuthorCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventAuthorCache.swift; sourceTree = "<group>"; };
@@ -227,6 +240,7 @@
 		712B3212847EDAC8E41B10CA /* TuistAssets+MalyshWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TuistAssets+MalyshWidgets.swift"; sourceTree = "<group>"; };
 		7506D390CDD3C7B5193526D3 /* MalyshV4.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MalyshV4.xcdatamodel; sourceTree = "<group>"; };
 		754529FCC0E07F606825A2B8 /* CareActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityAttributes.swift; sourceTree = "<group>"; };
+		7A5E3FA6E2E9607DF4BAA2FE /* CareActivityViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityViews.swift; sourceTree = "<group>"; };
 		7A774D07580179B9C25F5693 /* WidgetRouteInboxTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetRouteInboxTests.swift; sourceTree = "<group>"; };
 		8189783BCF7A92166A15581D /* SchemaInitialization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaInitialization.swift; sourceTree = "<group>"; };
 		8221E9168F2FE8C1DC2F6FA7 /* MalyshUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MalyshUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -246,6 +260,7 @@
 		BFBAACA39179BDCE9D3B7214 /* ParentProfileCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfileCache.swift; sourceTree = "<group>"; };
 		C10A8A91EE68D5D67909CCAA /* Sharing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sharing.swift; sourceTree = "<group>"; };
 		C111135A85BE95B43D4B2D1E /* AppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreTests.swift; sourceTree = "<group>"; };
+		C2147ABDEBC2B791FFF4C063 /* DiaryControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryControls.swift; sourceTree = "<group>"; };
 		C6031991CC1051EBD59EDDC1 /* MalyshV3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MalyshV3.xcdatamodel; sourceTree = "<group>"; };
 		CA01728ECAE9C538E98ADFE2 /* TuistBundle+Malysh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TuistBundle+Malysh.swift"; sourceTree = "<group>"; };
 		CB1F7702021EDFD94116F417 /* PhotoCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureView.swift; sourceTree = "<group>"; };
@@ -318,6 +333,8 @@
 		20DA4B93465DA28E12101281 /* Widgets */ = {
 			isa = PBXGroup;
 			children = (
+				49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */,
+				25F8DAFA491923A13031F3D6 /* WidgetCommandTiming.swift */,
 				54B5885ACCC409989C1F4056 /* WidgetRoute.swift */,
 				2D8997C83101EAF0BB70AF5B /* WidgetSnapshot.swift */,
 				17EE10751315B4204C1A49AB /* WidgetSnapshotStore.swift */,
@@ -340,7 +357,9 @@
 		38B1F1CBAB3FB41608E71233 /* WidgetExtension */ = {
 			isa = PBXGroup;
 			children = (
+				7A5E3FA6E2E9607DF4BAA2FE /* CareActivityViews.swift */,
 				476759839648658E6C4E8EDD /* CareLiveActivityWidget.swift */,
+				C2147ABDEBC2B791FFF4C063 /* DiaryControls.swift */,
 				9E3196271A6AFAD4C78051CC /* DiaryWidget.swift */,
 			);
 			path = WidgetExtension;
@@ -693,10 +712,14 @@
 				C4DCD121F98897D5E6D67BED /* Domain.swift in Sources */,
 				AC51A80628E140BB694B5B9F /* CareActivityAttributes.swift in Sources */,
 				A52AB186DDDC5DFF3BB920C6 /* CareActivityIntents.swift in Sources */,
+				9018789A63CD7F2FCA764977 /* WidgetCareIntent.swift in Sources */,
+				D9A8C7BAE8621EC9A4FC9A66 /* WidgetCommandTiming.swift in Sources */,
 				33597B5E20B804B71A8FC5A9 /* WidgetRoute.swift in Sources */,
 				58EF15D6CF6C765AF6023572 /* WidgetSnapshot.swift in Sources */,
 				7025B0FDC1D339B34AC1BCA1 /* WidgetSnapshotStore.swift in Sources */,
+				84BAB5B5282BFFED0CBB0E4B /* CareActivityViews.swift in Sources */,
 				5AA41CD247C9B1BE457ED211 /* CareLiveActivityWidget.swift in Sources */,
+				78440D4CE5B230B9E3CB9858 /* DiaryControls.swift in Sources */,
 				7664046950551F14BE43BEE1 /* DiaryWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -734,6 +757,8 @@
 				80919B36A653A1958D132EE2 /* SettingsView.swift in Sources */,
 				E7D8305AB0E7F78EA9DE5A7D /* Sharing.swift in Sources */,
 				B2A7A83F97C181ECF436E190 /* WidgetRouteInbox.swift in Sources */,
+				F9629CFC6378C7A36C5577C9 /* WidgetCareIntent.swift in Sources */,
+				8886130B58ED428FA3882547 /* WidgetCommandTiming.swift in Sources */,
 				2416CD96A4E21E4A0F36CA79 /* WidgetRoute.swift in Sources */,
 				7855B56CF4539FCE44E201C1 /* WidgetSnapshot.swift in Sources */,
 				50E0BD32F36425B148CBFD84 /* WidgetSnapshotStore.swift in Sources */,
@@ -749,9 +774,14 @@
 				FC27DD3F62BE4469F5D67BB6 /* TuistBundle+MalyshWidgetTests.swift in Sources */,
 				7B1BDEEEB2EB3316A613FF33 /* DesignSystem.swift in Sources */,
 				3E235F1E13D9DFF70F9A76FB /* Domain.swift in Sources */,
+				71B699458E5EEDDBF42CAFDF /* CareActivityAttributes.swift in Sources */,
+				0EB555BE3621313EE0777A45 /* CareActivityIntents.swift in Sources */,
+				E1A28A39225FE23B2743ABF9 /* WidgetCareIntent.swift in Sources */,
+				BD52D7330C5FAF70B3992BF8 /* WidgetCommandTiming.swift in Sources */,
 				F2F164CF48CA52CD4CBEF1BB /* WidgetRoute.swift in Sources */,
 				93B8C3EAB2D7B9487C9A4DE1 /* WidgetSnapshot.swift in Sources */,
 				9733FBFAF828DD9F338F8B1A /* WidgetSnapshotStore.swift in Sources */,
+				14C1C2F0D1608A11A1787AFD /* CareActivityViews.swift in Sources */,
 				5127AFB9D5EC3725A608B27C /* DiaryWidget.swift in Sources */,
 				2043E5159FA215954B2A0B8C /* DiaryWidgetRenderingTests.swift in Sources */,
 			);
@@ -974,6 +1004,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) MALYSH_WIDGET_EXTENSION";
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				TARGETED_DEVICE_FAMILY = 1;
@@ -1170,7 +1201,7 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
-					"$(inherited)",
+					"$(inherited) MALYSH_WIDGET_EXTENSION",
 					DEBUG,
 				);
 				SWIFT_COMPILATION_MODE = singlefile;
