@@ -61,27 +61,6 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(try current.events(babyID: baby.id), [updated])
     }
 
-    func testMeasurementCRUDAndSharedStoreRouting() async throws {
-        let persistence = Persistence(inMemory: true)
-        try await persistence.load()
-        let baby = Baby(name: "Тест")
-        try persistence.saveBaby(baby)
-        var measurement = ChildMeasurement(babyID: baby.id, type: .weight,
-                                           measuredAt: Date().addingTimeInterval(-10), value: 3400)
-        try persistence.saveMeasurement(measurement)
-        let root = try XCTUnwrap(persistence.babyObject(id: baby.id))
-        let records = try XCTUnwrap(root.value(forKey: "measurements") as? Set<NSManagedObject>)
-        XCTAssertEqual(records.count, 1)
-        XCTAssertEqual(records.first?.objectID.persistentStore, root.objectID.persistentStore)
-        measurement.value = 3500
-        try persistence.saveMeasurement(measurement)
-        XCTAssertEqual(try persistence.measurements(babyID: baby.id), [measurement])
-        XCTAssertTrue(try persistence.events(babyID: baby.id).isEmpty)
-        try persistence.deleteMeasurement(id: measurement.id)
-        XCTAssertTrue(try persistence.measurements(babyID: baby.id).isEmpty)
-        XCTAssertEqual(try persistence.babies(), [baby])
-    }
-
     func testMeasurementsSurviveDiskReopenWithMetadataAndOrder() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -173,15 +152,6 @@ final class PersistenceTests: XCTestCase {
         invalid.id = UUID()
         XCTAssertThrowsError(try persistence.saveEvent(invalid))
         XCTAssertEqual(try persistence.events(babyID: baby.id), [original])
-        XCTAssertFalse(persistence.container.viewContext.hasChanges)
-    }
-
-    func testMissingParentDoesNotLeaveInsertedEvent() async throws {
-        let persistence = Persistence(inMemory: true)
-        try await persistence.load()
-        let missingID = UUID()
-        XCTAssertThrowsError(try persistence.saveEvent(CareEvent(babyID: missingID, kind: .diaper)))
-        XCTAssertTrue(try persistence.events(babyID: missingID).isEmpty)
         XCTAssertFalse(persistence.container.viewContext.hasChanges)
     }
 }

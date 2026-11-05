@@ -48,19 +48,9 @@ struct DiaryWidget: Widget {
 
 struct DiaryWidgetView: View {
     let entry: DiaryWidgetEntry
-    @Environment(\.widgetFamily) private var environmentFamily
-    @Environment(\.widgetRenderingMode) private var environmentRenderingMode
+    @Environment(\.widgetFamily) private var family
+    @Environment(\.widgetRenderingMode) private var renderingMode
     @Environment(\.dynamicTypeSize) private var typeSize
-    var familyOverride: WidgetFamily?
-    var renderingModeOverride: WidgetRenderingMode?
-
-    private var family: WidgetFamily {
-        familyOverride ?? environmentFamily
-    }
-
-    private var renderingMode: WidgetRenderingMode {
-        renderingModeOverride ?? environmentRenderingMode
-    }
 
     private var summary: WidgetSummary? {
         entry.summary

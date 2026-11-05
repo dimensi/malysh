@@ -217,7 +217,7 @@ final class PhotoGalleryStore {
             }
             if let assetIdentifier,
                try persistence.photos(babyID: babyID)
-               .contains(where: { journal.assets[$0.id.uuidString] == assetIdentifier })
+                   .contains(where: { journal.assets[$0.id.uuidString] == assetIdentifier })
             {
                 return
             }

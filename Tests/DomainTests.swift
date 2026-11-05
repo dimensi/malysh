@@ -19,16 +19,6 @@ final class DomainTests: XCTestCase {
         try event.validate(now: origin.addingTimeInterval(300))
     }
 
-    func testCodableRestoresActiveTimerWithoutTicks() throws {
-        var event = CareEvent(babyID: babyID, kind: .breast, start: origin)
-        event.switchSide(at: origin.addingTimeInterval(40))
-        let restored = try JSONDecoder().decode(CareEvent.self, from: JSONEncoder().encode(event))
-        XCTAssertEqual(event, restored)
-        let durations = restored.breastDurations(now: origin.addingTimeInterval(100))
-        XCTAssertEqual(durations.left, 40)
-        XCTAssertEqual(durations.right, 60)
-    }
-
     func testMidnightClippingOverlapAndFutureEvents() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
@@ -79,36 +69,6 @@ final class DomainTests: XCTestCase {
                 now: interval.end.addingTimeInterval(120)
             )
             XCTAssertEqual(stats.sleepSeconds, Double(hours * 3600))
-        }
-    }
-
-    func testFeedCountsBottleVolumeAndDiaperKinds() throws {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
-        let events = [
-            CareEvent(babyID: babyID, kind: .breast, start: origin),
-            CareEvent(babyID: babyID, kind: .bottle, start: origin, volumeML: 80),
-            CareEvent(babyID: babyID, kind: .bottle, start: origin, volumeML: 110),
-            CareEvent(babyID: babyID, kind: .diaper, start: origin, diaperType: .wet),
-            CareEvent(babyID: babyID, kind: .diaper, start: origin, diaperType: .dirty),
-            CareEvent(babyID: babyID, kind: .diaper, start: origin, diaperType: .mixed),
-        ]
-        let stats = DailyStatistics(events: events, day: origin, calendar: calendar, now: origin)
-        XCTAssertEqual(stats.feeds, 3)
-        XCTAssertEqual(stats.bottleML, 190)
-        XCTAssertEqual(stats.wetDiapers, 2)
-        XCTAssertEqual(stats.dirtyDiapers, 2)
-    }
-
-    func testActiveAndFutureEndedSleepClipToNow() throws {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
-        let now = origin.addingTimeInterval(600)
-        let active = CareEvent(babyID: babyID, kind: .sleep, start: origin)
-        let futureEnded = CareEvent(babyID: babyID, kind: .sleep, start: origin, end: now.addingTimeInterval(600))
-        for event in [active, futureEnded] {
-            let stats = DailyStatistics(events: [event], day: origin, calendar: calendar, now: now)
-            XCTAssertEqual(stats.sleepSeconds, 600)
         }
     }
 

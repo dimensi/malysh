@@ -31,13 +31,15 @@ final class WidgetSystemUITests: XCTestCase {
 
     private func dialogAction(_ identifier: String, label: String, app: XCUIApplication) -> XCUIElement {
         let identified = app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        if identified.exists {
+        if identified.waitForExistence(timeout: 5) {
             return identified
         }
-        return app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", label)).firstMatch
+        // Sheet dismissal and route presentation are asynchronous. A static text
+        // with this label can belong to an existing event, not the chooser.
+        return app.buttons.matching(NSPredicate(format: "label == %@", label)).firstMatch
     }
 
-    func testInstalledMediumWidgetOpensDiaperChooser() {
+    func testInstalledMediumWidgetShowsDiaryDataAndOpensShortcuts() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--reset-data", "--widget-testing"]
         app.launch()
