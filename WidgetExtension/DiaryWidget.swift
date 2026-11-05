@@ -219,10 +219,16 @@ struct DiaryWidgetView: View {
             if ready {
                 switch selected {
                 case .diaper:
-                    readableStart(.wetDiaper, title: "Мокр.", category: .diaper,
-                                  label: "Мокрый подгузник. Последнее: " + diaperFeedback, id: "widget.diaper.wet")
-                    readableStart(.dirtyDiaper, title: "Стул", category: .diaper,
-                                  label: "Стул. Последнее: " + diaperFeedback, id: "widget.diaper.dirty")
+                    if lastDiaper != nil {
+                        Link(destination: WidgetRoute(.history, babyID: babyID).url) {
+                            latestDiaperFeedback
+                        }.accessibilityLabel("Сохранено: " + diaperFeedback + ". Открыть историю")
+                    } else {
+                        readableStart(.wetDiaper, title: "Мокр.", category: .diaper,
+                                      label: "Мокрый подгузник", id: "widget.diaper.wet")
+                        readableStart(.dirtyDiaper, title: "Стул", category: .diaper,
+                                      label: "Стул", id: "widget.diaper.dirty")
+                    }
                 case .sleep:
                     if let sleep {
                         Text("Спит").font(.caption2).invalidatableContent()
@@ -339,7 +345,42 @@ struct DiaryWidgetView: View {
 
     /// Fixed Medium has room for two readable targets. Large keeps all actions in
     /// one column; secondary stats/history yield their space to the user's text.
-    private var accessibleActions: some View {
+    @ViewBuilder private var accessibleActions: some View {
+        if family == .systemMedium, ready, lastDiaper != nil {
+            accessibleMediumFeedback
+        } else {
+            standardAccessibleActions
+        }
+    }
+
+    private var accessibleMediumFeedback: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let sleep, let babyID {
+                Button(intent: FinishCareActivityIntent(eventID: sleep.id, babyID: babyID)) {
+                    readableAction("Стоп сон", category: .sleep)
+                }.accessibilityLabel("Завершить сон").accessibilityIdentifier("widget.sleep.finish")
+            } else if let breast, let babyID {
+                Button(intent: FinishCareActivityIntent(eventID: breast.id, babyID: babyID)) {
+                    readableAction("Стоп грудь", category: .feeding)
+                }.accessibilityLabel("Завершить кормление").accessibilityIdentifier("widget.breast.finish")
+            } else {
+                readableStart(.startBreastLeft, title: "Кормить", category: .feeding,
+                              label: "Начать кормление левой грудью", id: "widget.breast.left")
+            }
+            Text(compactDiaperFeedback).font(.caption2).invalidatableContent()
+                .accessibilityLabel("Сохранено: " + diaperFeedback)
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var compactDiaperFeedback: String {
+        guard let event = lastDiaper else { return "Нет записей" }
+        let kind = event.diaperType == .dirty ? "Стул" : event.diaperType == .wet ? "Мокр." : "Смеш."
+        return kind + " · " + compactTimestamp(event.start)
+    }
+
+    private var standardAccessibleActions: some View {
         VStack(alignment: .leading, spacing: 6) {
             if ready {
                 if family == .systemLarge, breast == nil, typeSize < .accessibility5 {
@@ -381,8 +422,9 @@ struct DiaryWidgetView: View {
                     readableStart(.startSleep, title: "Начать сон", category: .sleep,
                                   label: "Начать сон", id: "widget.sleep.start")
                 }
-                if family == .systemLarge, typeSize < .accessibility5 {
-                    Text(diaperFeedback).font(.caption2).invalidatableContent()
+                if family == .systemLarge {
+                    Text(typeSize == .accessibility5 ? compactDiaperFeedback : diaperFeedback)
+                        .font(.caption2).invalidatableContent()
                         .accessibilityLabel("Последний подгузник: " + diaperFeedback)
                 }
             } else {
@@ -476,7 +518,8 @@ struct DiaryWidgetView: View {
     @ViewBuilder private var quickFeedingPrimary: some View {
         if let breast, let babyID {
             Button(intent: FinishCareActivityIntent(eventID: breast.id, babyID: babyID)) {
-                actionLabel("Стоп", symbol: "stop.fill", iconOnly: false)
+                actionLabel("Стоп", symbol: "stop.fill", iconOnly: false,
+                            timerStart: family == .systemMedium ? breast.start : nil)
             }.buttonStyle(.plain).accessibilityLabel("Завершить кормление")
                 .accessibilityIdentifier("widget.breast.finish")
         } else {
@@ -710,7 +753,8 @@ struct DiaryWidgetView: View {
     }
 
     private func actionLabel(_ title: String, symbol: String, iconOnly: Bool,
-                             category: DiaryWidgetSurface = .feeding, subtitle: String? = nil) -> some View
+                             category: DiaryWidgetSurface = .feeding, subtitle: String? = nil,
+                             timerStart: Date? = nil) -> some View
     {
         Group {
             if iconOnly {
@@ -720,6 +764,10 @@ struct DiaryWidgetView: View {
                     Text(title).font(.caption.weight(.semibold))
                     if let subtitle {
                         Text(subtitle).font(.caption2).monospacedDigit().invalidatableContent()
+                    }
+                    if let timerStart {
+                        Text(timerInterval: timerStart ... Date.distantFuture, countsDown: false, showsHours: true)
+                            .font(.caption2).monospacedDigit().invalidatableContent()
                     }
                 }
             }

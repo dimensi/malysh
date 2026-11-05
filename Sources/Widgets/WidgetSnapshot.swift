@@ -39,8 +39,8 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
         activeEventValues = [EventKind.breast, .sleep].compactMap { kind in
             active.first { $0.kind == kind }.map(WidgetActiveEvent.init)
         }
-        // Retain a week for offline day/time-zone projection, plus the last feed even
-        // when the diary has been quiet for longer. Never serialize notes or authors.
+        // Retain a week for offline day/time-zone projection and the latest category
+        // events in quiet diaries. Never serialize notes or authors.
         let normalizedEvents: [CareEvent] = events.map { event in
             var normalized = event
             // Imported point events can omit end or contain a legacy interval.
@@ -55,9 +55,12 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
                 $0.end! >= $0.start && $0.end! <= generatedAt
         }.sorted { $0.start == $1.start ? $0.id.uuidString < $1.id.uuidString : $0.start > $1.start }
         let cutoff = generatedAt.addingTimeInterval(-8 * 86400)
-        let anchors = Array(completed.prefix(3)) + Array(completed.first(where: {
-            $0.kind == .breast || $0.kind == .bottle
-        }).map { [$0] } ?? []) + Array(completed.first(where: { $0.kind == .sleep }).map { [$0] } ?? [])
+        let anchors = Array(completed.prefix(3)) + [
+            completed.first { $0.kind == .breast || $0.kind == .bottle },
+            completed.first { $0.kind == .sleep },
+            completed.first { $0.kind == .diaper && $0.diaperType != .dirty },
+            completed.first { $0.kind == .diaper && $0.diaperType == .dirty },
+        ].compactMap(\.self)
         // Reserve distinct anchors before filling recent history so a full cache
         // cannot evict one anchor while making room for another.
         var retained: [CareEvent] = []

@@ -123,6 +123,13 @@ final class WidgetSystemUITests: XCTestCase {
         app.terminate()
         tapWidget("widget.sleep.start", label: "Начать сон", in: springboard, app: app, repeated: true)
         waitForWidget("widget.sleep.finish", label: "Завершить сон", in: springboard)
+        let foregrounded = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "state == %d", XCUIApplication.State.runningForeground.rawValue),
+            object: app
+        )
+        foregrounded.isInverted = true
+        XCTAssertEqual(XCTWaiter.wait(for: [foregrounded], timeout: 5), .completed)
+        attach(springboard, stage: "Interactive sleep — native first presentation settled on Home")
         relaunch(app)
         XCTAssertEqual(timers(app).count, 1)
         let eventID = String(timers(app).firstMatch.identifier.dropFirst("timer.finish.".count))

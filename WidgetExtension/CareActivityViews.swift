@@ -3,8 +3,8 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-/// The system's center region starts below the TrueDepth camera, so information
-/// never sits beside the camera or the physical display's rounded top corners.
+/// Information and controls share the system's bottom region below the camera,
+/// with 16pt horizontal content margins supplied by the Dynamic Island configuration.
 struct CareActivityIslandInfo: View {
     let state: CareActivityAttributes.ContentState
     @Environment(\.dynamicTypeSize) private var typeSize

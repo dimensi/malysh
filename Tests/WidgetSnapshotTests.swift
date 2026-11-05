@@ -2,6 +2,45 @@
 import XCTest
 
 final class WidgetSnapshotTests: XCTestCase {
+    func testQuietDiaryRetainsLastWetOrMixedAndDirtyDiapersBehindRecentBottles() {
+        let baby = Baby(name: "Малыш")
+        let now = Date()
+        let old = now.addingTimeInterval(-20 * 86400)
+        for wetType in [DiaperType.wet, .mixed] {
+            let wet = CareEvent(babyID: baby.id, kind: .diaper, start: old, diaperType: wetType)
+            let dirty = CareEvent(babyID: baby.id, kind: .diaper, start: old.addingTimeInterval(60), diaperType: .dirty)
+            let bottles = (0 ..< 3).map { index in
+                CareEvent(babyID: baby.id, kind: .bottle, start: now.addingTimeInterval(-Double(index) * 3600))
+            }
+            let snapshot = WidgetSnapshot(baby: baby, events: [wet, dirty] + bottles, generatedAt: now)
+            XCTAssertEqual(snapshot.summary(at: now).lastWetDiaper?.id, wet.id)
+            XCTAssertEqual(snapshot.events.first { $0.kind == .diaper }?.id, dirty.id)
+            XCTAssertEqual(snapshot.events.first { $0.kind == .diaper && $0.diaperType == .dirty }?.id, dirty.id)
+            XCTAssertEqual(snapshot.summary(at: now).recentEvents.map(\.id), bottles.map(\.id))
+            XCTAssertEqual(snapshot.summary(at: now).wetDiapers, 0)
+        }
+    }
+
+    func testFullHistoryPreservesDiaperAnchorsAlongsideFeedAndSleep() {
+        let baby = Baby(name: "Малыш")
+        let now = Date()
+        let old = now.addingTimeInterval(-20 * 86400)
+        let wet = CareEvent(babyID: baby.id, kind: .diaper, start: old, diaperType: .mixed)
+        let dirty = CareEvent(babyID: baby.id, kind: .diaper, start: old.addingTimeInterval(60), diaperType: .dirty)
+        let sleep = CareEvent(babyID: baby.id, kind: .sleep, start: old, end: old.addingTimeInterval(3600))
+        let bottles = (0 ..< WidgetSnapshot.historyLimit).map { index in
+            CareEvent(babyID: baby.id, kind: .bottle, start: now.addingTimeInterval(-Double(index)))
+        }
+        let snapshot = WidgetSnapshot(baby: baby, events: bottles + [wet, dirty, sleep], generatedAt: now)
+        XCTAssertEqual(snapshot.events.count, WidgetSnapshot.historyLimit)
+        XCTAssertEqual(Set(snapshot.events.map(\.id)).count, WidgetSnapshot.historyLimit)
+        XCTAssertEqual(snapshot.summary(at: now).lastFeeding?.id, bottles.first?.id)
+        XCTAssertEqual(snapshot.summary(at: now).lastSleep?.id, sleep.id)
+        XCTAssertEqual(snapshot.summary(at: now).lastWetDiaper?.id, wet.id)
+        XCTAssertEqual(snapshot.events.first { $0.kind == .diaper && $0.diaperType == .dirty }?.id, dirty.id)
+        XCTAssertEqual(snapshot.summary(at: now).recentEvents.map(\.id), Array(bottles.prefix(3)).map(\.id))
+    }
+
     func testFullHistoryPreservesBothOldFeedAndSleepAnchors() {
         let baby = Baby(name: "Малыш")
         let now = Date()
