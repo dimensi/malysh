@@ -65,7 +65,7 @@ jobs:
             -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
             -derivedDataPath DerivedData/CI \
             -resultBundlePath Artifacts/Tests.xcresult \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- \
             -parallel-testing-enabled NO \
             test 2>&1 | tee Artifacts/tests.log
 

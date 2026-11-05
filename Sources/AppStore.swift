@@ -1,12 +1,18 @@
 import CloudKit
+import Combine
 import CoreData
 import Observation
 import SwiftUI
+import UIKit
+import WidgetKit
 
 @MainActor @Observable
 final class AppStore {
     let persistence: Persistence
     private let activityCoordinator: (any CareActivityCoordinating)?
+    private let widgetSnapshotStore: WidgetSnapshotStore
+    private let reloadsWidgetTimelines: Bool
+    private var widgetRefreshObservers: Set<AnyCancellable> = []
     var allowsActivityStart: () -> Bool = { false }
     private var loading = false
     var babies: [Baby] = []
@@ -103,11 +109,23 @@ final class AppStore {
     }
 
     init(persistence injectedPersistence: Persistence? = nil,
-         activityCoordinator: (any CareActivityCoordinating)? = nil)
+         activityCoordinator: (any CareActivityCoordinating)? = nil,
+         widgetSnapshotStore: WidgetSnapshotStore? = nil)
     {
         self.activityCoordinator = activityCoordinator
+        let arguments = ProcessInfo.processInfo.arguments
+        var publishesWidgets = injectedPersistence == nil && !arguments.contains("--ui-testing")
+        #if DEBUG
+            if injectedPersistence == nil, arguments.contains("--widget-testing") {
+                publishesWidgets = true
+            }
+        #endif
+        reloadsWidgetTimelines = publishesWidgets
+        self.widgetSnapshotStore = widgetSnapshotStore ?? (publishesWidgets
+            ? WidgetSnapshotStore() : WidgetSnapshotStore(directory: nil))
         if let injectedPersistence {
             persistence = injectedPersistence
+            observeWidgetCalendarChanges()
             return
         }
         let testing = ProcessInfo.processInfo.arguments.contains("--ui-testing")
@@ -123,6 +141,33 @@ final class AppStore {
             directory: directory,
             cloudEnabled: !testing && UserDefaults.standard.bool(forKey: "cloudEnabled")
         )
+        observeWidgetCalendarChanges()
+    }
+
+    private func observeWidgetCalendarChanges() {
+        NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)
+            .merge(with: NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange))
+            .merge(with: NotificationCenter.default.publisher(for: .NSCalendarDayChanged))
+            // Foundation can post midnight/time-zone notifications off the main
+            // thread. Hop before entering this MainActor-inferred sink closure.
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self, ready else { return }
+                    refreshWidgetSnapshot()
+                }
+            }.store(in: &widgetRefreshObservers)
+    }
+
+    private func refreshWidgetSnapshot() {
+        // A failed cache write must never fail a successful diary save.
+        do {
+            if try widgetSnapshotStore.write(WidgetSnapshot(baby: baby, events: events)), reloadsWidgetTimelines {
+                WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotStore.widgetKind)
+            }
+        } catch {
+            // Keep the last complete atomic snapshot until the next reload retries.
+        }
     }
 
     func load() async {
@@ -218,6 +263,7 @@ final class AppStore {
             let allEvents = try babies.flatMap { try persistence.events(babyID: $0.id) }
             activityCoordinator.reconcile(events: allEvents, babies: babies, allowStart: allowsActivityStart())
         }
+        refreshWidgetSnapshot()
     }
 
     func saveFamilyProfile(memberID: String, name: String, role: ParentRole) throws {

@@ -91,8 +91,17 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 final class SceneDelegate: NSObject, UIWindowSceneDelegate {
     weak static var appDelegate: AppDelegate?
     func scene(_: UIScene, willConnectTo _: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        for context in connectionOptions.urlContexts {
+            WidgetRouteInbox.shared.receive(context.url)
+        }
         if let metadata = connectionOptions.cloudKitShareMetadata {
             Self.appDelegate?.accept(metadata)
+        }
+    }
+
+    func scene(_: UIScene, openURLContexts contexts: Set<UIOpenURLContext>) {
+        for context in contexts {
+            WidgetRouteInbox.shared.receive(context.url)
         }
     }
 

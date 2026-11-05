@@ -48,8 +48,14 @@ struct ContentView: View {
     @State private var tab = 0
     @State private var showFeed = false
     @State private var showDiaper = false
+    @State private var showWidgetSleep = false
     @State private var showSettings = false
     @State private var editing: CareEvent?
+    @State private var pendingWidgetRoute: WidgetRoute?
+    @State private var widgetRouteInbox = WidgetRouteInbox.shared
+    @State private var widgetRouteAwaitsSheetDismissal = false
+    @State private var visibleWidgetActions: Set<String> = []
+    @State private var widgetActionScrollRequest = 0
 
     var body: some View {
         Group {
@@ -63,7 +69,7 @@ struct ContentView: View {
                         .tabItem { Label("Статистика", systemImage: "chart.bar.fill") }.tag(2)
                 }
                 .tint(AppDesign.Palette.accent)
-                .sheet(item: $editing) { event in
+                .sheet(item: $editing, onDismiss: resumeWidgetRouteAfterSheet) { event in
                     EventEditor(event: event,
                                 creatorLabel: store.authorLabel(for: event.createdBy, babyID: event.babyID),
                                 lastEditorLabel: event.lastEditedBy.map { store.authorLabel(
@@ -74,7 +80,8 @@ struct ContentView: View {
                                 onDelete: store.events
                                     .contains(where: { $0.id == event.id }) ? { try store.delete(event) } : nil)
                 }
-                .sheet(isPresented: $showSettings) { SettingsView(store: store) }
+                .sheet(isPresented: $showSettings, onDismiss: resumeWidgetRouteAfterSheet) { SettingsView(store: store)
+                }
             } else {
                 VStack(spacing: 20) {
                     Image(systemName: "moon.stars.fill").font(.largeTitle).foregroundStyle(AppDesign.Palette.accent)
@@ -86,6 +93,14 @@ struct ContentView: View {
                             .foregroundStyle(AppDesign.Palette.onAccent)
                     }
                 }.padding()
+            }
+        }
+        .onAppear { receiveWidgetRoute() }
+        .onChange(of: widgetRouteInbox.pending) { receiveWidgetRoute() }
+        .onChange(of: store.ready) { _, ready in
+            if ready {
+                receiveWidgetRoute()
+                openPendingWidgetRoute()
             }
         }
         .alert(
@@ -101,128 +116,162 @@ struct ContentView: View {
     }
 
     private var today: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.section) {
-                HStack(spacing: AppDesign.Spacing.row) {
-                    Image("BrandMark").resizable().scaledToFill().frame(
-                        width: AppDesign.Metrics.brandMarkSize,
-                        height: AppDesign.Metrics.brandMarkSize
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
-                    .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text(store.baby?.name ?? "Малыш").font(.title3.bold())
-                            if store.isSharedDiary {
-                                Image(systemName: "person.2.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .accessibilityLabel("Семейный дневник")
-                                    .accessibilityIdentifier("family.header")
-                            }
-                        }
-                        Text(Date(), format: .dateTime.day().month(.wide)).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                }
-                if store.active.isEmpty {
-                    lastFeed
-                } else {
-                    ForEach(store.active) { event in
-                        TimerCard(
-                            event: event,
-                            finish: { store.finish(event) },
-                            switchSide: { store.switchSide(event) }
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.section) {
+                    HStack(spacing: AppDesign.Spacing.row) {
+                        Image("BrandMark").resizable().scaledToFill().frame(
+                            width: AppDesign.Metrics.brandMarkSize,
+                            height: AppDesign.Metrics.brandMarkSize
                         )
-                    }
-                }
-
-                LazyVGrid(columns: dynamicTypeSize.isAccessibilitySize
-                    ? [GridItem(.flexible())]
-                    : [GridItem(.flexible()), GridItem(.flexible())], spacing: AppDesign.Spacing.row)
-                {
-                    ActionTile(
-                        title: "Кормление",
-                        subtitle: "Грудь или бутылочка",
-                        symbol: "heart.fill",
-                        color: AppDesign.Palette.feeding,
-                        id: "action.feed"
-                    ) { showFeed = true }
-                        .confirmationDialog("Кормление", isPresented: $showFeed, titleVisibility: .visible) {
-                            Button("Левая грудь") { store.start(.breast, side: .left) }
-                                .accessibilityIdentifier("feed.left")
-                            Button("Правая грудь") { store.start(.breast, side: .right) }
-                                .accessibilityIdentifier("feed.right")
-                            Button("Бутылочка") { addManual(.bottle) }.accessibilityIdentifier("feed.bottle")
-                        }
-                    ActionTile(
-                        title: "Подгузник",
-                        subtitle: "Записать смену",
-                        symbol: "drop.fill",
-                        color: AppDesign.Palette.diaper,
-                        id: "action.diaper"
-                    ) { showDiaper = true }
-                        .confirmationDialog("Подгузник", isPresented: $showDiaper, titleVisibility: .visible) {
-                            ForEach(DiaperType.allCases, id: \.self) { type in
-                                Button(type.label) { store.diaper(type) }
-                                    .accessibilityIdentifier("diaper.\(type.rawValue)")
+                        .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
+                        .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(store.baby?.name ?? "Малыш").font(.title3.bold())
+                                if store.isSharedDiary {
+                                    Image(systemName: "person.2.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .accessibilityLabel("Семейный дневник")
+                                        .accessibilityIdentifier("family.header")
+                                }
                             }
+                            Text(Date(), format: .dateTime.day().month(.wide)).foregroundStyle(.secondary)
                         }
-                    ActionTile(
-                        title: "Сон",
-                        subtitle: store.active
-                            .contains(where: { $0.kind == .sleep }) ? "Таймер уже идёт" : "Начать таймер",
-                        symbol: "moon.zzz.fill",
-                        color: AppDesign.Palette.sleep,
-                        id: "action.sleep"
-                    ) { store.start(.sleep) }
-                    ActionTile(
-                        title: "Сводка",
-                        subtitle: "Как прошёл день",
-                        symbol: "chart.bar.fill",
-                        color: AppDesign.Palette.cardBackground,
-                        id: "action.summary"
-                    ) { tab = 2 }
-                }
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
-                    HStack {
-                        Text("Последние события").font(.title3.bold())
                         Spacer()
-                        Button("Все") { tab = 1 }.frame(
-                            minWidth: AppDesign.Metrics.minimumTouch,
-                            minHeight: AppDesign.Metrics.minimumTouch
-                        )
                     }
-                    if store.events.isEmpty {
-                        Text("Первый день вашей истории").font(.headline)
-                        Text("Запишите кормление, смену подгузника или начало сна. Всё сохранится на iPhone сразу.")
-                            .foregroundStyle(.secondary)
+                    if store.active.isEmpty {
+                        lastFeed
                     } else {
-                        ForEach(Array(store.events.prefix(8))) { event in
-                            EventRow(event: event, authorLabel: store.eventAuthorLabel(for: event)) { edit(event) }
-                            if event.id != store.events.prefix(8).last?.id {
-                                Divider()
+                        ForEach(store.active) { event in
+                            TimerCard(
+                                event: event,
+                                finish: { store.finish(event) },
+                                switchSide: { store.switchSide(event) }
+                            )
+                        }
+                    }
+
+                    LazyVGrid(columns: dynamicTypeSize.isAccessibilitySize
+                        ? [GridItem(.flexible())]
+                        : [GridItem(.flexible()), GridItem(.flexible())], spacing: AppDesign.Spacing.row)
+                    {
+                        ActionTile(
+                            title: "Кормление",
+                            subtitle: "Грудь или бутылочка",
+                            symbol: "heart.fill",
+                            color: AppDesign.Palette.feeding,
+                            id: "action.feed"
+                        ) { showFeed = true }
+                            .id("widget.breast")
+                            .onScrollVisibilityChange(threshold: 0.8) { updateWidgetActionVisibility(
+                                "breast",
+                                visible: $0
+                            ) }
+                            .confirmationDialog("Кормление", isPresented: $showFeed, titleVisibility: .visible) {
+                                Button("Левая грудь") { store.start(.breast, side: .left) }
+                                    .accessibilityIdentifier("feed.left")
+                                Button("Правая грудь") { store.start(.breast, side: .right) }
+                                    .accessibilityIdentifier("feed.right")
+                                Button("Бутылочка") { addManual(.bottle) }.accessibilityIdentifier("feed.bottle")
+                            }
+                        ActionTile(
+                            title: "Подгузник",
+                            subtitle: "Записать смену",
+                            symbol: "drop.fill",
+                            color: AppDesign.Palette.diaper,
+                            id: "action.diaper"
+                        ) { showDiaper = true }
+                            .id("widget.diaper")
+                            .onScrollVisibilityChange(threshold: 0.8) { updateWidgetActionVisibility(
+                                "diaper",
+                                visible: $0
+                            ) }
+                            .confirmationDialog("Подгузник", isPresented: $showDiaper, titleVisibility: .visible) {
+                                ForEach(DiaperType.allCases, id: \.self) { type in
+                                    Button(type.label) { store.diaper(type) }
+                                        .accessibilityIdentifier("diaper.\(type.rawValue)")
+                                }
+                            }
+                        ActionTile(
+                            title: "Сон",
+                            subtitle: store.active
+                                .contains(where: { $0.kind == .sleep }) ? "Таймер уже идёт" : "Начать таймер",
+                            symbol: "moon.zzz.fill",
+                            color: AppDesign.Palette.sleep,
+                            id: "action.sleep"
+                        ) { store.start(.sleep) }
+                            .id("widget.sleep")
+                            .onScrollVisibilityChange(threshold: 0.8) { updateWidgetActionVisibility(
+                                "sleep",
+                                visible: $0
+                            ) }
+                            .confirmationDialog("Сон", isPresented: $showWidgetSleep, titleVisibility: .visible) {
+                                if !store.active.contains(where: { $0.kind == .sleep }) {
+                                    Button("Начать сон") { store.start(.sleep) }
+                                        .accessibilityIdentifier("widget.sleep.start")
+                                }
+                                Button("Отмена", role: .cancel) {}
+                            }
+                        ActionTile(
+                            title: "Сводка",
+                            subtitle: "Как прошёл день",
+                            symbol: "chart.bar.fill",
+                            color: AppDesign.Palette.cardBackground,
+                            id: "action.summary"
+                        ) { tab = 2 }
+                    }
+                    VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
+                        HStack {
+                            Text("Последние события").font(.title3.bold())
+                            Spacer()
+                            Button("Все") { tab = 1 }.frame(
+                                minWidth: AppDesign.Metrics.minimumTouch,
+                                minHeight: AppDesign.Metrics.minimumTouch
+                            )
+                        }
+                        if store.events.isEmpty {
+                            Text("Первый день вашей истории").font(.headline)
+                            Text("Запишите кормление, смену подгузника или начало сна. Всё сохранится на iPhone сразу.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(Array(store.events.prefix(8))) { event in
+                                EventRow(event: event, authorLabel: store.eventAuthorLabel(for: event)) { edit(event) }
+                                if event.id != store.events.prefix(8).last?.id {
+                                    Divider()
+                                }
                             }
                         }
                     }
-                }
-            }.padding(AppDesign.Spacing.contentInset)
-        }
-        .background(AppDesign.Palette.groupedBackground)
-        .navigationTitle("Сегодня")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { showSettings = true } label: { Image(systemName: "gearshape") }
-                    .accessibilityLabel("Настройки").accessibilityIdentifier("settings.open")
+                }.padding(AppDesign.Spacing.contentInset)
             }
-            ToolbarItem(placement: .topBarLeading) {
-                Menu {
-                    ForEach(EventKind.allCases, id: \.self) { kind in
-                        Button("\(kind.label) вручную") { addManual(kind) }
-                    }
-                } label: { Image(systemName: "plus") }
-                    .accessibilityLabel("Добавить запись за прошлое время")
-                    .accessibilityIdentifier("manual.add")
+            .background(AppDesign.Palette.groupedBackground)
+            .onAppear {
+                if let route = pendingWidgetRoute {
+                    scrollProxy.scrollTo("widget." + route.destination.rawValue, anchor: .center)
+                }
+            }
+            .onChange(of: widgetActionScrollRequest) {
+                if let route = pendingWidgetRoute {
+                    scrollProxy.scrollTo("widget." + route.destination.rawValue, anchor: .center)
+                }
+            }
+            .navigationTitle("Сегодня")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                        .accessibilityLabel("Настройки").accessibilityIdentifier("settings.open")
+                }
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        ForEach(EventKind.allCases, id: \.self) { kind in
+                            Button("\(kind.label) вручную") { addManual(kind) }
+                        }
+                    } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("Добавить запись за прошлое время")
+                        .accessibilityIdentifier("manual.add")
+                }
             }
         }
     }
@@ -248,6 +297,63 @@ struct ContentView: View {
         }
         .foregroundStyle(AppDesign.Palette.primaryText)
         .diaryCard(color: AppDesign.Palette.feeding)
+    }
+
+    private func receiveWidgetRoute() {
+        guard let route = widgetRouteInbox.take() else { return }
+        pendingWidgetRoute = route
+        openPendingWidgetRoute()
+    }
+
+    private func openPendingWidgetRoute() {
+        guard store.ready, !widgetRouteAwaitsSheetDismissal, let route = pendingWidgetRoute else { return }
+        guard route.babyID == nil || route.babyID == store.baby?.id else {
+            pendingWidgetRoute = nil
+            return
+        }
+        // UIKit must finish dismissing the current sheet before its presenter
+        // can show a widget action's anchored confirmation dialog.
+        if editing != nil || showSettings {
+            widgetRouteAwaitsSheetDismissal = true
+            editing = nil
+            showSettings = false
+            return
+        }
+        let needsAction = route.destination == .breast || route.destination == .diaper ||
+            (route.destination == .sleep && !store.active.contains(where: { $0.kind == .sleep }))
+        if needsAction, !visibleWidgetActions.contains(route.destination.rawValue) {
+            tab = 0
+            widgetActionScrollRequest += 1
+            return
+        }
+        pendingWidgetRoute = nil
+        showFeed = false
+        showDiaper = false
+        showWidgetSleep = false
+        tab = route.destination == .history ? 1 : 0
+        switch route.destination {
+        case .breast: showFeed = true
+        case .diaper: showDiaper = true
+        case .sleep:
+            showWidgetSleep = !store.active.contains(where: { $0.kind == .sleep })
+        case .today, .history: break
+        }
+    }
+
+    private func updateWidgetActionVisibility(_ action: String, visible: Bool) {
+        if visible {
+            visibleWidgetActions.insert(action)
+        } else {
+            visibleWidgetActions.remove(action)
+        }
+        if visible {
+            openPendingWidgetRoute()
+        }
+    }
+
+    private func resumeWidgetRouteAfterSheet() {
+        widgetRouteAwaitsSheetDismissal = false
+        openPendingWidgetRoute()
     }
 
     private func addManual(_ kind: EventKind) {
