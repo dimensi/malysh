@@ -21,6 +21,7 @@ final class AppStore {
     var family: FamilySnapshot?
     var selectedID: UUID?
     var events: [CareEvent] = []
+    var measurements: [ChildMeasurement] = []
     var ready = false
     var loadFailed = false
     var errorMessage: String?
@@ -234,7 +235,8 @@ final class AppStore {
             babies = [starter]
         }
         try updateVisibleBabiesAndSelection()
-        let emptyRedundantIDs = try Set(redundantBabies.filter { try persistence.events(babyID: $0.id).isEmpty }
+        let emptyRedundantIDs = try Set(redundantBabies
+            .filter { try persistence.events(babyID: $0.id).isEmpty && persistence.measurements(babyID: $0.id).isEmpty }
             .map(\.id))
         if !emptyRedundantIDs.isEmpty {
             try persistence.deleteBabyAndEvents(ids: emptyRedundantIDs)
@@ -243,6 +245,7 @@ final class AppStore {
         }
         try selectAcceptedSharedBabyIfAvailable()
         events = try selectedID.map { try persistence.events(babyID: $0).sorted { $0.start > $1.start } } ?? []
+        measurements = try selectedID.map { try persistence.measurements(babyID: $0) } ?? []
         family = selectedID.flatMap { try? persistence.familySnapshot(babyID: $0) }
         // Warm per-diary actor knowledge for cold background Live Activity actions.
         for baby in babies {
@@ -264,6 +267,47 @@ final class AppStore {
             activityCoordinator.reconcile(events: allEvents, babies: babies, allowStart: allowsActivityStart())
         }
         refreshWidgetSnapshot()
+    }
+
+    func updateChildProfile(
+        babyID: UUID,
+        name: String,
+        birthDate: Date,
+        birthDateConfirmed: Bool,
+        replacing original: Baby
+    ) throws {
+        guard var latest = try persistence.babies().first(where: { $0.id == babyID })
+        else { throw Persistence.Failure.missingBaby }
+        guard latest.name == original.name, latest.birthDate == original.birthDate,
+              latest.birthDateConfirmed == original.birthDateConfirmed, latest.birthDay == original.birthDay
+        else { throw ChildProfileError.conflict }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw ChildProfileError.emptyName }
+        guard !birthDateConfirmed || birthDate <= Date() else { throw ChildProfileError.futureBirthday }
+        latest.name = trimmed
+        // Never rewrite an automatically generated legacy date until the user confirms one.
+        if birthDateConfirmed {
+            latest.birthDate = birthDate
+            latest.birthDay = CivilDay(date: birthDate)
+        }
+        latest.birthDateConfirmed = birthDateConfirmed
+        try persistence.saveBaby(latest)
+        try reload()
+    }
+
+    func saveMeasurement(_ measurement: ChildMeasurement, replacing original: ChildMeasurement? = nil) throws {
+        var value = measurement
+        let existing = try persistence.measurements(babyID: value.babyID).first { $0.id == value.id }
+        guard existing == original else { throw ChildProfileError.conflict }
+        value.createdAt = existing?.createdAt ?? Date()
+        value.modifiedAt = Date()
+        try persistence.saveMeasurement(value)
+        try reload()
+    }
+
+    func deleteMeasurement(id: UUID) throws {
+        try persistence.deleteMeasurement(id: id)
+        try reload()
     }
 
     func saveFamilyProfile(memberID: String, name: String, role: ParentRole) throws {
@@ -352,7 +396,9 @@ final class AppStore {
         var visible: [Baby] = []
         var redundant: [Baby] = []
         for baby in babies {
-            let isDefaultCandidate = !sharedIDs.isEmpty && !sharedIDs.contains(baby.id) && baby.name == "Малыш"
+            let hasMeasurements = try !persistence.measurements(babyID: baby.id).isEmpty
+            let isDefaultCandidate = !sharedIDs.isEmpty && !sharedIDs.contains(baby.id) && baby
+                .name == "Малыш" && !hasMeasurements
             let family: FamilySnapshot?
             do {
                 family = isDefaultCandidate ? try persistence.familySnapshot(babyID: baby.id) : nil
@@ -361,8 +407,8 @@ final class AppStore {
                 visible.append(baby)
                 continue
             }
-            if Self.isPreSharedDefault(baby, isShared: sharedIDs.contains(baby.id),
-                                       hasSharedDiary: !sharedIDs.isEmpty, family: family)
+            if !hasMeasurements, Self.isPreSharedDefault(baby, isShared: sharedIDs.contains(baby.id),
+                                                         hasSharedDiary: !sharedIDs.isEmpty, family: family)
             {
                 // Include empty starters so reload can remove them automatically.
                 redundant.append(baby)
@@ -399,7 +445,7 @@ final class AppStore {
     static func isPreSharedDefault(_ baby: Baby, isShared: Bool, hasSharedDiary: Bool,
                                    family: FamilySnapshot?) -> Bool
     {
-        guard hasSharedDiary, !isShared, baby.name == "Малыш" else { return false }
+        guard hasSharedDiary, !isShared, baby.name == "Малыш", !baby.birthDateConfirmed else { return false }
         let hasAcceptedOtherParent = family?.members.contains {
             !$0.isOwner && !$0.isCurrentUser && $0.status == "В семье"
         } ?? false

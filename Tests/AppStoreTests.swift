@@ -195,6 +195,52 @@ final class AppStoreTests: XCTestCase {
         XCTAssertFalse(store.isSharedDiary)
     }
 
+    func testProfileAndMeasurementPreventStaleEditsAndKeepCorrectBaby() async throws {
+        let persistence = Persistence(inMemory: true)
+        let store = AppStore(persistence: persistence)
+        await store.load()
+        let original = try XCTUnwrap(store.baby)
+        let other = Baby(name: "Другой")
+        try persistence.saveBaby(other)
+        store.select(other.id)
+        try store.updateChildProfile(babyID: original.id, name: "Имя", birthDate: original.birthDate,
+                                     birthDateConfirmed: false, replacing: original)
+        XCTAssertEqual(try persistence.babies().first { $0.id == original.id }?.name, "Имя")
+        XCTAssertEqual(try persistence.babies().first { $0.id == other.id }?.name, "Другой")
+        XCTAssertThrowsError(try store.updateChildProfile(babyID: original.id, name: "Устаревшее",
+                                                          birthDate: original.birthDate, birthDateConfirmed: false,
+                                                          replacing: original))
+        let measurement = ChildMeasurement(babyID: original.id, type: .weight, value: 3500)
+        try store.saveMeasurement(measurement)
+        let snapshot = try XCTUnwrap(persistence.measurements(babyID: original.id).first)
+        var changed = snapshot
+        changed.value = 3600
+        try store.saveMeasurement(changed, replacing: snapshot)
+        XCTAssertThrowsError(try store.saveMeasurement(snapshot, replacing: snapshot))
+        try store.deleteMeasurement(id: snapshot.id)
+        XCTAssertThrowsError(try store.saveMeasurement(changed, replacing: snapshot))
+        XCTAssertTrue(try persistence.measurements(babyID: original.id).isEmpty)
+    }
+
+    func testSharedImportKeepsConfirmedOrMeasuredStarter() async throws {
+        for confirmed in [false, true] {
+            let persistence = Persistence(inMemory: true)
+            let store = AppStore(persistence: persistence)
+            await store.load()
+            var starter = try XCTUnwrap(store.baby)
+            starter.birthDateConfirmed = confirmed
+            try persistence.saveBaby(starter)
+            if !confirmed {
+                try persistence.saveMeasurement(ChildMeasurement(babyID: starter.id, type: .height, value: 50))
+            }
+            try insertSharedBaby(Baby(name: "Общий"), persistence: persistence)
+            try store.reload()
+            XCTAssertNotNil(try persistence.babyObject(id: starter.id))
+            XCTAssertTrue(store.visibleBabies.contains { $0.id == starter.id })
+            XCTAssertTrue(store.redundantBabies.isEmpty)
+        }
+    }
+
     func testDisabledCloudExplainsHowToAcceptInvitation() {
         let message = CloudFailure.message(for: Persistence.Failure.cloudDisabled)
         XCTAssertTrue(message.contains("Включите iCloud"))
