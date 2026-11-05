@@ -18,6 +18,8 @@
 
 Новая версия модели V4 добавляет `PhotoRecord` и обратное отношение, сохраняя V2/V3 для lightweight migration. Контейнер, CKShare и настройка двух persistent stores не заменяются. Перед будущим распространением сборки нужно подготовить **Development**, проверить `CD_PhotoRecord`, его бинарные поля и отношение ребёнка, а затем отдельно развернуть аддитивные изменения схемы в **Production**. Существующие типы и поля не удалять. Этот PR не развёртывает Production-схему и не выпускает сборку. Порядок подготовки — [CloudKit.md](CloudKit.md).
 
+Используйте уже существующий [workflow подготовки схемы](CloudKitSchema.md): сначала DEBUG-инициализация текущей V4-модели по `CloudKit.md`, затем `gh workflow run cloudkit-schema.yml --ref nnafranets/feature/kid-photos -f operation=prepare`. После merge ref — `main`. Только успешный `prepare` даёт реальный `snapshot/development.ckdb`: просмотрите отчёт/diff, затем сохраните этот экспорт в Git. Не дописывайте `CD_PhotoRecord` в снимок вручную. Существующий снимок из `main` отражает предыдущую живую схему и сам по себе не подтверждает подготовку V4. Promotion выполняется вручную через CloudKit Console, после него — `verify-production`.
+
 ## Разрешения и независимые копии
 
 Для съёмки нужен доступ к камере. Для сохранения используется минимальный доступ PhotoKit `.addOnly` с `NSPhotoLibraryAddUsageDescription`. Отказ не считается успешным сохранением и не создаёт запись в галерее. Импорт через PhotosPicker работает независимо от права добавления.
