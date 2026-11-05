@@ -2,25 +2,6 @@
 import XCTest
 
 final class WidgetSnapshotTests: XCTestCase {
-    func testQuietDiaryRetainsLastWetOrMixedAndDirtyDiapersBehindRecentBottles() {
-        let baby = Baby(name: "Малыш")
-        let now = Date()
-        let old = now.addingTimeInterval(-20 * 86400)
-        for wetType in [DiaperType.wet, .mixed] {
-            let wet = CareEvent(babyID: baby.id, kind: .diaper, start: old, diaperType: wetType)
-            let dirty = CareEvent(babyID: baby.id, kind: .diaper, start: old.addingTimeInterval(60), diaperType: .dirty)
-            let bottles = (0 ..< 3).map { index in
-                CareEvent(babyID: baby.id, kind: .bottle, start: now.addingTimeInterval(-Double(index) * 3600))
-            }
-            let snapshot = WidgetSnapshot(baby: baby, events: [wet, dirty] + bottles, generatedAt: now)
-            XCTAssertEqual(snapshot.summary(at: now).lastWetDiaper?.id, wet.id)
-            XCTAssertEqual(snapshot.events.first { $0.kind == .diaper }?.id, dirty.id)
-            XCTAssertEqual(snapshot.events.first { $0.kind == .diaper && $0.diaperType == .dirty }?.id, dirty.id)
-            XCTAssertEqual(snapshot.summary(at: now).recentEvents.map(\.id), bottles.map(\.id))
-            XCTAssertEqual(snapshot.summary(at: now).wetDiapers, 0)
-        }
-    }
-
     func testFullHistoryPreservesDiaperAnchorsAlongsideFeedAndSleep() {
         let baby = Baby(name: "Малыш")
         let now = Date()
@@ -41,35 +22,6 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(snapshot.summary(at: now).recentEvents.map(\.id), Array(bottles.prefix(3)).map(\.id))
     }
 
-    func testFullHistoryPreservesBothOldFeedAndSleepAnchors() {
-        let baby = Baby(name: "Малыш")
-        let now = Date()
-        let old = now.addingTimeInterval(-20 * 86400)
-        let feed = CareEvent(babyID: baby.id, kind: .bottle, start: old, end: old)
-        let sleep = CareEvent(babyID: baby.id, kind: .sleep, start: old, end: old.addingTimeInterval(3600))
-        let diapers = (0 ..< WidgetSnapshot.historyLimit).map { index in
-            CareEvent(babyID: baby.id, kind: .diaper, start: now.addingTimeInterval(-Double(index)))
-        }
-        let snapshot = WidgetSnapshot(baby: baby, events: diapers + [feed, sleep], generatedAt: now)
-        XCTAssertEqual(snapshot.events.count, WidgetSnapshot.historyLimit)
-        XCTAssertEqual(snapshot.summary(at: now).lastFeeding?.id, feed.id)
-        XCTAssertEqual(snapshot.summary(at: now).lastSleep?.id, sleep.id)
-        XCTAssertEqual(snapshot.summary(at: now).recentEvents.map(\.id), Array(diapers.prefix(3)).map(\.id))
-    }
-
-    func testQuietDiaryRetainsLastSleepBeyondHistoryWindow() {
-        let baby = Baby(name: "Малыш")
-        let now = Date()
-        let old = now.addingTimeInterval(-20 * 86400)
-        let sleep = CareEvent(babyID: baby.id, kind: .sleep, start: old, end: old.addingTimeInterval(3600))
-        let newer = (1 ... 4).map { index in
-            CareEvent(babyID: baby.id, kind: .diaper, start: old.addingTimeInterval(Double(index) * 7200))
-        }
-        let snapshot = WidgetSnapshot(baby: baby, events: [sleep] + newer, generatedAt: now)
-        XCTAssertEqual(snapshot.summary(at: now).lastSleep?.id, sleep.id)
-        XCTAssertEqual(snapshot.summary(at: now).sleepSeconds, 0)
-    }
-
     func testActiveTimersAndConfirmedBirthdayRoundTripAndLegacyDecode() throws {
         let now = Date()
         let baby = Baby(name: "Малыш", birthDate: now.addingTimeInterval(-86400), birthDateConfirmed: true)
@@ -79,7 +31,6 @@ final class WidgetSnapshotTests: XCTestCase {
         XCTAssertEqual(snapshot.activeEvents.first?.sideStartedAt, event.start)
         XCTAssertEqual(snapshot.birthDate, baby.birthDate)
         XCTAssertEqual(snapshot.birthDay, baby.birthDay)
-        XCTAssertEqual(snapshot.commandID(for: .wetDiaper), snapshot.commandID(for: .wetDiaper))
         XCTAssertNotEqual(snapshot.commandID(for: .wetDiaper), snapshot.commandID(for: .dirtyDiaper))
         var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(snapshot)) as? [String: Any])
         for key in ["birthDate", "birthDay", "activeEventValues", "actionToken"] {

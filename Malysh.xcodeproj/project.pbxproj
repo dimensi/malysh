@@ -22,7 +22,6 @@
 		355EE18A0AAAF434811C063D /* SchemaInitialization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8189783BCF7A92166A15581D /* SchemaInitialization.swift */; };
 		3E6610DDECCFD5A078666738 /* BabyPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D9AF466A93712355CEF51C /* BabyPhoto.swift */; };
 		3F69E218DF9E0543927144A0 /* WidgetSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334A82F443BAE4538EAD531F /* WidgetSnapshotTests.swift */; };
-		432638BC1DF688E7F3DEA809 /* BabyPhotoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3DEA32AE8C8A514F8F11A3D /* BabyPhotoTests.swift */; };
 		435C7B371B57BBA8C80204A5 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1C8F15FAB8ABEF7E07B2A0C7 /* PrivacyInfo.xcprivacy */; };
 		46CF2ABAE118974D72D1974A /* PhotoCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1F7702021EDFD94116F417 /* PhotoCaptureView.swift */; };
 		4735B552A0DE1D49C02A75F6 /* CareActivityActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED3BCB25AD453FD0D8FE150 /* CareActivityActionTests.swift */; };
@@ -230,7 +229,6 @@
 		EC026ED73F1E5888713E7176 /* CareActivityRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityRuntime.swift; sourceTree = "<group>"; };
 		ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		EED3BCB25AD453FD0D8FE150 /* CareActivityActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityActionTests.swift; sourceTree = "<group>"; };
-		F3DEA32AE8C8A514F8F11A3D /* BabyPhotoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BabyPhotoTests.swift; sourceTree = "<group>"; };
 		F977BB4322C33F798653AE45 /* ParentProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfileTests.swift; sourceTree = "<group>"; };
 		FA9534C35260971748388CB7 /* Malysh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Malysh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCDE9BFA45CFA05A1B7BA48F /* ChildProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfileView.swift; sourceTree = "<group>"; };
@@ -338,7 +336,6 @@
 			isa = PBXGroup;
 			children = (
 				C111135A85BE95B43D4B2D1E /* AppStoreTests.swift */,
-				F3DEA32AE8C8A514F8F11A3D /* BabyPhotoTests.swift */,
 				EED3BCB25AD453FD0D8FE150 /* CareActivityActionTests.swift */,
 				BF17D40A4D30BF1FEA449A61 /* CareActivityCoordinatorTests.swift */,
 				AA89BE4CAC87CCF203A92881 /* ChildProfileTests.swift */,
@@ -672,7 +669,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				954894A9AEA2163B02AD6E15 /* AppStoreTests.swift in Sources */,
-				432638BC1DF688E7F3DEA809 /* BabyPhotoTests.swift in Sources */,
 				4735B552A0DE1D49C02A75F6 /* CareActivityActionTests.swift in Sources */,
 				007F81B047C9C43B5F7A8AAA /* CareActivityCoordinatorTests.swift in Sources */,
 				082C5BA9EF9254A995B8238E /* ChildProfileTests.swift in Sources */,

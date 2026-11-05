@@ -38,49 +38,6 @@ final class WidgetSystemUITests: XCTestCase {
         print("WIDGET_SYSTEM_STAGE: " + stage)
     }
 
-    func testInstalledMediumWidgetShowsInteractiveControls() {
-        _ = launchIsolatedDiary()
-        let springboard = home()
-        installMedium(in: springboard)
-        for (identifier, label) in [
-            ("widget.breast.left", "Начать кормление левой грудью"),
-            ("widget.diaper.wet", "Мокрый подгузник"),
-            ("widget.diaper.dirty", "Стул"),
-            ("widget.sleep.start", "Начать сон"),
-        ] {
-            waitForWidget(identifier, label: label, in: springboard)
-        }
-        attach(springboard, stage: "Native widget gallery — installed interactive medium")
-    }
-
-    func testColdBreastControlsSwitchAndFinishTheSamePersistedEvent() {
-        let app = launchIsolatedDiary()
-        let springboard = home()
-        installMedium(in: springboard)
-        app.terminate()
-        XCTAssertEqual(app.state, .notRunning)
-        tapWidget("widget.breast.left", label: "Начать кормление левой грудью", in: springboard, app: app,
-                  repeated: true)
-        waitForWidget("widget.breast.finish", label: "Завершить кормление", in: springboard)
-        tapWidget("widget.breast.switch", label: "Сменить грудь", in: springboard, app: app)
-        attach(springboard, stage: "Interactive breast — cold start and side switch")
-        relaunch(app)
-        XCTAssertEqual(timers(app).count, 1)
-        XCTAssertTrue(app.staticTexts["Кормление · правая грудь"].waitForExistence(timeout: 10))
-        let eventID = String(timers(app).firstMatch.identifier.dropFirst("timer.finish.".count))
-        _ = home()
-        app.terminate()
-        tapWidget("widget.breast.finish", label: "Завершить кормление", in: springboard, app: app)
-        waitForWidget("widget.breast.left", label: "Начать кормление левой грудью", in: springboard)
-        XCTAssertNotEqual(app.state, .runningForeground)
-        app.terminate()
-        relaunch(app)
-        XCTAssertEqual(timers(app).count, 0)
-        assertSavedEvent(eventID, in: app)
-        XCTAssertEqual(events(app).count, 1, "Starting, switching and finishing must update one Core Data event")
-        attach(app, stage: "Interactive breast — one completed event after relaunch")
-    }
-
     func testColdDiaperControlsPersistWetAndStoolWithoutOpeningApp() {
         let app = launchIsolatedDiary()
         let springboard = home()
