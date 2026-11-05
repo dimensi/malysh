@@ -95,6 +95,7 @@ final class WidgetSystemUITests: XCTestCase {
         installMedium(in: springboard)
         app.terminate()
         tapWidget("widget.diaper.wet", label: "Мокрый подгузник", in: springboard, app: app, repeated: true)
+        waitForDiaperFeedback("widget.diaper.wet", label: "Мокрый подгузник", in: springboard, app: app)
         // Observe the first committed save before sending another independent action.
         relaunch(app)
         XCTAssertTrue(events(app).firstMatch.waitForExistence(timeout: 10))
@@ -104,6 +105,8 @@ final class WidgetSystemUITests: XCTestCase {
         _ = home()
         app.terminate()
         tapWidget("widget.diaper.dirty", label: "Стул", in: springboard, app: app)
+        waitForDiaperFeedback("widget.diaper.dirty", label: "Стул", in: springboard, app: app)
+        attach(springboard, stage: "Interactive diapers — stool feedback persisted on Home")
         relaunch(app)
         let committed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "count == 2"), object: events(app))
         XCTAssertEqual(XCTWaiter.wait(for: [committed], timeout: 10), .completed)
@@ -188,6 +191,20 @@ final class WidgetSystemUITests: XCTestCase {
         let control = widgetControl(identifier, label: label, in: springboard)
         XCTAssertTrue(control.waitForExistence(timeout: 30), springboard.debugDescription)
         logTiming("wait.observed", control: identifier)
+    }
+
+    private func waitForDiaperFeedback(_ identifier: String, label: String,
+                                       in springboard: XCUIApplication, app: XCUIApplication)
+    {
+        let control = widgetControl(identifier, label: label, in: springboard)
+        logTiming("feedback.wait.begin", control: identifier)
+        let feedback = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "count >= 2"), object: control.staticTexts
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [feedback], timeout: 30), .completed,
+                       "The installed diaper button must render its committed timestamp before opening the app")
+        XCTAssertNotEqual(app.state, .runningForeground)
+        logTiming("feedback.observed", control: identifier)
     }
 
     private func logTiming(_ stage: String, control: String) {
