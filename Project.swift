@@ -14,6 +14,8 @@ let project = Project(name: "Malysh", settings: settings, targets: [
     .target(name: "Malysh", destinations: [.iPhone], product: .app,
             bundleId: "dev.dimensi.malysh", deploymentTargets: .iOS("26.0"),
             infoPlist: .extendingDefault(with: [
+                "NSCameraUsageDescription": "Сфотографировать малыша и добавить снимок в семейный дневник.",
+                "NSPhotoLibraryAddUsageDescription": "Сохранить оригинал снимка в Фото на этом iPhone.",
                 "CFBundleDisplayName": "$(INFOPLIST_KEY_CFBundleDisplayName)", "CFBundleDevelopmentRegion": "ru",
                 "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",

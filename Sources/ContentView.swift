@@ -51,6 +51,8 @@ struct ContentView: View {
     @State private var showWidgetSleep = false
     @State private var showSettings = false
     @State private var showProfile = false
+    @State private var showPhotos = false
+    @State private var photoPresentationBusy = false
     @State private var editing: CareEvent?
     @State private var pendingWidgetRoute: WidgetRoute?
     @State private var widgetRouteInbox = WidgetRouteInbox.shared
@@ -83,6 +85,9 @@ struct ContentView: View {
                 }
                 .sheet(isPresented: $showSettings, onDismiss: resumeWidgetRouteAfterSheet) { SettingsView(store: store)
                 }
+                .sheet(isPresented: $showPhotos, onDismiss: resumeWidgetRouteAfterSheet) {
+                    NavigationStack { PhotoGalleryView(store: store, isPresentedModally: true) }
+                }
                 .sheet(isPresented: $showProfile, onDismiss: resumeWidgetRouteAfterSheet) {
                     ChildProfileView(store: store)
                 }
@@ -99,6 +104,7 @@ struct ContentView: View {
                 }.padding()
             }
         }
+        .onChange(of: store.selectedID) { showPhotos = false; photoPresentationBusy = false }
         .onAppear { receiveWidgetRoute() }
         .onChange(of: widgetRouteInbox.pending) { receiveWidgetRoute() }
         .onChange(of: store.ready) { _, ready in
@@ -119,17 +125,29 @@ struct ContentView: View {
         } message: { Text(store.errorMessage ?? "") }
     }
 
+    private var photoAvatarValue: String {
+        let gallery = store.photoGallery
+        _ = gallery.revision
+        guard let baby = store.baby else { return "Фотографий пока нет" }
+        let photos = (try? gallery.photos(babyID: baby.id)) ?? []
+        guard let photo = BabyPhoto.avatar(in: photos, pinnedID: baby.pinnedPhotoID) else {
+            return "Фотографий пока нет"
+        }
+        return "Главное фото от \(photo.capturedAt.formatted(date: .long, time: .shortened))"
+    }
+
     private var today: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.section) {
                     HStack(spacing: AppDesign.Spacing.row) {
-                        Image("BrandMark").resizable().scaledToFill().frame(
-                            width: AppDesign.Metrics.brandMarkSize,
-                            height: AppDesign.Metrics.brandMarkSize
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
-                        .accessibilityHidden(true)
+                        Button { showPhotos = true } label: {
+                            ChildPhotoAvatar(store: store)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Фотографии малыша")
+                        .accessibilityIdentifier("photo.gallery.open")
+                        .accessibilityValue(photoAvatarValue)
                         Button { showProfile = true } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack(spacing: 6) {
@@ -158,6 +176,12 @@ struct ContentView: View {
                         .accessibilityIdentifier("child.profile.open")
                         .accessibilityHint("Открывает профиль ребёнка и измерения")
                         Spacer()
+                        PhotoAddButton(
+                            store: store,
+                            isPresenting: $photoPresentationBusy,
+                            onDismiss: resumeWidgetRouteAfterSheet,
+                            handlesServiceErrors: true
+                        )
                     }
                     if store.active.isEmpty {
                         lastFeed
@@ -331,11 +355,13 @@ struct ContentView: View {
         }
         // UIKit must finish dismissing the current sheet before its presenter
         // can show a widget action's anchored confirmation dialog.
-        if editing != nil || showSettings || showProfile {
+        if editing != nil || showSettings || showProfile || showPhotos || photoPresentationBusy {
             widgetRouteAwaitsSheetDismissal = true
             editing = nil
             showSettings = false
             showProfile = false
+            showPhotos = false
+            photoPresentationBusy = false
             return
         }
         let needsAction = route.destination == .breast || route.destination == .diaper ||
