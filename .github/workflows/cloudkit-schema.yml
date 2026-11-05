@@ -1,0 +1,30 @@
+name: CloudKit schema tooling
+
+on:
+  pull_request:
+    paths:
+      - 'Scripts/cloudkit*'
+      - 'Scripts/tests/**'
+      - 'CloudKit/**'
+      - '.github/workflows/cloudkit-schema.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Scripts/cloudkit*'
+      - 'Scripts/tests/**'
+      - 'CloudKit/**'
+      - '.github/workflows/cloudkit-schema.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check shell syntax
+        run: sh -n Scripts/cloudkit-schema.sh
+      - name: Test schema compatibility and safe CLI behavior
+        run: python3 -m unittest discover -s Scripts/tests -v
