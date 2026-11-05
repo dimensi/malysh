@@ -219,10 +219,11 @@ final class LiveActivityUITests: XCTestCase {
 
     private func waitForSystemDismissal(_ element: XCUIElement) {
         // iOS 26 can retain an AX node after its system card has disappeared.
+        // The first cold system intent took 19 seconds to dispatch in CI before ending successfully.
         let dismissed = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false OR hittable == false"), object: element
         )
-        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 10), .completed)
+        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 30), .completed)
     }
 
     private func capture(_ name: String) {
