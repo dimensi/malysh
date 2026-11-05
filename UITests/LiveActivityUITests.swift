@@ -13,23 +13,20 @@ final class LiveActivityUITests: XCTestCase {
         let left = app.descendants(matching: .any).matching(identifier: "feed.left").firstMatch
         XCTAssertTrue(left.waitForExistence(timeout: 5))
         left.tap()
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.switch.'"))
-            .firstMatch.waitForExistence(timeout: 5))
+        let timer = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'")).firstMatch
+        XCTAssertTrue(timer.waitForExistence(timeout: 5))
+        let eventID = String(timer.identifier.dropFirst("timer.finish.".count))
         XCUIDevice.shared.press(.home)
-        let springboard = showActivity(button: "Переключить на правую грудь")
-        let switchSide = springboard.buttons["Переключить на правую грудь"]
-        XCTAssertTrue(switchSide.waitForExistence(timeout: 10), springboard.debugDescription)
+        let cover = showActivity(button: "Переключить на правую грудь")
+        let switchSide = cover.buttons["Переключить на правую грудь"]
         capture("Кормление — системные кнопки")
         switchSide.tap()
-        // An intent can collapse the Island; reopen the updated system presentation.
-        _ = showActivity(button: "Переключить на левую грудь")
-        XCTAssertTrue(springboard.staticTexts["Правая грудь"].waitForExistence(timeout: 10))
+        // Wait for the updated card before sending its next intent.
+        let updatedCover = showActivity(button: "Переключить на левую грудь")
+        XCTAssertTrue(updatedCover.staticTexts["Правая грудь"].waitForExistence(timeout: 10))
         XCTAssertNotEqual(app.state, .runningForeground)
-        springboard.buttons["Завершить кормление"].tap()
-        XCTAssertNotEqual(app.state, .runningForeground)
-        XCUIDevice.shared.press(.home)
-        let refreshedCover = openNotificationCenter(springboard)
-        waitForSystemDismissal(refreshedCover.buttons["Завершить кормление"])
+        updatedCover.buttons["Завершить кормление"].tap()
+        assertSystemActivityRemoved(button: "Завершить кормление", app: app)
         XCTAssertNotEqual(app.state, .runningForeground)
         app.activate()
         waitForRemoval(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'")).firstMatch)
@@ -39,30 +36,32 @@ final class LiveActivityUITests: XCTestCase {
         XCTAssertTrue(app.buttons["action.feed"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'"))
             .firstMatch.exists)
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'event.'"))
-            .firstMatch.exists)
+        assertSavedEvent(eventID, in: app)
     }
 
     func testSleepSystemControlsSaveWhileAppStaysInBackground() {
         let app = launch()
         app.buttons["action.sleep"].tap()
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'"))
-            .firstMatch.waitForExistence(timeout: 5))
+        let timer = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'")).firstMatch
+        XCTAssertTrue(timer.waitForExistence(timeout: 5))
+        let eventID = String(timer.identifier.dropFirst("timer.finish.".count))
         XCUIDevice.shared.press(.home)
-        let springboard = showActivity(button: "Завершить сон")
-        let finish = springboard.buttons["Завершить сон"]
-        XCTAssertTrue(finish.waitForExistence(timeout: 10), springboard.debugDescription)
+        let cover = showActivity(button: "Завершить сон")
+        let finish = cover.buttons["Завершить сон"]
         capture("Сон — системные кнопки")
         finish.tap()
-        XCTAssertNotEqual(app.state, .runningForeground)
-        XCUIDevice.shared.press(.home)
-        let refreshedCover = openNotificationCenter(springboard)
-        waitForSystemDismissal(refreshedCover.buttons["Завершить сон"])
+        assertSystemActivityRemoved(button: "Завершить сон", app: app)
         XCTAssertNotEqual(app.state, .runningForeground)
         app.activate()
         waitForRemoval(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'")).firstMatch)
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'event.'"))
+        assertSavedEvent(eventID, in: app)
+        app.terminate()
+        app.launchArguments = ["--ui-testing"]
+        app.launch()
+        XCTAssertTrue(app.buttons["action.feed"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'"))
             .firstMatch.exists)
+        assertSavedEvent(eventID, in: app)
     }
 
     func testBreastLockScreenInLightAppearance() {
@@ -91,47 +90,23 @@ final class LiveActivityUITests: XCTestCase {
         let eventID = String(activeTimer.identifier.dropFirst("timer.finish.".count))
         let finishLabel = breast ? "Завершить кормление" : "Завершить сон"
         XCUIDevice.shared.press(.home)
-        let springboard = showActivity(button: finishLabel)
-        // The first WidgetKit host launch on a clean simulator can take longer than an app transition.
-        XCTAssertTrue(springboard.buttons[finishLabel].waitForExistence(timeout: 30), springboard.debugDescription)
-        XCTAssertTrue(springboard.buttons[finishLabel].isHittable)
-        XCUIDevice.shared.press(.home)
-        let cover = openNotificationCenter(springboard)
+        let cover = showActivity(button: finishLabel)
         let finish = cover.buttons[finishLabel]
-        for _ in 0 ..< 2 {
-            allowActivityIfNeeded(springboard)
-            if finish.waitForExistence(timeout: 3) {
-                allowActivityIfNeeded(springboard)
-                if finish.isHittable {
-                    break
-                }
-            }
-            let list = cover.scrollViews.firstMatch
-            XCTAssertTrue(list.exists)
-            list.swipeUp()
-        }
-        XCTAssertTrue(finish.waitForExistence(timeout: 5), springboard.debugDescription)
-        allowActivityIfNeeded(springboard)
         XCTAssertTrue(cover.isHittable)
         if breast {
-            XCTAssertTrue(springboard.staticTexts["Левая грудь"].exists)
-            XCTAssertTrue(springboard.buttons["Переключить на правую грудь"].exists)
+            XCTAssertTrue(cover.staticTexts["Левая грудь"].exists)
+            XCTAssertTrue(cover.buttons["Переключить на правую грудь"].exists)
             capture("Кормление — экран блокировки, светлая тема")
             XCTAssertTrue(finish.isHittable)
             finish.tap()
-            XCTAssertNotEqual(app.state, .runningForeground)
-            // iOS 26 can keep the removed card hittable in its old AX snapshot.
-            // Reopen the system surface before checking dismissal, without activating the app.
-            XCUIDevice.shared.press(.home)
-            let refreshedCover = openNotificationCenter(springboard)
-            waitForSystemDismissal(refreshedCover.buttons[finishLabel])
+            assertSystemActivityRemoved(button: finishLabel, app: app)
             XCTAssertNotEqual(app.state, .runningForeground)
         } else {
             // Wait for WidgetKit to render before killing the process that requests the activity.
             XCTAssertTrue(finish.isHittable)
             app.terminate()
             XCTAssertEqual(app.state, .notRunning)
-            XCTAssertTrue(finish.waitForExistence(timeout: 5), springboard.debugDescription)
+            XCTAssertTrue(finish.waitForExistence(timeout: 5), cover.debugDescription)
             XCTAssertTrue(finish.isHittable)
             capture("Сон после закрытия приложения — экран блокировки, тёмная тема")
         }
@@ -169,12 +144,21 @@ final class LiveActivityUITests: XCTestCase {
     }
 
     private func openNotificationCenter(_ springboard: XCUIApplication) -> XCUIElement {
-        springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.005))
-            .press(forDuration: 0.05, thenDragTo: springboard.coordinate(
-                withNormalizedOffset: CGVector(dx: 0.1, dy: 0.65)
-            ))
         let cover = springboard.windows["SBCoverSheetWindow"]
-        XCTAssertTrue(cover.waitForExistence(timeout: 5))
+        // A synthesized edge gesture is not proof that Notification Center opened.
+        for _ in 0 ..< 3 {
+            if cover.exists, cover.isHittable {
+                return cover
+            }
+            springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.005))
+                .press(forDuration: 0.05, thenDragTo: springboard.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.1, dy: 0.65)
+                ))
+            if cover.waitForExistence(timeout: 5), cover.isHittable {
+                return cover
+            }
+        }
+        XCTFail("Notification Center did not open: \(springboard.debugDescription)")
         return cover
     }
 
@@ -186,26 +170,36 @@ final class LiveActivityUITests: XCTestCase {
         return app
     }
 
-    private func showActivity(button: String) -> XCUIApplication {
+    private func showActivity(button: String) -> XCUIElement {
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        // The first WidgetKit render can finish after the Home transition.
+        let cover = openNotificationCenter(springboard)
+        let control = cover.buttons[button]
+        // Await the first WidgetKit render and its permission before interacting with the card.
         for _ in 0 ..< 3 {
-            springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.035)).press(forDuration: 1.5)
             allowActivityIfNeeded(springboard)
-            if springboard.buttons[button].waitForExistence(timeout: 3) {
+            if control.waitForExistence(timeout: 10) {
                 allowActivityIfNeeded(springboard)
-                if springboard.buttons[button].isHittable {
-                    return springboard
+                if control.isHittable {
+                    return cover
                 }
             }
+            // Notification Center lazily exposes cards below the clock's initial viewport.
+            let list = cover.scrollViews.firstMatch
+            XCTAssertTrue(list.exists)
+            list.swipeUp()
         }
-        // iPhones without Dynamic Island expose the same intents on the Lock Screen.
-        springboard.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.005))
-            .press(forDuration: 0.05, thenDragTo: springboard.coordinate(
-                withNormalizedOffset: CGVector(dx: 0.1, dy: 0.65)
-            ))
-        allowActivityIfNeeded(springboard)
-        return springboard
+        XCTFail("Live Activity control is not hittable: \(cover.debugDescription)")
+        return cover
+    }
+
+    private func assertSystemActivityRemoved(button: String, app: XCUIApplication) {
+        XCTAssertNotEqual(app.state, .runningForeground)
+        // Refresh iOS 26's stale AX snapshot before querying the removed card.
+        XCUIDevice.shared.press(.home)
+        let cover = openNotificationCenter(XCUIApplication(bundleIdentifier: "com.apple.springboard"))
+        waitForSystemDismissal(cover.buttons[button])
+        XCTAssertTrue(cover.isHittable)
+        XCTAssertNotEqual(app.state, .runningForeground)
     }
 
     private func allowActivityIfNeeded(_ springboard: XCUIApplication) {
