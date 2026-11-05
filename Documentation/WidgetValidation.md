@@ -1,6 +1,6 @@
 # Проверка обычных виджетов — 5 ноября 2026
 
-База интеграции — `84e6ccf`, Xcode 27.2, iPhone 18 Pro Simulator iOS 27.2. Релиз и загрузка в TestFlight не выполнялись.
+База первоначальной проверки — `84e6ccf`, Xcode 27.2, iPhone 18 Pro Simulator iOS 27.2. Интегрированный выпуск описан ниже.
 
 - **Полный `Scripts/check.sh`: 106/106 тестов без ретраев** на `212b563`: 85 unit, два render-теста и 19 UI-сценариев. SwiftFormat, SwiftLint strict и генерация Tuist прошли.
 - **После интеграции свежего main** production-исходники, ресурсы и Project.swift побайтно совпадают с этим полным зелёным прогоном. Повторно проверены 85 unit, два render-теста и оба затронутых теста авторства; все четыре Live Activity UI-теста прошли отдельным прогоном без ретраев после обновления системных AX-запросов. Остальные 13 UI-тестов не менялись.
@@ -17,6 +17,10 @@
 
 App Group проверен настоящим системным Home-виджетом. Физический защищённый Lock Screen, фактическая системная композиция tinted/clear и доставка CloudKit между двумя Apple ID в этом прогоне не подтверждены. Для accessory/тем есть production-view render-проверки и нативные WidgetKit modifiers. Системные задержки reload/import остаются ограничением iOS.
 
-Development-профили обновлены и проверены. Перед будущим выпуском нужно обновить distribution profiles в CI под App Group. CI checks для PR не настроены; перечисленные результаты получены локально.
+Development-профили обновлены и проверены. Оба distribution-профиля CI обновлены под App Group и проверены подписанным выпуском 1.1.6. CI checks для PR не настроены; первоначальные результаты выше получены локально.
 
 Локальные доказательства (Artifacts исключён из Git): `CodexReviewLoop/Final272.xcresult`, `CodexReviewLoop/Integrated93.xcresult`, `CodexReviewLoop/RefreshedActivity4.xcresult`, `WidgetDynamicTypeRegression.xcresult`, `CodexReviewLoop/FreshHostCheck.xcresult`, `CodexReviewLoop/device-signing.json` и журналы сборок. Промежуточные неуспешные попытки также сохранены. Исходный пользовательский worktree и его базы не изменялись.
+
+## Интегрированный выпуск 1.1.6
+
+[Полный CI](https://github.com/dimensi/malysh/actions/runs/41955049142), коммит `f1828e7`, прошёл **106/106** на iOS 26.0.1 / arm64: 85 unit, два render-теста и 19 UI. Включены настоящий Home-виджет, все четыре перехода по внешней ссылке и четыре сценария Live Activities. Пропусков нет. Подпись приложения и расширения с App Group, архив, экспорт и загрузка прошли; Apple подтвердила доступность 1.1.6 (1) внутренней группе `parents`. Ограничения физической проверки и CloudKit из раздела выше сохраняются.

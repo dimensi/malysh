@@ -1,99 +1,80 @@
 {
   "result": "Passed",
-  "totalTestCount": 75,
-  "passedTests": 75,
-  "unitTests": 63,
-  "uiTests": 12,
+  "totalTestCount": 106,
+  "passedTests": 106,
+  "unitTests": 87,
+  "applicationUnitTests": 85,
+  "widgetRenderTests": 2,
+  "uiTests": 19,
   "failedTests": 0,
   "skippedTests": 0,
   "runtimeWarnings": [],
-  "verifiedDate": "2026-11-04",
-  "device": "iPhone 18 Pro (arm64, iOS Simulator 27.0)",
-  "verification": "One complete final Live Activities run passed 75/75 (63 unit + 12 UI), with no skipped tests or runtime warnings, after rebasing onto the explicit diary-cleanup alert fix. Two additional cold-process system tests passed in an isolated project copy on a fresh simulator. Unsigned Release app and embedded Widget Extension build passed. This does not verify signed distribution or two-Apple-ID CloudKit delivery.",
-  "sources": [
+  "runtimeWarningsScope": "XCTest result summary. Raw unit logs contain SQLite diagnostics during teardown of temporary test stores; production paths were not present in the inspected messages.",
+  "verifiedDate": "2026-11-05",
+  "sourceCommit": "f1828e71671a38fc451409be4716c9b8a5047fe2",
+  "device": "iPhone 17 Pro (arm64, iOS Simulator 26.0.1, 23A8464)",
+  "verification": "Complete CI test run, signed app and embedded Widget Extension archive/export, upload, cleanup and artifact upload passed. All four Live Activity UI scenarios retained; saved event UUID and no-active-timer state survive relaunch. Apple independently confirmed TestFlight availability.",
+  "ciVerification": {
+    "workflowRunID": "41955049142",
+    "url": "https://github.com/dimensi/malysh/actions/runs/41955049142",
+    "sourceCommit": "f1828e71671a38fc451409be4716c9b8a5047fe2",
+    "runner": "macos-15 (Apple Silicon)",
+    "xcode": "26.3",
+    "totalTestCount": 106,
+    "passedTests": 106,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "signing": "passed",
+    "archiveExport": "passed",
+    "upload": "passed",
+    "cleanup": "passed",
+    "artifactUpload": "passed",
+    "resultBundle": "Artifacts/Verification/CI-1.1.6/testflight-validation-41955049142-1/Tests.xcresult"
+  },
+  "localVerification": [
     {
-      "bundle": "Artifacts/LiveActivities/VerifiedTests.xcresult",
-      "unitTests": 63,
-      "uiTests": 12,
-      "passedTests": 75,
+      "sourceCommit": "28aadba",
+      "platform": "iOS Simulator 27.0 arm64",
+      "passedTests": 106,
       "failedTests": 0,
       "skippedTests": 0,
-      "runtimeWarnings": []
+      "resultBundle": "Artifacts/Verification/AllTests-Widgets-1.1.4.xcresult"
+    },
+    {
+      "sourceCommit": "8119232",
+      "platform": "iOS Simulator 26.0.1 arm64",
+      "passedTests": 106,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "resultBundle": "Artifacts/Verification/AllTests-iOS26-1.1.5.xcresult"
+    },
+    {
+      "sourceCommit": "f1828e7",
+      "platform": "iOS Simulator 26.0.1 arm64",
+      "suite": "LiveActivityUITests after measured system-dispatch deadline adjustment",
+      "passedTests": 4,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "resultBundle": "Artifacts/Verification/LiveActivities-iOS26-1.1.6.xcresult"
     }
   ],
-  "ci51Tests": {
-    "failed108": {
-      "workflowRunID": "41891802688",
-      "sourceCommit": "ae74e78",
-      "unitPassed": 43,
-      "uiPassed": 7,
-      "uiFailed": 1,
-      "reason": "Native popover did not dismiss after an outside-coordinate tap on iOS 26",
-      "signing": "skipped",
-      "export": "skipped",
-      "upload": "skipped",
-      "binaryUploaded": false,
-      "cleanup": "passed",
-      "artifactUpload": "passed"
-    },
-    "passed109": {
-      "workflowRunID": "41896860503",
-      "sourceCommit": "8b0c1e2b78174e80e6b64da167f269e004d50a5a",
-      "duration": "25m26s",
-      "unitPassed": 43,
-      "uiPassed": 8,
-      "failedTests": 0,
-      "testSucceededUTC": "19:51:15",
-      "signing": "passed",
-      "export": "passed",
-      "upload": "passed",
-      "cleanup": "passed",
-      "artifactUpload": "passed"
-    }
-  },
   "latestVerifiedTestFlight": {
-    "version": "1.0.9",
+    "version": "1.1.6",
     "build": "1",
     "minimumOS": "26.0",
-    "sourceCommit": "8b0c1e2b78174e80e6b64da167f269e004d50a5a",
-    "workflowRunID": "41896860503",
-    "unitTests": 43,
-    "uiTests": 8,
+    "sourceCommit": "f1828e71671a38fc451409be4716c9b8a5047fe2",
+    "workflowRunID": "41955049142",
     "processingState": "VALID",
     "internalBuildState": "IN_BETA_TESTING",
     "assignedGroup": "parents",
+    "testerCount": 2,
     "automaticGroupAccess": true,
-    "statusEvidence": "Artifacts/TestFlightSetup/testflight-status-109.json",
-    "usesNonExemptEncryption": false
-  },
-  "nextTestFlight": null,
-  "liveActivitiesColdLaunch": {
-    "bundle": "Artifacts/LiveActivities/ColdLaunch/ColdControls-2.xcresult",
-    "passedTests": 2,
-    "failedTests": 0,
-    "skippedTests": 0,
-    "runtimeWarnings": [],
-    "device": "Fresh iPhone 18 Pro / iOS Simulator 27.0",
-    "storage": "Normal app paths, no --ui-testing flags, no iCloud account",
-    "actions": [
-      "breast side switch",
-      "breast finish",
-      "sleep finish"
-    ],
-    "processEvidence": "requiredLaunch: YES, didForeground: NO for all three actions; persisted results verified after relaunch"
+    "usesNonExemptEncryption": false,
+    "statusEvidence": "Artifacts/TestFlightSetup/testflight-status-116.json"
   },
   "liveActivitiesBuild": {
-    "debugSimulator": "passed, app and Widget Extension",
-    "releaseDeviceUnsigned": "passed, app and embedded MalyshWidgets.appex",
-    "signedDistribution": "not tested; separate widget provisioning profile and IOS_WIDGET_PROVISIONING_PROFILE_BASE64 secret required"
+    "debugSimulator": "passed on iOS 26.0.1 and 27.0",
+    "signedDistribution": "passed; app and embedded Widget Extension with App Group group.dev.dimensi.malysh"
   },
-  "runtimeWarningsScope": "Local Live Activities VerifiedTests and isolated cold-process tests; CI 1.0.9 warning count not separately summarized",
-  "ciVerification": {
-    "totalTestCount": 51,
-    "passedTests": 51,
-    "unitTests": 43,
-    "uiTests": 8,
-    "device": "Compatible iPhone Simulator on Intel CI runner; exact runtime recorded in workflow test artifacts",
-    "verification": "CI v1.0.9 passed all 51 tests in one run: 43 unit and 8 UI, zero failed. Workflow 41896860503, source 8b0c1e2b78174e80e6b64da167f269e004d50a5a, duration 25m26s, TEST SUCCEEDED at 19:51:15 UTC. Signing, archive/export, binary upload, cleanup and artifact upload passed. ASC independently confirmed 1.0.9 (1) VALID / IN_BETA_TESTING and assigned to parents; this does not verify two-live-Apple-ID synchronization."
-  }
+  "cloudKitDelivery": "New authorship delivery between two live Apple IDs was not reverified in this run."
 }
