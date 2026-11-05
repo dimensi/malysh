@@ -210,6 +210,7 @@
 		9C6C2B65094C01B6252EF7AB /* PhotoPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPersistenceTests.swift; sourceTree = "<group>"; };
 		9E3196271A6AFAD4C78051CC /* DiaryWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryWidget.swift; sourceTree = "<group>"; };
 		A0060453B15CE2FE05570920 /* PhotoMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoMedia.swift; sourceTree = "<group>"; };
+		A30217A0B66891C47BE5F654 /* MalyshV5.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MalyshV5.xcdatamodel; sourceTree = "<group>"; };
 		AA89BE4CAC87CCF203A92881 /* ChildProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfileTests.swift; sourceTree = "<group>"; };
 		AC02A65EE936D70B32516130 /* ProfileUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileUITests.swift; sourceTree = "<group>"; };
 		BC935FA1D40894DB96CA64B5 /* WidgetSystemUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSystemUITests.swift; sourceTree = "<group>"; };
@@ -1170,8 +1171,9 @@
 				E2DA251C68BAE8B6BD4189EA /* Malysh.xcdatamodel */,
 				C6031991CC1051EBD59EDDC1 /* MalyshV3.xcdatamodel */,
 				7506D390CDD3C7B5193526D3 /* MalyshV4.xcdatamodel */,
+				A30217A0B66891C47BE5F654 /* MalyshV5.xcdatamodel */,
 			);
-			currentVersion = 7506D390CDD3C7B5193526D3 /* MalyshV4.xcdatamodel */;
+			currentVersion = A30217A0B66891C47BE5F654 /* MalyshV5.xcdatamodel */;
 			path = Malysh.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

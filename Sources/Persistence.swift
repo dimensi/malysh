@@ -125,6 +125,7 @@ final class Persistence {
         try transaction {
             for record in records {
                 var value: Baby = try decode(record)
+                value.birthMeasurementsCompleted = record.value(forKey: "birthMeasurementsCompleted") as? Bool == true
                 let merged = try ParentProfile.merging(
                     value.parentProfiles,
                     parentProfileCache.profiles(babyID: value.id)
@@ -193,21 +194,27 @@ final class Persistence {
     /// Each measurement is its own CloudKit record. Saving replaces its complete payload;
     /// concurrent edits of the same measurement use Core Data's object-trump policy.
     func saveMeasurement(_ measurement: ChildMeasurement) throws {
-        try measurement.validate()
         try transaction {
             guard let baby = try babyObject(id: measurement.babyID) else { throw Failure.missingBaby }
             let existing = try objects(entity: "MeasurementRecord",
                                        predicate: NSPredicate(format: "id == %@", measurement.id as NSUUID)).first
-            let object = try existing ?? insert(entity: "MeasurementRecord", store: baby.objectID.persistentStore)
-            guard object.objectID.isTemporaryID || object.objectID.persistentStore == baby.objectID.persistentStore
-            else { throw Failure.missingStore }
-            object.setValue(measurement.id, forKey: "id")
-            object.setValue(measurement.babyID, forKey: "babyID")
-            object.setValue(measurement.measuredAt, forKey: "measuredAt")
-            object.setValue(measurement.modifiedAt, forKey: "modifiedAt")
-            try object.setValue(JSONEncoder().encode(measurement), forKey: "payload")
-            object.setValue(baby, forKey: "baby")
+            try writeMeasurement(measurement, baby: baby, existing: existing)
         }
+    }
+
+    private func writeMeasurement(_ measurement: ChildMeasurement, baby: NSManagedObject,
+                                  existing: NSManagedObject? = nil) throws
+    {
+        try measurement.validate()
+        let object = try existing ?? insert(entity: "MeasurementRecord", store: baby.objectID.persistentStore)
+        guard object.objectID.isTemporaryID || object.objectID.persistentStore == baby.objectID.persistentStore
+        else { throw Failure.missingStore }
+        object.setValue(measurement.id, forKey: "id")
+        object.setValue(measurement.babyID, forKey: "babyID")
+        object.setValue(measurement.measuredAt, forKey: "measuredAt")
+        object.setValue(measurement.modifiedAt, forKey: "modifiedAt")
+        try object.setValue(JSONEncoder().encode(measurement), forKey: "payload")
+        object.setValue(baby, forKey: "baby")
     }
 
     func deleteMeasurement(id: UUID) throws {
@@ -278,22 +285,49 @@ final class Persistence {
     }
 
     func saveBaby(_ baby: Baby) throws {
-        var mergedBaby = baby
+        var mergedProfiles = baby.parentProfiles
         try transaction {
             let object = try babyObject(id: baby.id) ?? insert(entity: "BabyRecord", store: privateStore)
-            let stored: Baby? = object.value(forKey: "payload") == nil ? nil : try decode(object)
-            let cached = try parentProfileCache.profiles(babyID: baby.id)
-            mergedBaby.parentProfiles = ParentProfile.merging(
-                ParentProfile.merging(stored?.parentProfiles ?? [:], cached), baby.parentProfiles
-            )
-            object.setValue(baby.id, forKey: "id")
-            object.setValue(baby.name, forKey: "name")
-            object.setValue(baby.birthDate, forKey: "birthDate")
-            if stored != mergedBaby {
-                try object.setValue(JSONEncoder().encode(mergedBaby), forKey: "payload")
+            mergedProfiles = try writeBaby(baby, to: object)
+        }
+        try parentProfileCache.remember(babyID: baby.id, profiles: mergedProfiles)
+    }
+
+    /// An empty array completes onboarding by skipping it. A nil array only saves the profile.
+    func saveChildProfile(_ baby: Baby, initialMeasurements: [ChildMeasurement]?) throws {
+        try transaction {
+            guard let object = try babyObject(id: baby.id) else { throw Failure.missingBaby }
+            _ = try writeBaby(baby, to: object)
+            if let initialMeasurements {
+                guard object.value(forKey: "birthMeasurementsCompleted") as? Bool != true
+                else { throw ChildProfileError.conflict }
+                guard initialMeasurements.isEmpty || baby.birthDateConfirmed
+                else { throw ChildProfileError.missingConfirmedBirthday }
+                object.setValue(true, forKey: "birthMeasurementsCompleted")
+                for measurement in initialMeasurements {
+                    guard measurement.babyID == baby.id else { throw Failure.missingBaby }
+                    try writeMeasurement(measurement, baby: object)
+                }
             }
         }
-        try parentProfileCache.remember(babyID: baby.id, profiles: mergedBaby.parentProfiles)
+    }
+
+    private func writeBaby(_ baby: Baby, to object: NSManagedObject) throws -> [String: ParentProfile] {
+        let stored: Baby? = object.value(forKey: "payload") == nil ? nil : try decode(object)
+        let cached = try parentProfileCache.profiles(babyID: baby.id)
+        var merged = baby
+        // Completion is a separate CloudKit field. Ordinary payload writes never change it.
+        merged.birthMeasurementsCompleted = false
+        merged.parentProfiles = ParentProfile.merging(
+            ParentProfile.merging(stored?.parentProfiles ?? [:], cached), baby.parentProfiles
+        )
+        object.setValue(baby.id, forKey: "id")
+        object.setValue(baby.name, forKey: "name")
+        object.setValue(baby.birthDate, forKey: "birthDate")
+        if stored != merged {
+            try object.setValue(JSONEncoder().encode(merged), forKey: "payload")
+        }
+        return merged.parentProfiles
     }
 
     func saveEvent(_ event: CareEvent) throws {

@@ -66,6 +66,16 @@ final class AppStore {
         return object.objectID.persistentStore == sharedStore
     }
 
+    var localParent: FamilyMember? {
+        guard family == nil, let baby, let privateStore = persistence.privateStore,
+              let record = try? persistence.babyObject(id: baby.id),
+              record.objectID.persistentStore == privateStore else { return nil }
+        let profile = baby.parentProfiles["owner"]
+        return FamilyMember(id: "owner", name: profile?.name ?? "",
+                            role: (profile?.role ?? .parent).label, status: "",
+                            isCurrentUser: true, isOwner: true)
+    }
+
     var active: [CareEvent] {
         events.filter { $0.end == nil && ($0.kind == .breast || $0.kind == .sleep) }
     }
@@ -327,25 +337,61 @@ final class AppStore {
         name: String,
         birthDate: Date,
         birthDateConfirmed: Bool,
-        replacing original: Baby
+        birthTime: CivilTime? = nil,
+        replacing original: Baby,
+        birthMeasurements: [MeasurementType: Double] = [:],
+        skipBirthMeasurements: Bool = false
     ) throws {
         guard var latest = try persistence.babies().first(where: { $0.id == babyID })
         else { throw Persistence.Failure.missingBaby }
-        guard latest.name == original.name, latest.birthDate == original.birthDate,
-              latest.birthDateConfirmed == original.birthDateConfirmed, latest.birthDay == original.birthDay
+        guard latest.id == original.id, latest.name == original.name, latest.birthDate == original.birthDate,
+              latest.birthDateConfirmed == original.birthDateConfirmed, latest.birthDay == original.birthDay,
+              latest.birthTime == original.birthTime, latest.birthTimeZoneIdentifier == original.birthTimeZoneIdentifier
         else { throw ChildProfileError.conflict }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw ChildProfileError.emptyName }
-        guard !birthDateConfirmed || birthDate <= Date() else { throw ChildProfileError.futureBirthday }
+        let now = Date()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let birthDay = CivilDay(date: birthDate, timeZone: calendar.timeZone)
+        var birthday = birthDay.date(calendar: calendar).map { calendar.startOfDay(for: $0) }
+        let birthTimeChanged = !latest.birthDateConfirmed || birthDay != latest.birthDay || birthTime != latest
+            .birthTime
+        var birthTimeZoneIdentifier = birthTimeChanged ? nil : latest.birthTimeZoneIdentifier
+        if birthDateConfirmed, let birthTime, birthTimeChanged || !birthMeasurements.isEmpty {
+            let timeZone = birthTimeZoneIdentifier.flatMap(TimeZone.init(identifier:)) ?? calendar.timeZone
+            guard let date = birthTime.date(on: birthDay, calendar: calendar, recordedTimeZone: timeZone.identifier)
+            else {
+                throw ChildProfileError.invalidBirthTime
+            }
+            birthday = date
+            birthTimeZoneIdentifier = timeZone.identifier
+        }
+        guard !birthDateConfirmed || (birthday ?? birthDate) <= now else { throw ChildProfileError.futureBirthday }
         latest.name = trimmed
         // Never rewrite an automatically generated legacy date until the user confirms one.
         if birthDateConfirmed {
             latest.birthDate = birthDate
-            latest.birthDay = CivilDay(date: birthDate)
+            latest.birthDay = birthDay
         }
         latest.birthDateConfirmed = birthDateConfirmed
-        try persistence.saveBaby(latest)
-        try reload()
+        latest.birthTime = birthDateConfirmed ? birthTime : nil
+        latest.birthTimeZoneIdentifier = latest.birthTime == nil ? nil : birthTimeZoneIdentifier
+        var initialMeasurements: [ChildMeasurement]?
+        if !birthMeasurements.isEmpty {
+            guard birthDateConfirmed, let birthday else { throw ChildProfileError.missingConfirmedBirthday }
+            initialMeasurements = MeasurementType.allCases.compactMap { type in
+                birthMeasurements[type].map {
+                    ChildMeasurement(babyID: babyID, type: type, measuredAt: birthday, value: $0,
+                                     createdAt: now, modifiedAt: now)
+                }
+            }
+        } else if skipBirthMeasurements {
+            initialMeasurements = []
+        }
+        try persistence.saveChildProfile(latest, initialMeasurements: initialMeasurements)
+        // The save is already durable. A refresh failure must not ask the editor to retry the write.
+        perform { try reload() }
     }
 
     func saveMeasurement(_ measurement: ChildMeasurement, replacing original: ChildMeasurement? = nil) throws {
@@ -363,9 +409,10 @@ final class AppStore {
         try reload()
     }
 
-    func saveFamilyProfile(memberID: String, name: String, role: ParentRole) throws {
-        guard let selectedID, let member = family?.members.first(where: { $0.id == memberID }), member.canEdit,
-              var latest = try persistence.babies().first(where: { $0.id == selectedID })
+    func saveFamilyProfile(babyID: UUID, memberID: String, name: String, role: ParentRole) throws {
+        let canEditMember = family?.members.first { $0.id == memberID }?.canEdit == true
+        guard selectedID == babyID, canEditMember || localParent?.id == memberID,
+              var latest = try persistence.babies().first(where: { $0.id == babyID })
         else {
             throw ParentProfileError.memberUnavailable
         }
@@ -479,7 +526,8 @@ final class AppStore {
     static func isPreSharedDefault(_ baby: Baby, isShared: Bool, hasSharedDiary: Bool,
                                    family: FamilySnapshot?) -> Bool
     {
-        guard hasSharedDiary, !isShared, baby.name == "Малыш", !baby.birthDateConfirmed else { return false }
+        guard hasSharedDiary, !isShared, baby.name == "Малыш", !baby.birthDateConfirmed,
+              !baby.birthMeasurementsCompleted, baby.parentProfiles.isEmpty else { return false }
         let hasAcceptedOtherParent = family?.members.contains {
             !$0.isOwner && !$0.isCurrentUser && $0.status == "В семье"
         } ?? false

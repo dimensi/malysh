@@ -11,8 +11,37 @@ final class ChildProfileTests: XCTestCase {
         XCTAssertEqual(decoded.name, original.name)
         XCTAssertEqual(decoded.birthDate, original.birthDate)
         XCTAssertFalse(decoded.birthDateConfirmed)
+        XCTAssertNil(decoded.birthTime)
+        XCTAssertFalse(decoded.birthMeasurementsCompleted)
         XCTAssertNil(decoded.ageLabel())
         XCTAssertTrue(decoded.parentProfiles.isEmpty)
+    }
+
+    func testBirthTimeRoundTripsAsLocalClockTimeAcrossTimeZones() throws {
+        var source = Calendar(identifier: .gregorian)
+        source.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Moscow"))
+        var destination = source
+        destination.timeZone = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        for (month, day) in [(1, 15), (3, 8)] {
+            let components = DateComponents(year: 2026, month: month, day: day, hour: 2, minute: 30)
+            let birth = try XCTUnwrap(source.date(from: components))
+            var baby = Baby(name: "Малыш", birthDate: birth, birthDateConfirmed: true)
+            baby.birthDay = CivilDay(date: birth, timeZone: source.timeZone)
+            baby.birthTime = CivilTime(date: birth, calendar: source)
+            baby.birthTimeZoneIdentifier = source.timeZone.identifier
+            let decoded = try JSONDecoder().decode(Baby.self, from: JSONEncoder().encode(baby))
+            let clock = try XCTUnwrap(decoded.birthTime)
+            let birthDay = try XCTUnwrap(decoded.birthDay)
+            XCTAssertEqual(clock.hour, 2)
+            XCTAssertEqual(clock.minute, 30)
+            XCTAssertEqual(
+                clock.date(on: birthDay, calendar: destination, recordedTimeZone: decoded.birthTimeZoneIdentifier),
+                birth
+            )
+            if month == 3 {
+                XCTAssertNil(clock.date(on: birthDay, calendar: destination))
+            }
+        }
     }
 
     func testEditorPreservesFractionalPrecisionAcrossUnitsAndNoteOnlyEdits() throws {

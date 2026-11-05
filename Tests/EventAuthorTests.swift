@@ -20,6 +20,7 @@ final class EventAuthorTests: XCTestCase {
         let store = AppStore(persistence: persistence)
         await store.load()
         let baby = try XCTUnwrap(store.baby)
+        try store.saveFamilyProfile(babyID: baby.id, memberID: "owner", name: " Никита ", role: .father)
         let created = Date().addingTimeInterval(-3600)
         let creator = EventAuthor(id: "user-other", nameSnapshot: "Юлия", role: .mother)
         for originalCreator in [nil, creator] {
@@ -34,7 +35,10 @@ final class EventAuthorTests: XCTestCase {
             let saved = try XCTUnwrap(persistence.events(babyID: baby.id).first { $0.id == original.id })
             XCTAssertEqual(saved.createdBy, originalCreator)
             XCTAssertEqual(saved.createdAt, created)
-            XCTAssertEqual(saved.lastEditedBy?.id, "owner")
+            XCTAssertEqual(saved.lastEditedBy, EventAuthor(id: "owner", nameSnapshot: "Никита", role: .father))
+            if originalCreator == nil {
+                XCTAssertNil(store.eventAuthorLabel(for: saved))
+            }
         }
     }
 
@@ -50,6 +54,11 @@ final class EventAuthorTests: XCTestCase {
         let shared = Baby(name: "Андрей")
         try insertSharedBaby(shared, into: persistence)
         try store.reload()
+        store.select(shared.id)
+        XCTAssertNil(store.localParent)
+        XCTAssertThrowsError(try store.saveFamilyProfile(
+            babyID: shared.id, memberID: "owner", name: "Никита", role: .father
+        ))
         store.select(local.id)
         XCTAssertNil(try persistence.currentEventAuthor(babyID: shared.id))
         try store.save(CareEvent(babyID: shared.id, kind: .diaper))

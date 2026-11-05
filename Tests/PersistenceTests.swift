@@ -5,17 +5,22 @@ import XCTest
 @MainActor
 final class PersistenceTests: XCTestCase {
     func testLightweightMigrationFromBaselineV2PreservesBabyAndEvent() async throws {
-        try await verifyMigration(storeName: "private")
-        try await verifyMigration(storeName: "shared")
+        try await verifyMigration(storeName: "private", modelName: "Malysh")
+        try await verifyMigration(storeName: "shared", modelName: "Malysh")
     }
 
-    private func verifyMigration(storeName: String) async throws {
+    func testLightweightMigrationFromV4PreservesPrivateAndSharedData() async throws {
+        try await verifyMigration(storeName: "private", modelName: "MalyshV4")
+        try await verifyMigration(storeName: "shared", modelName: "MalyshV4")
+    }
+
+    private func verifyMigration(storeName: String, modelName: String) async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let modelDirectory = try XCTUnwrap(Bundle.main.url(forResource: "Malysh", withExtension: "momd"))
         let oldModel =
-            try XCTUnwrap(NSManagedObjectModel(contentsOf: modelDirectory.appendingPathComponent("Malysh.mom")))
+            try XCTUnwrap(NSManagedObjectModel(contentsOf: modelDirectory.appendingPathComponent("\(modelName).mom")))
         let baby = Baby(name: "До обновления")
         let event = CareEvent(babyID: baby.id, kind: .bottle, volumeML: 135, note: "Сохранить при обновлении")
         let old = NSPersistentContainer(name: "Malysh", managedObjectModel: oldModel)
@@ -39,6 +44,26 @@ final class PersistenceTests: XCTestCase {
         eventObject.setValue(event.modifiedAt, forKey: "modifiedAt")
         try eventObject.setValue(JSONEncoder().encode(event), forKey: "payload")
         eventObject.setValue(babyObject, forKey: "baby")
+        let photo = BabyPhoto(babyID: baby.id, capturedAt: Date(), addedBy: "parent", pixelWidth: 1, pixelHeight: 1)
+        let measurement = ChildMeasurement(babyID: baby.id, type: .height, value: 52.5)
+        if modelName == "MalyshV4" {
+            let photoObject = NSEntityDescription.insertNewObject(forEntityName: "PhotoRecord", into: old.viewContext)
+            photoObject.setValue(photo.id, forKey: "id")
+            photoObject.setValue(baby.id, forKey: "babyID")
+            photoObject.setValue(photo.capturedAt, forKey: "capturedAt")
+            try photoObject.setValue(JSONEncoder().encode(photo), forKey: "payload")
+            photoObject.setValue(Data([42]), forKey: "imageData")
+            photoObject.setValue(babyObject, forKey: "baby")
+            let measureObject = NSEntityDescription.insertNewObject(
+                forEntityName: "MeasurementRecord", into: old.viewContext
+            )
+            measureObject.setValue(measurement.id, forKey: "id")
+            measureObject.setValue(baby.id, forKey: "babyID")
+            measureObject.setValue(measurement.measuredAt, forKey: "measuredAt")
+            measureObject.setValue(measurement.modifiedAt, forKey: "modifiedAt")
+            try measureObject.setValue(JSONEncoder().encode(measurement), forKey: "payload")
+            measureObject.setValue(babyObject, forKey: "baby")
+        }
         try old.viewContext.save()
         old.viewContext.reset()
         for store in old.persistentStoreCoordinator
@@ -52,6 +77,11 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual(try current.babies(), [baby])
         XCTAssertEqual(try current.events(babyID: baby.id), [event])
         let migratedBaby = try XCTUnwrap(current.babyObject(id: baby.id))
+        XCTAssertEqual(
+            migratedBaby.objectID.persistentStore,
+            storeName == "private" ? current.privateStore : current.sharedStore
+        )
+        XCTAssertNil(migratedBaby.value(forKey: "birthMeasurementsCompleted"))
         let related = try XCTUnwrap(migratedBaby.value(forKey: "events") as? Set<NSManagedObject>)
         XCTAssertEqual(related.count, 1)
         XCTAssertEqual((related.first?.value(forKey: "schemaVersion") as? NSNumber)?.intValue, 1)
@@ -59,6 +89,11 @@ final class PersistenceTests: XCTestCase {
         updated.volumeML = 150
         try current.saveEvent(updated)
         XCTAssertEqual(try current.events(babyID: baby.id), [updated])
+        if modelName == "MalyshV4" {
+            XCTAssertEqual(try current.photos(babyID: baby.id), [photo])
+            XCTAssertEqual(try current.photoData(id: photo.id), Data([42]))
+            XCTAssertEqual(try current.measurements(babyID: baby.id), [measurement])
+        }
     }
 
     func testMeasurementsSurviveDiskReopenWithMetadataAndOrder() async throws {
@@ -85,12 +120,13 @@ final class PersistenceTests: XCTestCase {
         XCTAssertEqual((root.value(forKey: "measurements") as? Set<NSManagedObject>)?.count, 2)
     }
 
-    func testMeasurementUsesSharedBabyStore() async throws {
+    func testBirthMeasurementUsesSharedStoreAndCompletionSurvivesPayloadReplacementAndDeletion() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
         let persistence = Persistence(directory: directory)
         try await persistence.load()
-        let baby = Baby(name: "Общий")
+        let date = Calendar.current.startOfDay(for: Date())
+        let baby = Baby(name: "Общий", birthDate: date, birthDateConfirmed: true)
         let context = persistence.container.viewContext
         let root = NSEntityDescription.insertNewObject(forEntityName: "BabyRecord", into: context)
         try context.assign(root, to: XCTUnwrap(persistence.sharedStore))
@@ -99,12 +135,59 @@ final class PersistenceTests: XCTestCase {
         root.setValue(baby.birthDate, forKey: "birthDate")
         try root.setValue(JSONEncoder().encode(baby), forKey: "payload")
         try context.save()
-        let measurement = ChildMeasurement(babyID: baby.id, type: .height, value: 52)
-        try persistence.saveMeasurement(measurement)
+        let measurement = ChildMeasurement(babyID: baby.id, type: .height, measuredAt: date, value: 52)
+        try persistence.saveChildProfile(baby, initialMeasurements: [measurement])
         let records = try XCTUnwrap(root.value(forKey: "measurements") as? Set<NSManagedObject>)
         XCTAssertEqual(records.count, 1)
         XCTAssertEqual(records.first?.objectID.persistentStore, persistence.sharedStore)
         XCTAssertEqual(try persistence.measurements(babyID: baby.id), [measurement])
+
+        // Simulate an older app's incoming profile payload, which has no completion field.
+        var renamed = baby
+        renamed.name = "Имя второго родителя"
+        root.setValue(renamed.name, forKey: "name")
+        try root.setValue(JSONEncoder().encode(renamed), forKey: "payload")
+        try context.save()
+        var edited = measurement
+        edited.value = 53
+        try persistence.saveMeasurement(edited)
+        XCTAssertEqual(try persistence.measurements(babyID: baby.id), [edited])
+        try persistence.deleteMeasurement(id: measurement.id)
+        for store in persistence.container.persistentStoreCoordinator.persistentStores {
+            try persistence.container.persistentStoreCoordinator.remove(store)
+        }
+        let reopened = Persistence(directory: directory)
+        try await reopened.load()
+        let reloaded = try XCTUnwrap(reopened.babies().first)
+        XCTAssertEqual(reloaded.name, renamed.name)
+        XCTAssertTrue(reloaded.birthMeasurementsCompleted)
+        XCTAssertTrue(try reopened.measurements(babyID: baby.id).isEmpty)
+    }
+
+    func testBirthMeasurementsRollBackProfileAndMeasurementsOnStoreSaveFailure() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let persistence = Persistence(directory: directory)
+        try await persistence.load()
+        let date = Calendar.current.startOfDay(for: Date())
+        let original = Baby(name: "До сохранения")
+        try persistence.saveBaby(original)
+        let updated = Baby(id: original.id, name: "После сохранения", birthDate: date, birthDateConfirmed: true)
+        let measurements = [
+            ChildMeasurement(babyID: original.id, type: .height, measuredAt: date, value: 52),
+            ChildMeasurement(babyID: original.id, type: .weight, measuredAt: date, value: 3500),
+        ]
+        let store = try XCTUnwrap(persistence.privateStore)
+        store.isReadOnly = true
+        XCTAssertThrowsError(try persistence.saveChildProfile(updated, initialMeasurements: measurements))
+        store.isReadOnly = false
+        XCTAssertEqual(try persistence.babies(), [original])
+        XCTAssertTrue(try persistence.measurements(babyID: original.id).isEmpty)
+        XCTAssertFalse(persistence.container.viewContext.hasChanges)
+
+        try persistence.saveChildProfile(updated, initialMeasurements: measurements)
+        XCTAssertTrue(try XCTUnwrap(persistence.babies().first).birthMeasurementsCompleted)
+        XCTAssertEqual(try Set(persistence.measurements(babyID: original.id).map(\.id)), Set(measurements.map(\.id)))
     }
 
     func testDiskReloadUpdateDeleteAndRelationship() async throws {
