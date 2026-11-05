@@ -8,6 +8,21 @@ import WidgetKit
 
 @MainActor @Observable
 final class AppStore {
+    @ObservationIgnored private var storedPhotoGallery: PhotoGalleryStore?
+    var photoGallery: PhotoGalleryStore {
+        if let storedPhotoGallery {
+            return storedPhotoGallery
+        }
+        let arguments = ProcessInfo.processInfo.arguments
+        let directory = arguments.contains("--ui-testing") ? FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        )[0].appendingPathComponent("UITesting/PhotoWorkflow", isDirectory: true) : nil
+        let gallery = PhotoGalleryStore(persistence: persistence, directory: directory)
+        storedPhotoGallery = gallery
+        return gallery
+    }
+
     let persistence: Persistence
     private let activityCoordinator: (any CareActivityCoordinating)?
     private let widgetSnapshotStore: WidgetSnapshotStore
@@ -126,6 +141,11 @@ final class AppStore {
             ? WidgetSnapshotStore() : WidgetSnapshotStore(directory: nil))
         if let injectedPersistence {
             persistence = injectedPersistence
+            storedPhotoGallery = PhotoGalleryStore(
+                persistence: injectedPersistence,
+                directory: FileManager.default.temporaryDirectory
+                    .appendingPathComponent("PhotoWorkflowTests-" + UUID().uuidString)
+            )
             observeWidgetCalendarChanges()
             return
         }
@@ -228,6 +248,8 @@ final class AppStore {
     }
 
     func reload() throws {
+        photoGallery.revision += 1
+        Task { await photoGallery.saveReceivedIfEnabled() }
         babies = try persistence.babies()
         if babies.isEmpty {
             let starter = Baby(name: "Малыш")
@@ -236,7 +258,10 @@ final class AppStore {
         }
         try updateVisibleBabiesAndSelection()
         let emptyRedundantIDs = try Set(redundantBabies
-            .filter { try persistence.events(babyID: $0.id).isEmpty && persistence.measurements(babyID: $0.id).isEmpty }
+            .filter {
+                try persistence.events(babyID: $0.id).isEmpty && persistence.measurements(babyID: $0.id)
+                    .isEmpty && persistence.photos(babyID: $0.id).isEmpty
+            }
             .map(\.id))
         if !emptyRedundantIDs.isEmpty {
             try persistence.deleteBabyAndEvents(ids: emptyRedundantIDs)
@@ -397,8 +422,9 @@ final class AppStore {
         var redundant: [Baby] = []
         for baby in babies {
             let hasMeasurements = try !persistence.measurements(babyID: baby.id).isEmpty
+            let hasPhotos = try !persistence.photos(babyID: baby.id).isEmpty
             let isDefaultCandidate = !sharedIDs.isEmpty && !sharedIDs.contains(baby.id) && baby
-                .name == "Малыш" && !hasMeasurements
+                .name == "Малыш" && !hasMeasurements && !hasPhotos
             let family: FamilySnapshot?
             do {
                 family = isDefaultCandidate ? try persistence.familySnapshot(babyID: baby.id) : nil
@@ -407,8 +433,8 @@ final class AppStore {
                 visible.append(baby)
                 continue
             }
-            if !hasMeasurements, Self.isPreSharedDefault(baby, isShared: sharedIDs.contains(baby.id),
-                                                         hasSharedDiary: !sharedIDs.isEmpty, family: family)
+            if !hasMeasurements, !hasPhotos, Self.isPreSharedDefault(baby, isShared: sharedIDs.contains(baby.id),
+                                                                     hasSharedDiary: !sharedIDs.isEmpty, family: family)
             {
                 // Include empty starters so reload can remove them automatically.
                 redundant.append(baby)

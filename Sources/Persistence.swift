@@ -221,6 +221,62 @@ final class Persistence {
         }
     }
 
+    func photos(babyID: UUID) throws -> [BabyPhoto] {
+        try objects(entity: "PhotoRecord", predicate: NSPredicate(format: "babyID == %@", babyID as NSUUID))
+            .map { try decode($0) as BabyPhoto }.sorted(by: BabyPhoto.newestFirst)
+    }
+
+    func photoData(id: UUID, thumbnail: Bool = false) throws -> Data? {
+        try objects(entity: "PhotoRecord", predicate: NSPredicate(format: "id == %@", id as NSUUID))
+            .first?.value(forKey: thumbnail ? "thumbnailData" : "imageData") as? Data
+    }
+
+    func savePhoto(_ photo: BabyPhoto, imageData: Data, thumbnailData: Data) throws {
+        try transaction {
+            let object = try photoObject(for: photo, create: true)
+            try writePhotoMetadata(photo, to: object)
+            object.setValue(imageData, forKey: "imageData")
+            object.setValue(thumbnailData, forKey: "thumbnailData")
+        }
+    }
+
+    func updatePhoto(_ photo: BabyPhoto) throws {
+        try transaction {
+            let object = try photoObject(for: photo, create: false)
+            try writePhotoMetadata(photo, to: object)
+        }
+    }
+
+    func deletePhoto(id: UUID) throws {
+        try transaction {
+            for object in try objects(entity: "PhotoRecord", predicate: NSPredicate(format: "id == %@", id as NSUUID)) {
+                container.viewContext.delete(object)
+            }
+        }
+    }
+
+    private func photoObject(for photo: BabyPhoto, create: Bool) throws -> NSManagedObject {
+        guard let baby = try babyObject(id: photo.babyID) else { throw Failure.missingBaby }
+        let existing = try objects(entity: "PhotoRecord",
+                                   predicate: NSPredicate(format: "id == %@", photo.id as NSUUID)).first
+        if let existing {
+            guard existing.value(forKey: "babyID") as? UUID == photo.babyID,
+                  existing.objectID.persistentStore == baby.objectID.persistentStore else { throw Failure.missingStore }
+            return existing
+        }
+        guard create else { throw CocoaError(.validationMissingMandatoryProperty) }
+        let object = try insert(entity: "PhotoRecord", store: baby.objectID.persistentStore)
+        object.setValue(baby, forKey: "baby")
+        return object
+    }
+
+    private func writePhotoMetadata(_ photo: BabyPhoto, to object: NSManagedObject) throws {
+        object.setValue(photo.id, forKey: "id")
+        object.setValue(photo.babyID, forKey: "babyID")
+        object.setValue(photo.capturedAt, forKey: "capturedAt")
+        try object.setValue(JSONEncoder().encode(photo), forKey: "payload")
+    }
+
     func saveBaby(_ baby: Baby) throws {
         var mergedBaby = baby
         try transaction {

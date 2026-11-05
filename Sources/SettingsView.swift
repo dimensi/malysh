@@ -44,6 +44,21 @@ struct SettingsView: View {
                 }
                 familySection
                 Section {
+                    Toggle("Сохранять полученные фотографии в Фото", isOn: Binding(
+                        get: { store.photoGallery.autoSaveReceived },
+                        set: { enabled in Task { await store.photoGallery.setAutoSaveReceived(enabled) } }
+                    ))
+                    .accessibilityIdentifier("photo.autoSave")
+                    Link("Общая медиатека Apple", destination: URL(string: "https://support.apple.com/118229")!)
+                        .accessibilityIdentifier("photo.sharedLibrary.help")
+                } header: { Text("Фотографии") } footer: {
+                    Text(
+                        "Только на этом устройстве. Фотографии из семейного дневника сохраняются отдельными копиями в вашей медиатеке Фото. "
+                            + "Общая медиатека настраивается в системе: Настройки → Приложения → Фото → Общая медиатека. "
+                            + "Существующие снимки можно перенести в неё в приложении Фото."
+                    )
+                }
+                Section {
                     Toggle("Синхронизация через iCloud", isOn: $cloudEnabled)
                         .accessibilityIdentifier("cloud-toggle")
                     Text(store.syncStatus).font(.subheadline).foregroundStyle(.secondary)
@@ -59,6 +74,16 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Настройки")
+            .alert("Не удалось сохранить фотографии", isPresented: Binding(
+                get: { store.photoGallery.errorMessage != nil },
+                set: {
+                    if !$0 {
+                        store.photoGallery.errorMessage = nil
+                    }
+                }
+            )) {
+                Button("Понятно", role: .cancel) { store.photoGallery.errorMessage = nil }
+            } message: { Text(store.photoGallery.errorMessage ?? "") }
             .alert("Удалить лишний «Малыш»?", isPresented: $confirmsCleanup) {
                 Button("Удалить лишний «Малыш»", role: .destructive) {
                     do {

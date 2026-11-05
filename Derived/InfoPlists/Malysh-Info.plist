@@ -37,6 +37,10 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Сфотографировать малыша и добавить снимок в семейный дневник.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Сохранить оригинал снимка в Фото на этом iPhone.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

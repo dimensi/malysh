@@ -32,6 +32,14 @@ struct ChildProfileView: View {
                             .accessibilityIdentifier("child.profile.edit")
                     }
                     Section {
+                        NavigationLink {
+                            PhotoGalleryView(store: store)
+                        } label: {
+                            Label("Фотографии малыша", systemImage: "photo.on.rectangle")
+                        }
+                        .accessibilityIdentifier("child.profile.photos")
+                    }
+                    Section {
                         ForEach(MeasurementType.allCases, id: \.self) { type in
                             NavigationLink {
                                 MeasurementHistoryView(store: store, type: type)

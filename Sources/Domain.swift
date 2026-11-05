@@ -120,24 +120,27 @@ public struct Baby: Identifiable, Codable, Sendable, Equatable {
     public var parentProfiles: [String: ParentProfile]
     public var birthDateConfirmed: Bool
     public var birthDay: CivilDay?
+    public var pinnedPhotoID: UUID?
 
     public init(
         id: UUID = UUID(),
         name: String,
         birthDate: Date = Date(),
         parentProfiles: [String: ParentProfile] = [:],
-        birthDateConfirmed: Bool = false
+        birthDateConfirmed: Bool = false,
+        pinnedPhotoID: UUID? = nil
     ) {
         self.id = id
         self.name = name
         self.birthDate = birthDate
         self.parentProfiles = parentProfiles
         self.birthDateConfirmed = birthDateConfirmed
+        self.pinnedPhotoID = pinnedPhotoID
         birthDay = birthDateConfirmed ? CivilDay(date: birthDate) : nil
     }
 
     private enum CodingKeys: String,
-        CodingKey { case id, name, birthDate, parentProfiles, birthDateConfirmed, birthDay }
+        CodingKey { case id, name, birthDate, parentProfiles, birthDateConfirmed, birthDay, pinnedPhotoID }
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -147,6 +150,7 @@ public struct Baby: Identifiable, Codable, Sendable, Equatable {
         parentProfiles = try values.decodeIfPresent([String: ParentProfile].self, forKey: .parentProfiles) ?? [:]
         birthDateConfirmed = try values.decodeIfPresent(Bool.self, forKey: .birthDateConfirmed) ?? false
         birthDay = try values.decodeIfPresent(CivilDay.self, forKey: .birthDay)
+        pinnedPhotoID = try values.decodeIfPresent(UUID.self, forKey: .pinnedPhotoID)
     }
 }
 
