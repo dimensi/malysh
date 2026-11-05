@@ -162,6 +162,24 @@ final class DiaryWidgetRenderingTests: XCTestCase {
         .padding(family.isAccessory ? 0 : 16)
         .frame(width: size.width, height: size.height)
         .background(appearance.theme == .dark ? Color.black : Color.white)
+        if (appearance.typeSize.isAccessibilitySize &&
+            (surface == .dashboard || surface == .feeding || surface == .diaper || surface == .sleep)) ||
+            ((surface == .quickActions || surface == .dashboard) && (appearance.typeSize.isAccessibilitySize ||
+                    appearance.typeSize == .large || appearance.typeSize == .xxxLarge))
+        {
+            // Measure the production stack's natural height as well as its fixed
+            // canvas: a clipped render can otherwise keep the correct PNG size.
+            let natural = DiaryWidgetView(entry: entry, familyOverride: family,
+                                          renderingModeOverride: appearance.mode, surface: surface)
+                .environment(\.colorScheme, appearance.theme)
+                .environment(\.dynamicTypeSize, appearance.typeSize)
+                .frame(width: size.width - 32)
+                .fixedSize(horizontal: false, vertical: true)
+            let naturalRenderer = ImageRenderer(content: natural)
+            let naturalImage = try XCTUnwrap(naturalRenderer.uiImage, name)
+            XCTAssertLessThanOrEqual(naturalImage.size.height, size.height - 32,
+                                     "\(name): readable action stack exceeds the available canvas")
+        }
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
         let image = try XCTUnwrap(renderer.uiImage, name)

@@ -31,11 +31,11 @@ struct CareLiveActivityWidget: Widget {
                 .activitySystemActionForegroundColor(.primary)
         } dynamicIsland: { context in
             DynamicIsland {
-                DynamicIslandExpandedRegion(.center) {
-                    CareActivityIslandInfo(state: context.state)
-                }
                 DynamicIslandExpandedRegion(.bottom) {
-                    CareActivityControls(attributes: context.attributes, state: context.state)
+                    VStack(spacing: 8) {
+                        CareActivityIslandInfo(state: context.state)
+                        CareActivityControls(attributes: context.attributes, state: context.state)
+                    }
                 }
             } compactLeading: {
                 Image(systemName: context.state.symbol)

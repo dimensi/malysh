@@ -29,6 +29,8 @@ final class AppStore {
     private let reloadsWidgetTimelines: Bool
     private let selectionPreferenceKey: String
     private var widgetRefreshObservers: Set<AnyCancellable> = []
+    @ObservationIgnored private var widgetSnapshotBatchDepth = 0
+    @ObservationIgnored private var widgetSnapshotRefreshPending = false
     var allowsActivityStart: () -> Bool = { false }
     private var loading = false
     var babies: [Baby] = []
@@ -197,15 +199,31 @@ final class AppStore {
     }
 
     private func refreshWidgetSnapshot() {
+        guard widgetSnapshotBatchDepth == 0 else {
+            widgetSnapshotRefreshPending = true
+            return
+        }
         // A failed cache write must never fail a successful diary save.
         do {
-            if try widgetSnapshotStore.write(WidgetSnapshot(baby: baby, events: events)), reloadsWidgetTimelines {
-                WidgetCenter.shared.reloadAllTimelines()
-                ControlCenter.shared.reloadAllControls()
+            if try widgetSnapshotStore.write(WidgetSnapshot(baby: baby, events: events)) {
+                #if DEBUG
+                    WidgetCommandTiming.current?.mark("snapshotPublished")
+                #endif
+                if reloadsWidgetTimelines {
+                    WidgetCenter.shared.reloadAllTimelines()
+                    ControlCenter.shared.reloadAllControls()
+                }
             }
         } catch {
             // Keep the last complete atomic snapshot until the next reload retries.
         }
+    }
+
+    private func finishWidgetSnapshotBatch() {
+        widgetSnapshotBatchDepth -= 1
+        guard widgetSnapshotBatchDepth == 0, widgetSnapshotRefreshPending else { return }
+        widgetSnapshotRefreshPending = false
+        refreshWidgetSnapshot()
     }
 
     func load(checkCloudAccount: Bool = true) async {
@@ -618,6 +636,8 @@ final class AppStore {
     func recordWidgetAction(_ action: WidgetCareAction, babyID: UUID, commandID: UUID,
                             at date: Date = Date()) throws
     {
+        widgetSnapshotBatchDepth += 1
+        defer { finishWidgetSnapshotBatch() }
         guard ready else { throw ActivityActionFailure.unavailable }
         try reload()
         guard try persistence.babyObject(id: babyID) != nil else { throw ActivityActionFailure.unavailable }
@@ -641,11 +661,13 @@ final class AppStore {
                               side: action == .startBreastRight ? .right : .left,
                               diaperType: action == .dirtyDiaper ? .dirty : .wet)
         try save(event)
-        // Only record success after Core Data save and projection refresh succeeded.
+        // Record success only after Core Data save; projection publication follows at batch exit.
         UserDefaults.standard.set(Array(([commandID.uuidString] + receipts).prefix(512)), forKey: receiptKey)
     }
 
     func finish(eventID: UUID, babyID: UUID, at date: Date = Date()) throws {
+        widgetSnapshotBatchDepth += 1
+        defer { finishWidgetSnapshotBatch() }
         var event = try latestActivityEvent(eventID: eventID, babyID: babyID)
         guard event.end == nil else {
             try reload()
@@ -656,6 +678,8 @@ final class AppStore {
     }
 
     func switchSide(eventID: UUID, babyID: UUID, to side: BreastSide, at date: Date = Date()) throws {
+        widgetSnapshotBatchDepth += 1
+        defer { finishWidgetSnapshotBatch() }
         var event = try latestActivityEvent(eventID: eventID, babyID: babyID)
         guard event.kind == .breast else { throw ActivityActionFailure.wrongKind }
         guard event.end == nil, event.side != side else {

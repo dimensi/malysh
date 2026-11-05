@@ -54,8 +54,8 @@
 
         private func write(outcome: String, error: NSError? = nil) {
             guard NSClassFromString("XCTestCase") == nil,
-                  ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
-            guard let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+                  ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil,
+                  let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
             else { return }
             let directory = caches.appendingPathComponent("WidgetDiagnostics", isDirectory: true)
             let record = Record(action: action, processID: ProcessInfo.processInfo.processIdentifier,

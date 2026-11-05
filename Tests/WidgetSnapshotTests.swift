@@ -53,6 +53,24 @@ final class WidgetSnapshotTests: XCTestCase {
     }
 
     @MainActor
+    func testFailedStaleWidgetActionPublishesReconciledSnapshotAndReleasesBatch() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let cache = WidgetSnapshotStore(directory: directory)
+        let store = AppStore(persistence: Persistence(inMemory: true), widgetSnapshotStore: cache)
+        await store.load()
+        store.start(.breast)
+        let event = try XCTUnwrap(store.active.first)
+        XCTAssertEqual(try cache.read()?.activeEvents.first?.id, event.id)
+        try store.persistence.deleteEvent(id: event.id)
+        XCTAssertThrowsError(try store.finish(eventID: event.id, babyID: event.babyID))
+        XCTAssertTrue(try XCTUnwrap(cache.read()).activeEvents.isEmpty)
+        let command = UUID()
+        try store.recordWidgetAction(.wetDiaper, babyID: event.babyID, commandID: command)
+        XCTAssertEqual(try cache.read()?.events.map(\.id), [command])
+    }
+
+    @MainActor
     func testBackgroundCalendarNotificationsRefreshSnapshotOnMainActor() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
