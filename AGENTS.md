@@ -2,6 +2,14 @@
 
 @/Users/n.nafranets/.codex/RTK.md
 
+## Схема CloudKit
+
+- Готовый workflow — `.github/workflows/cloudkit-schema.yml`; используйте его, не исследуйте и не создавайте автоматизацию заново. В GitHub Actions → CloudKit schema tooling → Run workflow выберите `prepare` (по умолчанию), `check` или `verify-production`. После появления workflow в `main` можно вызвать `gh workflow run cloudkit-schema.yml --ref main -f operation=prepare`.
+- Контейнер `iCloud.dev.dimensi.malysh`, Team `YBBAN7R28K`; приложение использует Core Data / `NSPersistentCloudKitContainer`, не SwiftData. Для новых полей модели сначала выполните существующую DEBUG-инициализацию Development по [CloudKit.md](Documentation/CloudKit.md).
+- `prepare` экспортирует обе среды и проверяет совместимость. Только успешный `prepare` добавляет в CI artifact `snapshot/development.ckdb` рядом с `report.json`: проверьте результат, статус и diff, затем скопируйте снимок в `CloudKit/development.ckdb` и сохраните в Git. Остальные операции публикуют только отчёт. Локальный эквивалент: `bash Scripts/cloudkit-schema.sh`; безопасная проверка: `bash Scripts/cloudkit-schema.sh check`.
+- Production переносится вручную через CloudKit Console → Development → Deploy Schema Changes. После этого запустите `verify-production`. Workflow не выполняет production-import, reset, изменение записей или автоматический commit.
+- `import-development` предназначен только для явного применения версионируемого файла в Development: отдельное подтверждение `confirm_development_import=true` в CI или `--confirm-import-development` локально. Токен хранится в GitHub secret `CLOUDKIT_MANAGEMENT_TOKEN` либо локально в штатной авторизации cktool; не печатайте его. Полная инструкция: [CloudKitSchema.md](Documentation/CloudKitSchema.md).
+
 ## Нативные диалоги SwiftUI
 
 - Для уточняющего выбора после действия используйте системный `confirmationDialog`; для ошибок и важных уведомлений — `alert`. Отдельный `alert` допустим для подтверждения, которому нужна постоянно видимая кнопка отмены.

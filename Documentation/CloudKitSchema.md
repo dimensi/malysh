@@ -15,6 +15,26 @@ bash Scripts/cloudkit-schema.sh prepare --dry-run
 
 Обе команды проверяют **живую Development** относительно живой Production, не импортируют схему и не изменяют версионируемые файлы. Временные экспорты удаляются. Отчёт и семантический diff сохраняются локально в исключённый из Git `Artifacts/CloudKit/report.json`. При неудаче до завершения проверки отчёт имеет статус `incomplete`; это не успешная проверка.
 
+## Запуск через GitHub Actions
+
+Workflow [CloudKit schema tooling](../.github/workflows/cloudkit-schema.yml) автоматически запускает только тесты на pull request и push. Для живого контейнера используйте GitHub Actions → CloudKit schema tooling → Run workflow: операция `prepare` выбрана по умолчанию. Нужен repository secret `CLOUDKIT_MANAGEMENT_TOKEN`; PR-тесты его не получают. Все ручные операции выполняются последовательно и после успешных тестов.
+
+После merge workflow в default branch (`main`) доступен также CLI:
+
+```sh
+gh workflow run cloudkit-schema.yml --ref main -f operation=prepare
+```
+
+До merge ручной удалённый запуск не считается проверенным: GitHub требует наличие `workflow_dispatch` в default branch. Слияние автоматически не выполняется.
+
+В завершённом run скачайте artifact `cloudkit-schema-<run_id>`; он хранится 7 дней. Отчёт находится в `report.json`. Только **успешный `prepare`** добавляет проверенный снимок `snapshot/development.ckdb`: проверьте успешный результат job, статус отчёта и diff, затем скопируйте этот снимок в `CloudKit/development.ckdb` рабочей копии и добавьте его в Git обычным commit. У `check`, остальных операций и неуспешного `prepare` artifact содержит только отчёт, если он был создан; эти запуски не дают снимок для commit. Workflow сам исходники не публикует. После ручного Deploy Schema Changes в Console выполните:
+
+```sh
+gh workflow run cloudkit-schema.yml --ref main -f operation=verify-production
+```
+
+Доступны также `check` и `import-development`. Последний требует отдельного boolean-подтверждения в Run workflow или `-f confirm_development_import=true` в CLI и импортирует только версионируемый снимок выбранного ref в Development. Production во всех операциях остаётся read-only; схема не сбрасывается, записи не изменяются. Отчёт может сохраняться и при ошибке: успех определяйте по результату job и статусу отчёта.
+
 ## Доступ
 
 Создайте Management Token для нужной команды в CloudKit Console и сохраните через скрытый интерактивный ввод:
