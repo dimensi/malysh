@@ -68,7 +68,7 @@ DESTINATION='platform=iOS Simulator,name=iPhone 16 Pro' RESULT_BUNDLE_PATH=Artif
 - `Documentation` — настройка и результаты проверок.
 - `Scripts` — команды проверки проекта.
 
-Фактические результаты и ограничения проверок приведены в [Validation.md](Documentation/Validation.md). [Полный CI 1.1.6](https://github.com/dimensi/malysh/actions/runs/41955049142) прошёл **106/106: 85 unit + 2 render-теста виджетов + 19 UI**, без ошибок и пропусков, на Apple Silicon / iOS 26.0.1. Подпись приложения и расширения, экспорт, загрузка и очистка материалов успешны. Apple подтвердила **1.1.6 (1)**: `VALID` / `IN_BETA_TESTING`, минимальная iOS 26.0, доступ группе `parents` с двумя тестерами.
+Текущий выпуск — [1.3.1 (1)](https://github.com/dimensi/malysh/releases/tag/v1.3.1), доступен в TestFlight группе `parents`: Apple подтвердила `VALID` / `IN_BETA_TESTING`, минимальная iOS — 26.0. [Полный прогон](https://github.com/dimensi/malysh/actions/runs/42120714526): 64 теста прошли, 1 opt-in PhotoKit пропущен по условию. Тесты, подпись и экспорт успешны; workflow остался красным из-за промежуточного HTTP 500 загрузчика Apple, хотя загрузка завершилась и сборка стала доступна. Подробности — в [TestFlight.md](Documentation/TestFlight.md), состав проверок — в [матрице](Documentation/TestMatrix.md).
 
 В выпуск 1.1.6 вошли Live Activities, обычные виджеты, авторство событий и общие стили. В том прогоне выполнялись четыре UI-сценария Live Activities; проверяются реальные системные кнопки, фоновое состояние и та же завершённая запись после перезапуска. Полные локальные прогоны также дали **106/106** на iOS 26.0.1 и iOS 27.0. Доставка новых полей авторства между двумя физическими устройствами в этот прогон не входила.
 
