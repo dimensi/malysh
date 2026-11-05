@@ -4,7 +4,7 @@
 
 ## Схема CloudKit
 
-- Готовый workflow — `.github/workflows/cloudkit-schema.yml`; используйте его, не исследуйте и не создавайте автоматизацию заново. В GitHub Actions → CloudKit schema tooling → Run workflow выберите `prepare` (по умолчанию), `check` или `verify-production`. После появления workflow в `main` можно вызвать `gh workflow run cloudkit-schema.yml --ref main -f operation=prepare`.
+- Готовый workflow — `.github/workflows/cloudkit-schema.yml`; используйте его, не исследуйте и не создавайте автоматизацию заново. В GitHub Actions → CloudKit schema tooling → Run workflow выберите нужный ref и `prepare` (по умолчанию), `check` или `verify-production`. Зарегистрированный workflow запускается через `gh workflow run cloudkit-schema.yml --ref <ветка-со-схемой> -f operation=prepare`; после merge используйте `--ref main`.
 - Контейнер `iCloud.dev.dimensi.malysh`, Team `YBBAN7R28K`; приложение использует Core Data / `NSPersistentCloudKitContainer`, не SwiftData. Для новых полей модели сначала выполните существующую DEBUG-инициализацию Development по [CloudKit.md](Documentation/CloudKit.md).
 - `prepare` экспортирует обе среды и проверяет совместимость. Только успешный `prepare` добавляет в CI artifact `snapshot/development.ckdb` рядом с `report.json`: проверьте результат, статус и diff, затем скопируйте снимок в `CloudKit/development.ckdb` и сохраните в Git. Остальные операции публикуют только отчёт. Локальный эквивалент: `bash Scripts/cloudkit-schema.sh`; безопасная проверка: `bash Scripts/cloudkit-schema.sh check`.
 - Production переносится вручную через CloudKit Console → Development → Deploy Schema Changes. После этого запустите `verify-production`. Workflow не выполняет production-import, reset, изменение записей или автоматический commit.
