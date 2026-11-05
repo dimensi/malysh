@@ -70,7 +70,9 @@ final class PhotoGalleryUITests: XCTestCase {
         let oldID = "00000000-0000-0000-0000-000000000001"
         let newID = "00000000-0000-0000-0000-000000000002"
         let avatar = app.buttons["photo.gallery.open"]
-        XCTAssertEqual(avatar.value as? String, newID)
+        let newestValue = avatar.value as? String
+        XCTAssertNotNil(newestValue)
+        XCTAssertTrue(newestValue?.hasPrefix("Главное фото от ") == true)
         let headerLight = XCTAttachment(screenshot: app.screenshot())
         headerLight.name = "Child photo header light"
         headerLight.lifetime = .keepAlways
@@ -80,24 +82,27 @@ final class PhotoGalleryUITests: XCTestCase {
         action("photo.pin", app: app)
         app.buttons["photo.viewer.close"].tap()
         app.buttons["photo.gallery.close"].tap()
-        XCTAssertEqual(avatar.value as? String, oldID)
+        let olderPinnedValue = avatar.value as? String
+        XCTAssertNotNil(olderPinnedValue)
+        XCTAssertTrue(olderPinnedValue?.hasPrefix("Главное фото от ") == true)
+        XCTAssertNotEqual(olderPinnedValue, newestValue)
         app.terminate()
         app.launchArguments = ["--ui-testing", "--light-mode"]
         app.launch()
         XCTAssertTrue(avatar.waitForExistence(timeout: 10))
-        XCTAssertEqual(avatar.value as? String, oldID)
+        XCTAssertEqual(avatar.value as? String, olderPinnedValue)
         avatar.tap()
         app.buttons["photo.grid.\(oldID)"].tap()
         action("photo.delete", app: app)
         app.buttons["photo.viewer.close"].tap()
         app.buttons["photo.gallery.close"].tap()
-        XCTAssertEqual(avatar.value as? String, newID)
+        XCTAssertEqual(avatar.value as? String, newestValue)
         avatar.tap()
         app.buttons["photo.grid.\(newID)"].tap()
         action("photo.delete", app: app)
         XCTAssertTrue(app.descendants(matching: .any)["photo.empty"].waitForExistence(timeout: 5))
         app.buttons["photo.gallery.close"].tap()
-        XCTAssertEqual(avatar.value as? String, "brand")
+        XCTAssertEqual(avatar.value as? String, "Фотографий пока нет")
     }
 
     func testFullscreenPagingAndSystemShare() {

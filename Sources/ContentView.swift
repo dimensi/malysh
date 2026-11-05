@@ -128,9 +128,12 @@ struct ContentView: View {
     private var photoAvatarValue: String {
         let gallery = store.photoGallery
         _ = gallery.revision
-        guard let baby = store.baby else { return "brand" }
+        guard let baby = store.baby else { return "Фотографий пока нет" }
         let photos = (try? gallery.photos(babyID: baby.id)) ?? []
-        return BabyPhoto.avatar(in: photos, pinnedID: baby.pinnedPhotoID)?.id.uuidString ?? "brand"
+        guard let photo = BabyPhoto.avatar(in: photos, pinnedID: baby.pinnedPhotoID) else {
+            return "Фотографий пока нет"
+        }
+        return "Главное фото от \(photo.capturedAt.formatted(date: .long, time: .shortened))"
     }
 
     private var today: some View {

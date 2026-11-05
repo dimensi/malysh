@@ -18,7 +18,6 @@ struct ChildPhotoAvatar: View {
         .frame(width: AppDesign.Metrics.brandMarkSize, height: AppDesign.Metrics.brandMarkSize)
         .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
         .id(galleryRevision)
-        .accessibilityValue(avatar?.id.uuidString ?? "brand")
     }
 }
 
