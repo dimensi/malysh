@@ -50,9 +50,11 @@ struct ContentView: View {
     @State private var showDiaper = false
     @State private var showWidgetSleep = false
     @State private var showSettings = false
-    @State private var showProfile = false
+    @State private var childPath = NavigationPath()
+    @State private var editingMeasurement: MeasurementPresentation?
     @State private var showPhotos = false
     @State private var photoPresentationBusy = false
+    @State private var albumPresentationBusy = false
     @State private var editing: CareEvent?
     @State private var pendingWidgetRoute: WidgetRoute?
     @State private var widgetRouteInbox = WidgetRouteInbox.shared
@@ -70,6 +72,15 @@ struct ContentView: View {
                         .tabItem { Label("История", systemImage: "clock.fill") }.tag(1)
                     NavigationStack { StatisticsView(store: store) }
                         .tabItem { Label("Статистика", systemImage: "chart.bar.fill") }.tag(2)
+                    NavigationStack(path: $childPath) {
+                        ChildProfileView(
+                            store: store,
+                            editingMeasurement: $editingMeasurement,
+                            albumPresentationBusy: $albumPresentationBusy,
+                            onAlbumDismiss: resumeWidgetRouteAfterSheet
+                        )
+                    }
+                    .tabItem { Label("Малыш", systemImage: "face.smiling") }.tag(3)
                 }
                 .tint(AppDesign.Palette.accent)
                 .sheet(item: $editing, onDismiss: resumeWidgetRouteAfterSheet) { event in
@@ -83,13 +94,21 @@ struct ContentView: View {
                                 onDelete: store.events
                                     .contains(where: { $0.id == event.id }) ? { try store.delete(event) } : nil)
                 }
-                .sheet(isPresented: $showSettings, onDismiss: resumeWidgetRouteAfterSheet) { SettingsView(store: store)
+                .sheet(item: $editingMeasurement, onDismiss: resumeWidgetRouteAfterSheet) { presentation in
+                    MeasurementEditor(store: store, measurement: presentation.measurement, isNew: presentation.isNew)
+                }
+                .sheet(isPresented: $showSettings, onDismiss: resumeWidgetRouteAfterSheet) {
+                    SettingsView(store: store) {
+                        showSettings = false
+                        openChildProfile()
+                    }
                 }
                 .sheet(isPresented: $showPhotos, onDismiss: resumeWidgetRouteAfterSheet) {
-                    NavigationStack { PhotoGalleryView(store: store, isPresentedModally: true) }
-                }
-                .sheet(isPresented: $showProfile, onDismiss: resumeWidgetRouteAfterSheet) {
-                    ChildProfileView(store: store)
+                    NavigationStack { PhotoGalleryView(
+                        store: store,
+                        isPresentedModally: true,
+                        isPresenting: .constant(false)
+                    ) }
                 }
             } else {
                 VStack(spacing: 20) {
@@ -104,7 +123,13 @@ struct ContentView: View {
                 }.padding()
             }
         }
-        .onChange(of: store.selectedID) { showPhotos = false; photoPresentationBusy = false }
+        .onChange(of: store.selectedID) {
+            childPath = NavigationPath()
+            editingMeasurement = nil
+            showPhotos = false
+            photoPresentationBusy = false
+            albumPresentationBusy = false
+        }
         .onAppear { receiveWidgetRoute() }
         .onChange(of: widgetRouteInbox.pending) { receiveWidgetRoute() }
         .onChange(of: store.ready) { _, ready in
@@ -148,7 +173,7 @@ struct ContentView: View {
                         .accessibilityLabel("Фотографии малыша")
                         .accessibilityIdentifier("photo.gallery.open")
                         .accessibilityValue(photoAvatarValue)
-                        Button { showProfile = true } label: {
+                        Button(action: openChildProfile) {
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack(spacing: 6) {
                                     Text(store.baby?.name ?? "Малыш").font(.title3.bold())
@@ -341,6 +366,11 @@ struct ContentView: View {
         .diaryCard(color: AppDesign.Palette.feeding)
     }
 
+    private func openChildProfile() {
+        childPath = NavigationPath()
+        tab = 3
+    }
+
     private func receiveWidgetRoute() {
         guard let route = widgetRouteInbox.take() else { return }
         pendingWidgetRoute = route
@@ -355,13 +385,16 @@ struct ContentView: View {
         }
         // UIKit must finish dismissing the current sheet before its presenter
         // can show a widget action's anchored confirmation dialog.
-        if editing != nil || showSettings || showProfile || showPhotos || photoPresentationBusy {
+        if editing != nil || editingMeasurement != nil || showSettings || showPhotos || photoPresentationBusy
+            || albumPresentationBusy
+        {
             widgetRouteAwaitsSheetDismissal = true
             editing = nil
+            editingMeasurement = nil
             showSettings = false
-            showProfile = false
             showPhotos = false
             photoPresentationBusy = false
+            albumPresentationBusy = false
             return
         }
         let needsAction = route.destination == .breast || route.destination == .diaper ||

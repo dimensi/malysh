@@ -48,7 +48,7 @@ public enum MeasurementType: String, Codable, CaseIterable, Sendable {
 }
 
 public enum ChildProfileError: Error, LocalizedError {
-    case emptyName, futureBirthday, invalidMeasurement, futureMeasurement, conflict
+    case emptyName, futureBirthday, invalidMeasurement, futureMeasurement, missingConfirmedBirthday, conflict
     public var errorDescription: String? {
         switch self {
         case .conflict: "Запись изменилась или удалена на другом устройстве. Откройте её снова."
@@ -56,6 +56,7 @@ public enum ChildProfileError: Error, LocalizedError {
         case .futureBirthday: "Дата рождения не может быть в будущем."
         case .invalidMeasurement: "Введите положительное конечное значение."
         case .futureMeasurement: "Дата измерения не может быть в будущем."
+        case .missingConfirmedBirthday: "Укажите дату рождения, чтобы сохранить измерения при рождении."
         }
     }
 }

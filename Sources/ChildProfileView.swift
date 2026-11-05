@@ -2,137 +2,257 @@ import Charts
 import SwiftUI
 
 struct ChildProfileView: View {
+    private enum Destination: Hashable {
+        case edit, history(MeasurementType), photos
+    }
+
     @Bindable var store: AppStore
-    @Environment(\.dismiss) private var dismiss
-    @State private var editingProfile: Baby?
+    @State private var choosesMeasurement = false
+    @Binding var editingMeasurement: MeasurementPresentation?
+    @Binding var albumPresentationBusy: Bool
+    let onAlbumDismiss: () -> Void
 
     var body: some View {
-        NavigationStack {
-            Form {
+        ScrollView {
+            if let baby = store.baby {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.section) {
+                    header(baby)
+                    measurements(babyID: baby.id)
+                    album(babyID: baby.id)
+                }
+                .padding(AppDesign.Spacing.contentInset)
+            }
+        }
+        .background(AppDesign.Palette.groupedBackground)
+        .navigationTitle("Малыш")
+        .navigationDestination(for: Destination.self) { destination in
+            switch destination {
+            case .edit:
                 if let baby = store.baby {
-                    Section("Ребёнок") {
-                        LabeledContent("Имя", value: baby.name)
-                            .accessibilityIdentifier("child.profile.name")
-                        if baby.birthDateConfirmed {
-                            LabeledContent(
-                                "Дата рождения",
-                                value: baby.displayedBirthDate().formatted(date: .abbreviated, time: .omitted)
-                            )
-                            TimelineView(.periodic(from: .now, by: 60)) { context in
-                                if let age = baby.ageLabel(now: context.date) {
-                                    LabeledContent("Возраст", value: age)
-                                        .accessibilityIdentifier("child.profile.age")
-                                }
+                    ChildProfileEditor(store: store, baby: baby)
+                }
+            case let .history(type):
+                MeasurementHistoryView(store: store, type: type, editing: $editingMeasurement)
+            case .photos:
+                PhotoGalleryView(store: store, isPresenting: $albumPresentationBusy, onDismiss: onAlbumDismiss)
+            }
+        }
+    }
+
+    private func header(_ baby: Baby) -> some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
+            HStack(alignment: .top, spacing: AppDesign.Spacing.row) {
+                Image("BrandMark").resizable().scaledToFill()
+                    .frame(width: AppDesign.Metrics.brandMarkSize, height: AppDesign.Metrics.brandMarkSize)
+                    .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
+                    .accessibilityHidden(true)
+                Spacer()
+                NavigationLink(value: Destination.edit) {
+                    Image(systemName: "pencil")
+                        .font(.title3)
+                        .frame(width: AppDesign.Metrics.minimumTouch, height: AppDesign.Metrics.minimumTouch)
+                        .background(AppDesign.Palette.groupedBackground, in: Circle())
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Редактировать профиль")
+                .accessibilityIdentifier("child.profile.edit")
+            }
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+                Text(baby.name).font(.title2.bold())
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("child.profile.name")
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    if let age = baby.ageLabel(now: context.date) {
+                        Text(age).accessibilityIdentifier("child.profile.age")
+                    } else {
+                        Text("Дата рождения не указана")
+                    }
+                }
+                Label(
+                    store.isSharedDiary ? "Семейный дневник" : "Личный дневник",
+                    systemImage: store.isSharedDiary ? "person.2.fill" : "person.fill"
+                )
+                .font(AppDesign.Typography.detail)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .diaryCard(color: AppDesign.Palette.cardBackground)
+    }
+
+    private func measurements(babyID: UUID) -> some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
+            Text("Измерения").font(.title3.bold()).accessibilityAddTraits(.isHeader)
+            ForEach(MeasurementType.allCases, id: \.self) { type in
+                let latest = store.measurements.filter { $0.type == type }.sorted(by: ChildMeasurement.newestFirst)
+                    .first
+                NavigationLink(value: Destination.history(type)) {
+                    HStack(spacing: AppDesign.Spacing.row) {
+                        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+                            Text(type.label).font(AppDesign.Typography.itemTitle)
+                            Text(latest.map(measurementValue) ?? "Пока нет измерений")
+                                .font(latest == nil ? AppDesign.Typography.detail : .title3.weight(.semibold))
+                                .foregroundStyle(latest == nil ? AppDesign.Palette.secondaryText : AppDesign.Palette
+                                    .primaryText)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right").font(.footnote).foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
+                    }
+                    .frame(minHeight: AppDesign.Metrics.minimumTouch)
+                    .foregroundStyle(AppDesign.Palette.primaryText)
+                    .diaryCard(color: AppDesign.Palette.cardBackground, inset: AppDesign.Spacing.actionInset)
+                    .contentShape(RoundedRectangle(cornerRadius: AppDesign.Radius.card))
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("measurement.history.\(type)")
+                .accessibilityHint("Открывает график и историю")
+            }
+            Button {
+                choosesMeasurement = true
+            } label: {
+                Label("Добавить измерение", systemImage: "plus")
+                    .frame(maxWidth: .infinity, minHeight: AppDesign.Metrics.minimumTouch)
+            }
+            .buttonStyle(.borderedProminent)
+            .foregroundStyle(AppDesign.Palette.onAccent)
+            .accessibilityIdentifier("child.measurement.add")
+            .confirmationDialog("Что измерили?", isPresented: $choosesMeasurement, titleVisibility: .visible) {
+                ForEach(MeasurementType.allCases, id: \.self) { type in
+                    Button(type.label) {
+                        editingMeasurement = MeasurementPresentation(
+                            measurement: ChildMeasurement(babyID: babyID, type: type, value: 0),
+                            isNew: true
+                        )
+                    }
+                }
+                Button("Отмена", role: .cancel) {}
+            }
+        }
+    }
+
+    private func album(babyID: UUID) -> some View {
+        let gallery = store.photoGallery
+        _ = gallery.revision
+        let photos = try? gallery.photos(babyID: babyID)
+        let latest = photos?.min(by: BabyPhoto.newestFirst)
+        return VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
+            Text("Фотоальбом").font(.title3.bold()).accessibilityAddTraits(.isHeader)
+            NavigationLink(value: Destination.photos) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
+                    if let latest, let data = gallery.data(for: latest, thumbnail: true),
+                       let image = UIImage(data: data)
+                    {
+                        Color.clear
+                            .frame(height: 120)
+                            .overlay {
+                                Image(uiImage: image).resizable().scaledToFill()
                             }
-                        } else {
-                            Text("Дата рождения не указана")
-                            Text("Укажите дату рождения, чтобы видеть возраст.").foregroundStyle(.secondary)
-                        }
-                        Button("Изменить профиль") { editingProfile = baby }
-                            .accessibilityIdentifier("child.profile.edit")
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: AppDesign.Radius.card))
+                            .accessibilityHidden(true)
                     }
-                    Section {
-                        NavigationLink {
-                            PhotoGalleryView(store: store)
-                        } label: {
+                    HStack(spacing: AppDesign.Spacing.row) {
+                        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
                             Label("Фотографии малыша", systemImage: "photo.on.rectangle")
+                                .font(AppDesign.Typography.itemTitle)
+                            if let photos {
+                                Text(photos.isEmpty ? "Пока нет фотографий" : "Количество фото: \(photos.count)")
+                                    .font(AppDesign.Typography.detail).foregroundStyle(.secondary)
+                                    .accessibilityIdentifier("child.profile.photos.count")
+                            } else {
+                                Text("Фото пока недоступны").font(AppDesign.Typography.detail)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                        .accessibilityIdentifier("child.profile.photos")
-                    }
-                    Section {
-                        ForEach(MeasurementType.allCases, id: \.self) { type in
-                            NavigationLink {
-                                MeasurementHistoryView(store: store, type: type)
-                            } label: {
-                                VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
-                                    Text(type.label)
-                                    if let latest = store.measurements.filter({ $0.type == type })
-                                        .sorted(by: ChildMeasurement.newestFirst).first
-                                    {
-                                        Text(
-                                            "\(measurementValue(latest)) · \(latest.measuredAt.formatted(date: .abbreviated, time: .omitted))"
-                                        )
-                                        .font(AppDesign.Typography.detail).foregroundStyle(.secondary)
-                                    } else {
-                                        Text("Добавить первое измерение").font(AppDesign.Typography.detail)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }.padding(.vertical, AppDesign.Spacing.related)
-                            }.accessibilityIdentifier("measurement.history.\(type)")
-                        }
-                    } header: {
-                        Text("Измерения")
-                    } footer: {
-                        Text("Ваши записи и их изменение со временем. Без оценок и сравнения с нормами.")
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right").font(.footnote).foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
                     }
                 }
+                .frame(minHeight: AppDesign.Metrics.minimumTouch)
+                .foregroundStyle(AppDesign.Palette.primaryText)
+                .diaryCard(color: AppDesign.Palette.cardBackground, inset: AppDesign.Spacing.actionInset)
+                .contentShape(RoundedRectangle(cornerRadius: AppDesign.Radius.card))
             }
-            .navigationTitle("Профиль ребёнка")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Готово") { dismiss() }.accessibilityIdentifier("child.profile.close")
-                }
-            }
-            .sheet(item: $editingProfile) { baby in
-                ChildProfileEditor(store: store, baby: baby)
-            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("child.profile.photos")
         }
     }
 }
 
 private struct ChildProfileEditor: View {
     let store: AppStore
-    let original: Baby
     @Environment(\.dismiss) private var dismiss
+    @State private var original: Baby
     @State private var name: String
     @State private var birthDate: Date
-    @State private var confirmed: Bool
+    @State private var hasBirthDate: Bool
+    @State private var birthInputs: [MeasurementType: String] = [:]
     @State private var errorMessage: String?
 
     init(store: AppStore, baby: Baby) {
         self.store = store
-        original = baby
+        _original = State(initialValue: baby)
         _name = State(initialValue: baby.name)
-        _birthDate = State(initialValue: baby.displayedBirthDate())
-        _confirmed = State(initialValue: baby.birthDateConfirmed)
+        _birthDate = State(initialValue: baby.birthDateConfirmed ? baby.displayedBirthDate() : .now)
+        _hasBirthDate = State(initialValue: baby.birthDateConfirmed)
+    }
+
+    private var canSave: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Имя") {
-                    TextField("Имя ребёнка", text: $name).textContentType(.givenName)
-                        .accessibilityIdentifier("child.editor.name")
-                }
-                Section {
+        Form {
+            Section("Имя") {
+                TextField("Имя ребёнка", text: $name).textContentType(.givenName)
+                    .accessibilityIdentifier("child.editor.name")
+            }
+            Section("Дата рождения") {
+                if hasBirthDate {
                     DatePicker("Дата рождения", selection: $birthDate, in: ...Date(), displayedComponents: .date)
                         .accessibilityIdentifier("child.editor.birthDate")
-                    Toggle("Дата рождения указана верно", isOn: $confirmed)
-                        .accessibilityIdentifier("child.editor.confirmed")
-                } footer: {
-                    Text("Возраст появится после подтверждения даты рождения.")
+                    Button("Убрать дату рождения") { hasBirthDate = false }
+                        .frame(minHeight: AppDesign.Metrics.minimumTouch)
+                } else {
+                    Button("Указать дату рождения") { hasBirthDate = true }
+                        .frame(minHeight: AppDesign.Metrics.minimumTouch)
+                        .accessibilityIdentifier("child.editor.setBirthDate")
                 }
             }
-            .navigationTitle("Изменить профиль").navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Отмена") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
-                        do {
-                            try store.updateChildProfile(
-                                babyID: original.id,
-                                name: name,
-                                birthDate: birthDate,
-                                birthDateConfirmed: confirmed,
-                                replacing: original
-                            )
-                            dismiss()
-                        } catch { errorMessage = error.localizedDescription }
+            if !original.birthMeasurementsCompleted {
+                Section {
+                    ForEach(MeasurementType.allCases, id: \.self) { type in
+                        let label = "\(type.label), \(type.unit)"
+                        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+                            Text(label).font(AppDesign.Typography.detail)
+                                .accessibilityHidden(true)
+                            TextField("Необязательно", text: Binding(
+                                get: { birthInputs[type, default: ""] },
+                                set: { birthInputs[type] = $0 }
+                            ))
+                            .keyboardType(.decimalPad)
+                            .accessibilityLabel(label)
+                            .accessibilityIdentifier("child.editor.birth.\(type)")
+                        }
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .accessibilityIdentifier("child.editor.save")
+                    Button("Пропустить измерения при рождении") { save(skipBirthMeasurements: true) }
+                        .frame(minHeight: AppDesign.Metrics.minimumTouch)
+                        .disabled(!canSave || birthInputs.values.contains { !$0.isEmpty })
+                        .accessibilityIdentifier("child.editor.skipBirthMeasurements")
+                } header: {
+                    Text("При рождении")
+                } footer: {
+                    Text("Эти значения автоматически добавятся в историю измерений.")
                 }
+            }
+        }
+        .navigationTitle("Изменить профиль").navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Сохранить") { save() }
+                    .disabled(!canSave)
+                    .accessibilityIdentifier("child.editor.save")
             }
         }
         .alert("Не удалось изменить профиль", isPresented: Binding(
@@ -148,13 +268,40 @@ private struct ChildProfileEditor: View {
             Text(errorMessage ?? "")
         }
     }
+
+    private func save(skipBirthMeasurements: Bool = false) {
+        var values: [MeasurementType: Double] = [:]
+        for (type, input) in birthInputs {
+            let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { continue }
+            guard let value = Double(text.replacingOccurrences(of: ",", with: ".")), value.isFinite, value > 0 else {
+                errorMessage = "Проверьте введённые значения. Измерение должно быть больше нуля."
+                return
+            }
+            values[type] = value
+        }
+        do {
+            try store.updateChildProfile(
+                babyID: original.id,
+                name: name,
+                birthDate: birthDate,
+                birthDateConfirmed: hasBirthDate,
+                replacing: original,
+                birthMeasurements: values,
+                skipBirthMeasurements: skipBirthMeasurements
+            )
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }
 
 private func measurementValue(_ measurement: ChildMeasurement) -> String {
     "\(measurement.value.formatted(.number.precision(.fractionLength(0 ... 2)))) \(measurement.type.unit)"
 }
 
-private struct MeasurementPresentation: Identifiable {
+struct MeasurementPresentation: Identifiable {
     let measurement: ChildMeasurement
     let isNew: Bool
     var id: UUID {
@@ -166,7 +313,7 @@ private struct MeasurementHistoryView: View {
     @Bindable var store: AppStore
     let type: MeasurementType
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var editing: MeasurementPresentation?
+    @Binding var editing: MeasurementPresentation?
     private var records: [ChildMeasurement] {
         store.measurements.filter { $0.type == type }.sorted(by: ChildMeasurement.newestFirst)
     }
@@ -227,13 +374,10 @@ private struct MeasurementHistoryView: View {
                     .accessibilityLabel("Добавить измерение").accessibilityIdentifier("measurement.add")
             }
         }
-        .sheet(item: $editing) { presentation in
-            MeasurementEditor(store: store, measurement: presentation.measurement, isNew: presentation.isNew)
-        }
     }
 }
 
-private struct MeasurementEditor: View {
+struct MeasurementEditor: View {
     let store: AppStore
     let measurement: ChildMeasurement
     let isNew: Bool

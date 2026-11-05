@@ -107,6 +107,75 @@ final class AppStoreTests: XCTestCase {
         }
     }
 
+    func testBirthMeasurementsSaveAnyKnownSubsetAndRejectStaleReplay() async throws {
+        let inputs: [[MeasurementType: Double]] = [
+            [.weight: 3500],
+            [.weight: 3500, .height: 52.5],
+            [.weight: 3500, .height: 52.5, .headCircumference: 35],
+        ]
+        for values in inputs {
+            let persistence = Persistence(inMemory: true)
+            let store = AppStore(persistence: persistence)
+            await store.load()
+            let original = try XCTUnwrap(store.baby)
+            let birthDate = Date(timeIntervalSinceNow: -86400)
+            try store.updateChildProfile(
+                babyID: original.id, name: original.name, birthDate: birthDate,
+                birthDateConfirmed: true, replacing: original, birthMeasurements: values
+            )
+            let saved = try XCTUnwrap(store.baby)
+            XCTAssertTrue(saved.birthMeasurementsCompleted)
+            let measurements = store.measurements
+            XCTAssertEqual(measurements.count, values.count)
+            for measurement in measurements {
+                XCTAssertEqual(measurement.value, values[measurement.type])
+                XCTAssertEqual(measurement.measuredAt, Calendar.current.startOfDay(for: birthDate))
+            }
+
+            XCTAssertThrowsError(try store.updateChildProfile(
+                babyID: saved.id, name: saved.name, birthDate: birthDate,
+                birthDateConfirmed: true, replacing: saved, birthMeasurements: values
+            )) { XCTAssertEqual($0 as? ChildProfileError, .conflict) }
+            try store.updateChildProfile(
+                babyID: saved.id, name: "Новое имя", birthDate: birthDate.addingTimeInterval(-86400),
+                birthDateConfirmed: true, replacing: saved
+            )
+            XCTAssertTrue(try XCTUnwrap(store.baby).birthMeasurementsCompleted)
+            XCTAssertEqual(store.measurements, measurements)
+        }
+    }
+
+    func testBirthMeasurementsNeedConfirmationAndCanBeSkippedWithoutBirthDate() async throws {
+        let persistence = Persistence(inMemory: true)
+        let store = AppStore(persistence: persistence)
+        await store.load()
+        let original = try XCTUnwrap(store.baby)
+        XCTAssertThrowsError(try store.updateChildProfile(
+            babyID: original.id, name: "Новое имя", birthDate: original.birthDate,
+            birthDateConfirmed: false, replacing: original, birthMeasurements: [.weight: 3500]
+        )) { XCTAssertEqual($0 as? ChildProfileError, .missingConfirmedBirthday) }
+        XCTAssertEqual(try persistence.babies(), [original])
+
+        try store.updateChildProfile(
+            babyID: original.id, name: "Новое имя", birthDate: original.birthDate,
+            birthDateConfirmed: false, replacing: original
+        )
+        let saved = try XCTUnwrap(store.baby)
+        XCTAssertEqual(saved.name, "Новое имя")
+        XCTAssertFalse(saved.birthMeasurementsCompleted)
+        XCTAssertTrue(store.measurements.isEmpty)
+
+        try store.updateChildProfile(
+            babyID: saved.id, name: saved.name, birthDate: saved.birthDate,
+            birthDateConfirmed: false, replacing: saved, skipBirthMeasurements: true
+        )
+        let relaunched = AppStore(persistence: persistence)
+        await relaunched.load()
+        XCTAssertTrue(try XCTUnwrap(relaunched.baby).birthMeasurementsCompleted)
+        XCTAssertFalse(try XCTUnwrap(relaunched.baby).birthDateConfirmed)
+        XCTAssertTrue(relaunched.measurements.isEmpty)
+    }
+
     func testDuplicateTimerIsRejectedAndFinishedTimersPersist() async throws {
         let persistence = Persistence(inMemory: true)
         let store = AppStore(persistence: persistence)

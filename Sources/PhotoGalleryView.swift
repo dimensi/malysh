@@ -146,7 +146,14 @@ struct PhotoAddButton: View {
                 }
             }
         }
-        .onDisappear { cancelImport() }
+        .onDisappear {
+            let wasImportingWithoutDateSheet = importSession != nil && dateContinuation == nil
+            cancelImport()
+            if wasImportingWithoutDateSheet {
+                isPresenting = false
+                onDismiss()
+            }
+        }
         .sheet(isPresented: $choosingDate, onDismiss: {
             finishDateChoice()
             if importSession == nil {
@@ -298,6 +305,8 @@ private struct PhotoImportDateView: View {
 struct PhotoGalleryView: View {
     let store: AppStore
     var isPresentedModally = false
+    @Binding var isPresenting: Bool
+    var onDismiss: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var photos: [BabyPhoto] = []
@@ -308,6 +317,7 @@ struct PhotoGalleryView: View {
     @State private var recoveryItem: PhotosPickerItem?
     @State private var recoveryPicker = false
     @State private var sharedFile: URL?
+    @State private var sharing = false
 
     private var dates: [Date] {
         Array(Set(photos.map { Calendar.current.startOfDay(for: $0.capturedAt) })).sorted(by: >)
@@ -343,7 +353,10 @@ struct PhotoGalleryView: View {
                                 ForEach(photos
                                     .filter { Calendar.current.isDate($0.capturedAt, inSameDayAs: date) })
                                 { photo in
-                                    Button { selected = photo } label: {
+                                    Button {
+                                        isPresenting = true
+                                        selected = photo
+                                    } label: {
                                         PhotoImage(gallery: store.photoGallery, photo: photo, thumbnail: true)
                                             .frame(height: 120).frame(maxWidth: .infinity).clipped()
                                             .overlay(alignment: .bottomTrailing) {
@@ -397,6 +410,7 @@ struct PhotoGalleryView: View {
                                     )
                                     .font(.subheadline).foregroundStyle(.secondary)
                                     Button("Проверить в Фото") {
+                                        isPresenting = true
                                         recoveryPhoto = photo; recoveryPicker = true
                                     }.accessibilityIdentifier("photo.pending.reconcile")
                                 }
@@ -417,7 +431,9 @@ struct PhotoGalleryView: View {
                     Button("Готово") { dismiss() }.accessibilityIdentifier("photo.gallery.close")
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) { PhotoAddButton(store: store, isPresenting: $adding) }
+            ToolbarItem(placement: .topBarTrailing) {
+                PhotoAddButton(store: store, isPresenting: $adding, onDismiss: presentationDidDismiss)
+            }
         }
         .photosPicker(isPresented: $recoveryPicker, selection: $recoveryItem, matching: .images,
                       preferredItemEncoding: .current)
@@ -435,19 +451,34 @@ struct PhotoGalleryView: View {
         .onAppear { reload() }
         .onChange(of: store.photoGallery.revision) { reload() }
         .onChange(of: store.selectedID) { selected = nil; adding = false; dismiss() }
-        .sheet(
-            isPresented: Binding(get: { sharedFile != nil }, set: {
-                if !$0 {
-                    cleanupShare()
-                }
-            }),
-            onDismiss: cleanupShare
-        ) {
+        .onChange(of: adding) { _, presenting in
+            if presenting {
+                isPresenting = true
+            }
+        }
+        .onChange(of: recoveryPicker) { _, presenting in
+            if !presenting {
+                presentationDidDismiss()
+            }
+        }
+        .onChange(of: isPresenting) { _, presenting in
+            if !presenting {
+                recoveryPhoto = nil
+                recoveryPicker = false
+                adding = false
+                sharing = false
+                selected = nil
+            }
+        }
+        .sheet(isPresented: $sharing, onDismiss: {
+            cleanupShare()
+            presentationDidDismiss()
+        }) {
             if let sharedFile {
                 PhotoShareSheet(url: sharedFile)
             }
         }
-        .fullScreenCover(item: $selected) { photo in
+        .fullScreenCover(item: $selected, onDismiss: presentationDidDismiss) { photo in
             PhotoViewer(store: store, initialID: photo.id)
         }
         .alert("Не удалось выполнить действие", isPresented: Binding(
@@ -464,6 +495,12 @@ struct PhotoGalleryView: View {
 
     private func perform(_ action: () throws -> Void) {
         do { try action() } catch { store.photoGallery.errorMessage = error.localizedDescription }
+    }
+
+    private func presentationDidDismiss() {
+        guard selected == nil, !sharing, !recoveryPicker, !adding else { return }
+        isPresenting = false
+        onDismiss()
     }
 
     private func cleanupShare() {
@@ -489,6 +526,8 @@ struct PhotoGalleryView: View {
             let url = directory.appendingPathComponent("\(photo.id).\(suffix)")
             try data.write(to: url, options: .atomic)
             sharedFile = url
+            isPresenting = true
+            sharing = true
         } catch { store.photoGallery.errorMessage = "Не удалось подготовить фотографию. Попробуйте снова." }
     }
 

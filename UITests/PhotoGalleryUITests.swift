@@ -65,9 +65,18 @@ final class PhotoGalleryUITests: XCTestCase {
         XCTAssertEqual(avatar.value as? String, "Фотографий пока нет")
     }
 
-    func testFullscreenPagingAndSystemShare() {
+    func testFullscreenPagingSystemShareAndWidgetRoute() throws {
         let app = launch(["--photo-fixtures"])
-        app.buttons["photo.gallery.open"].tap()
+        app.tabBars.buttons["Малыш"].tap()
+        let album = app.buttons["child.profile.photos"]
+        for _ in 0 ..< 6 where !album.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(album.isHittable)
+        XCTAssertTrue(album.label.contains("Количество фото: 2"))
+        album.tap()
+        XCTAssertTrue(app.navigationBars["Фотографии малыша"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["photo.gallery.close"].exists)
         let newID = "00000000-0000-0000-0000-000000000002"
         let oldID = "00000000-0000-0000-0000-000000000001"
         app.buttons["photo.grid.\(newID)"].tap()
@@ -81,8 +90,10 @@ final class PhotoGalleryUITests: XCTestCase {
             || app.buttons["Copy"].exists || app.buttons["Скопировать"].exists)
         app.swipeDown()
         XCTAssertTrue(app.buttons["photo.actions"].waitForExistence(timeout: 5))
-        app.buttons["photo.viewer.close"].tap()
-        XCTAssertTrue(firstPhoto(app).waitForExistence(timeout: 5))
+        try app.open(XCTUnwrap(URL(string: "malysh://widget/diaper")))
+        XCTAssertTrue(app.navigationBars["Сегодня"].waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["photo.viewer.close"].exists)
+        XCTAssertTrue(app.sheets["Подгузник"].buttons["Мокрый"].waitForExistence(timeout: 5))
     }
 
     func testUndatedImportRequiresChoiceAndSkipDoesNotCreatePhoto() throws {
@@ -118,22 +129,41 @@ final class PhotoGalleryUITests: XCTestCase {
     }
 
     func testWidgetRouteCancelsUndatedBatchWithoutReopeningNextPrompt() throws {
-        let app = launch(["--photo-import-date-fixture", "--photo-import-date-batch-fixture"])
-        app.buttons["photo.add"].tap()
-        let source = app.buttons.matching(identifier: "photo.source.library").firstMatch
-        XCTAssertTrue(source.waitForExistence(timeout: 5))
-        source.tap()
-        let dateSheet = app.navigationBars["Указать дату съёмки"]
-        XCTAssertTrue(dateSheet.waitForExistence(timeout: 5))
-        app.launchArguments = ["--ui-testing", "--photo-import-date-fixture", "--photo-import-date-batch-fixture"]
-        try app.open(XCTUnwrap(URL(string: "malysh://widget/today")))
-        let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: dateSheet)
-        XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 8), .completed)
-        let avatar = app.buttons["photo.gallery.open"]
-        XCTAssertTrue(avatar.waitForExistence(timeout: 5))
-        XCTAssertTrue(avatar.isHittable)
-        avatar.tap()
-        XCTAssertTrue(app.descendants(matching: .any)["photo.empty"].waitForExistence(timeout: 5))
-        XCTAssertFalse(dateSheet.exists)
+        let fixtures = ["--photo-import-date-fixture", "--photo-import-date-batch-fixture"]
+        let url = try XCTUnwrap(URL(string: "malysh://widget/today"))
+        for (entry, fromAlbum) in [("Сегодня", false), ("Малыш", true)] {
+            try XCTContext.runActivity(named: "Импорт из «\(entry)»") { _ in
+                let app = launch(fixtures)
+                if fromAlbum {
+                    app.tabBars.buttons["Малыш"].tap()
+                    let album = app.buttons["child.profile.photos"]
+                    for _ in 0 ..< 6 where !album.isHittable {
+                        app.swipeUp()
+                    }
+                    XCTAssertTrue(album.isHittable)
+                    album.tap()
+                    XCTAssertTrue(app.navigationBars["Фотографии малыша"].waitForExistence(timeout: 5))
+                }
+                app.buttons["photo.add"].tap()
+                let source = app.buttons.matching(identifier: "photo.source.library").firstMatch
+                XCTAssertTrue(source.waitForExistence(timeout: 5))
+                source.tap()
+                let dateSheet = app.navigationBars["Указать дату съёмки"]
+                XCTAssertTrue(dateSheet.waitForExistence(timeout: 5))
+                app.launchArguments = ["--ui-testing"] + fixtures
+                try app.open(url)
+                let dismissed = XCTNSPredicateExpectation(
+                    predicate: NSPredicate(format: "exists == false"),
+                    object: dateSheet
+                )
+                XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 8), .completed)
+                let avatar = app.buttons["photo.gallery.open"]
+                XCTAssertTrue(avatar.waitForExistence(timeout: 5))
+                XCTAssertTrue(avatar.isHittable)
+                avatar.tap()
+                XCTAssertTrue(app.descendants(matching: .any)["photo.empty"].waitForExistence(timeout: 5))
+                XCTAssertFalse(dateSheet.exists)
+            }
+        }
     }
 }

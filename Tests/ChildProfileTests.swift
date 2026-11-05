@@ -11,6 +11,7 @@ final class ChildProfileTests: XCTestCase {
         XCTAssertEqual(decoded.name, original.name)
         XCTAssertEqual(decoded.birthDate, original.birthDate)
         XCTAssertFalse(decoded.birthDateConfirmed)
+        XCTAssertFalse(decoded.birthMeasurementsCompleted)
         XCTAssertNil(decoded.ageLabel())
         XCTAssertTrue(decoded.parentProfiles.isEmpty)
     }

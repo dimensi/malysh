@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23501" systemVersion="24A335" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="5">
+    <entity name="BabyRecord" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="id" optional="YES" indexed="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="birthDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="payload" optional="YES" attributeType="Binary"/>
+        <attribute name="birthMeasurementsCompleted" optional="YES" attributeType="Boolean" usesScalarValueType="NO"/>
+        <relationship name="photos" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PhotoRecord" inverseName="baby" inverseEntity="PhotoRecord"/>
+        <relationship name="measurements" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="MeasurementRecord" inverseName="baby" inverseEntity="MeasurementRecord"/>
+        <relationship name="events" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="EventRecord" inverseName="baby" inverseEntity="EventRecord"/>
+    </entity>
+    <entity name="EventRecord" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="schemaVersion" optional="YES" attributeType="Integer 16" defaultValueString="1" usesScalarValueType="YES"/>
+        <attribute name="id" optional="YES" indexed="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="babyID" optional="YES" indexed="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="start" optional="YES" indexed="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="modifiedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="payload" optional="YES" attributeType="Binary"/>
+        <relationship name="baby" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BabyRecord" inverseName="events" inverseEntity="BabyRecord"/>
+    </entity>
+    <entity name="MeasurementRecord" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="id" optional="YES" indexed="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="babyID" optional="YES" indexed="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="measuredAt" optional="YES" indexed="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="modifiedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="payload" optional="YES" attributeType="Binary"/>
+        <relationship name="baby" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BabyRecord" inverseName="measurements" inverseEntity="BabyRecord"/>
+    </entity>
+    <entity name="PhotoRecord" representedClassName="NSManagedObject" syncable="YES">
+        <attribute name="id" optional="YES" indexed="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="babyID" optional="YES" indexed="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="capturedAt" optional="YES" indexed="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="payload" optional="YES" attributeType="Binary"/>
+        <attribute name="imageData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <attribute name="thumbnailData" optional="YES" attributeType="Binary" allowsExternalBinaryDataStorage="YES"/>
+        <relationship name="baby" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BabyRecord" inverseName="photos" inverseEntity="BabyRecord"/>
+    </entity>
+</model>

@@ -161,7 +161,7 @@ final class MalyshUITests: XCTestCase {
             .allElementsBoundByIndex.map(\.label)
         XCTAssertTrue(familyEvents.contains { $0.contains("Семейная запись") })
         tap(app, id: "settings.open")
-        XCTAssertEqual(app.textFields["baby-name"].value as? String, "Семейный малыш")
+        XCTAssertTrue(app.buttons["settings.child.open"].label.contains("Семейный малыш"))
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "diary-picker").firstMatch.exists)
         let cleanup = app.buttons["family.cleanup"]
         XCTAssertTrue(cleanup.waitForExistence(timeout: 5))
@@ -187,7 +187,7 @@ final class MalyshUITests: XCTestCase {
         confirm.tap()
         let removed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: cleanup)
         XCTAssertEqual(XCTWaiter.wait(for: [removed], timeout: 5), .completed)
-        XCTAssertEqual(app.textFields["baby-name"].value as? String, "Семейный малыш")
+        XCTAssertTrue(app.buttons["settings.child.open"].label.contains("Семейный малыш"))
         app.terminate()
         app.launchArguments = ["--ui-testing", "--family-fixture", "--light-mode"]
         app.launch()
@@ -196,7 +196,7 @@ final class MalyshUITests: XCTestCase {
             .allElementsBoundByIndex.map(\.label)
         XCTAssertEqual(restoredEvents, familyEvents)
         tap(app, id: "settings.open")
-        XCTAssertEqual(app.textFields["baby-name"].value as? String, "Семейный малыш")
+        XCTAssertTrue(app.buttons["settings.child.open"].label.contains("Семейный малыш"))
         XCTAssertFalse(app.buttons["family.cleanup"].exists)
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "diary-picker").firstMatch.exists)
         capture(app, name: "Семья после удаления лишнего профиля")

@@ -121,6 +121,8 @@ public struct Baby: Identifiable, Codable, Sendable, Equatable {
     public var birthDateConfirmed: Bool
     public var birthDay: CivilDay?
     public var pinnedPhotoID: UUID?
+    /// Stored separately on BabyRecord so edits to the profile payload cannot reset it.
+    public internal(set) var birthMeasurementsCompleted = false
 
     public init(
         id: UUID = UUID(),

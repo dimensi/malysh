@@ -4,10 +4,8 @@ import SwiftUI
 @MainActor
 struct SettingsView: View {
     @Bindable var store: AppStore
+    let openChildProfile: () -> Void
     @AppStorage("cloudEnabled") private var cloudEnabled = false
-    @State private var babyName = ""
-    @State private var saveError: String?
-    @State private var saved = false
     @State private var confirmsCleanup = false
     @State private var redundantEventCount = 0
     @State private var cleanupError: String?
@@ -29,18 +27,18 @@ struct SettingsView: View {
                         }
                         .accessibilityIdentifier("diary-picker")
                     }
-                    TextField("Имя малыша", text: $babyName)
-                        .textContentType(.givenName)
-                        .accessibilityIdentifier("baby-name")
-                    Button("Сохранить имя") { saveName() }
-                        .disabled(babyName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.baby == nil)
-                    if let saveError {
-                        Text(saveError).foregroundStyle(AppDesign.Palette.error)
+                    Button(action: openChildProfile) {
+                        HStack {
+                            Label(store.baby?.name ?? "Малыш", systemImage: "face.smiling")
+                                .accessibilityIdentifier("settings.child.name")
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.footnote).accessibilityHidden(true)
+                        }
+                        .frame(minHeight: AppDesign.Metrics.minimumTouch)
+                        .contentShape(Rectangle())
                     }
-                    if saved {
-                        Label("Имя сохранено", systemImage: "checkmark.circle")
-                            .foregroundStyle(AppDesign.Palette.success)
-                    }
+                    .accessibilityIdentifier("settings.child.open")
+                    .accessibilityHint("Открывает вкладку «Малыш»")
                 }
                 familySection
                 Section {
@@ -101,13 +99,6 @@ struct SettingsView: View {
                     "Записей для удаления: \(redundantEventCount). Семейный дневник останется. Восстановить удалённое не получится."
                 )
             }
-            .onAppear { babyName = store.baby?.name ?? "" }
-            .onChange(of: store.selectedID) { _, _ in
-                babyName = store.baby?.name ?? ""
-                saved = false
-                saveError = nil
-            }
-            .onChange(of: babyName) { _, _ in saved = false }
             .sheet(isPresented: Binding(
                 get: { store.pendingShare != nil },
                 set: {
@@ -232,18 +223,6 @@ struct SettingsView: View {
         .frame(minHeight: 44, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
-    }
-
-    private func saveName() {
-        guard var baby = store.baby else { return }
-        baby.name = babyName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !baby.name.isEmpty else { return }
-        do {
-            try store.persistence.saveBaby(baby)
-            try store.reload()
-            saveError = nil
-            saved = true
-        } catch { saveError = "Не удалось сохранить имя: \(error.localizedDescription)" }
     }
 }
 

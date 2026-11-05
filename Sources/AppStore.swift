@@ -327,25 +327,45 @@ final class AppStore {
         name: String,
         birthDate: Date,
         birthDateConfirmed: Bool,
-        replacing original: Baby
+        replacing original: Baby,
+        birthMeasurements: [MeasurementType: Double] = [:],
+        skipBirthMeasurements: Bool = false
     ) throws {
         guard var latest = try persistence.babies().first(where: { $0.id == babyID })
         else { throw Persistence.Failure.missingBaby }
-        guard latest.name == original.name, latest.birthDate == original.birthDate,
+        guard latest.id == original.id, latest.name == original.name, latest.birthDate == original.birthDate,
               latest.birthDateConfirmed == original.birthDateConfirmed, latest.birthDay == original.birthDay
         else { throw ChildProfileError.conflict }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw ChildProfileError.emptyName }
-        guard !birthDateConfirmed || birthDate <= Date() else { throw ChildProfileError.futureBirthday }
+        let now = Date()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let birthDay = CivilDay(date: birthDate, timeZone: calendar.timeZone)
+        let birthday = birthDay.date(calendar: calendar).map { calendar.startOfDay(for: $0) }
+        guard !birthDateConfirmed || (birthday ?? birthDate) <= now else { throw ChildProfileError.futureBirthday }
         latest.name = trimmed
         // Never rewrite an automatically generated legacy date until the user confirms one.
         if birthDateConfirmed {
             latest.birthDate = birthDate
-            latest.birthDay = CivilDay(date: birthDate)
+            latest.birthDay = birthDay
         }
         latest.birthDateConfirmed = birthDateConfirmed
-        try persistence.saveBaby(latest)
-        try reload()
+        var initialMeasurements: [ChildMeasurement]?
+        if !birthMeasurements.isEmpty {
+            guard birthDateConfirmed, let birthday else { throw ChildProfileError.missingConfirmedBirthday }
+            initialMeasurements = MeasurementType.allCases.compactMap { type in
+                birthMeasurements[type].map {
+                    ChildMeasurement(babyID: babyID, type: type, measuredAt: birthday, value: $0,
+                                     createdAt: now, modifiedAt: now)
+                }
+            }
+        } else if skipBirthMeasurements {
+            initialMeasurements = []
+        }
+        try persistence.saveChildProfile(latest, initialMeasurements: initialMeasurements)
+        // The save is already durable. A refresh failure must not ask the editor to retry the write.
+        perform { try reload() }
     }
 
     func saveMeasurement(_ measurement: ChildMeasurement, replacing original: ChildMeasurement? = nil) throws {
@@ -479,7 +499,8 @@ final class AppStore {
     static func isPreSharedDefault(_ baby: Baby, isShared: Bool, hasSharedDiary: Bool,
                                    family: FamilySnapshot?) -> Bool
     {
-        guard hasSharedDiary, !isShared, baby.name == "Малыш", !baby.birthDateConfirmed else { return false }
+        guard hasSharedDiary, !isShared, baby.name == "Малыш", !baby.birthDateConfirmed,
+              !baby.birthMeasurementsCompleted else { return false }
         let hasAcceptedOtherParent = family?.members.contains {
             !$0.isOwner && !$0.isCurrentUser && $0.status == "В семье"
         } ?? false
