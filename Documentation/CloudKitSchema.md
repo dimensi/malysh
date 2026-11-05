@@ -1,0 +1,83 @@
+# Подготовка схемы CloudKit
+
+Команды запускаются из корня репозитория на Mac с Xcode и Python 3. Контейнер фиксирован: `iCloud.dev.dimensi.malysh`, Team `YBBAN7R28K`. Они управляют только схемой, не записями и не локальными базами приложения.
+
+```sh
+bash Scripts/cloudkit-schema.sh
+```
+
+По умолчанию `prepare` экспортирует живые Development и Production, разбирает CKDB, выполняет `cktool validate-schema` для Development и проверяет совместимость с Production. Только после успеха настоящий экспорт атомарно сохраняется в `CloudKit/development.ckdb`. Повторный запуск не перезаписывает файл при изменении только порядка или комментариев. Первый экспорт нужно добавить в Git вручную; выдуманного начального снимка в репозитории нет.
+
+```sh
+bash Scripts/cloudkit-schema.sh check
+bash Scripts/cloudkit-schema.sh prepare --dry-run
+```
+
+Обе команды проверяют **живую Development** относительно живой Production, не импортируют схему и не изменяют версионируемые файлы. Временные экспорты удаляются. Отчёт и семантический diff сохраняются локально в исключённый из Git `Artifacts/CloudKit/report.json`. При неудаче до завершения проверки отчёт имеет статус `incomplete`; это не успешная проверка.
+
+## Запуск через GitHub Actions
+
+Workflow [CloudKit schema tooling](../.github/workflows/cloudkit-schema.yml) автоматически запускает только тесты на pull request и push. Для живого контейнера используйте GitHub Actions → CloudKit schema tooling → Run workflow: операция `prepare` выбрана по умолчанию. Нужен repository secret `CLOUDKIT_MANAGEMENT_TOKEN`; PR-тесты его не получают. Все ручные операции выполняются последовательно и после успешных тестов.
+
+Зарегистрированный workflow можно запустить через CLI с выбранной веткой, содержащей workflow и нужную схему. Для текущей ветки:
+
+```sh
+gh workflow run cloudkit-schema.yml --ref dimensi/auto-cloudkit-deploy -f operation=prepare
+```
+
+После merge используйте `--ref main`. 5 ноября 2026 GitHub принял ручной запуск `check` из ветки `dimensi/auto-cloudkit-deploy` после регистрации workflow автоматическим PR-запуском: [run 42074947610](https://github.com/dimensi/malysh/actions/runs/42074947610). Сам факт создания run не доказывает успешную проверку контейнера: смотрите результат job. Для запуска настроен repository secret `CLOUDKIT_MANAGEMENT_TOKEN`.
+
+В завершённом run скачайте artifact `cloudkit-schema-<run_id>`; он хранится 7 дней. Отчёт находится в `report.json`. Только **успешный `prepare`** добавляет проверенный снимок `snapshot/development.ckdb`: проверьте успешный результат job, статус отчёта и diff, затем скопируйте этот снимок в `CloudKit/development.ckdb` рабочей копии и добавьте его в Git обычным commit. У `check`, остальных операций и неуспешного `prepare` artifact содержит только отчёт, если он был создан; эти запуски не дают снимок для commit. Workflow сам исходники не публикует. После ручного Deploy Schema Changes в Console выполните:
+
+```sh
+gh workflow run cloudkit-schema.yml --ref dimensi/auto-cloudkit-deploy -f operation=verify-production
+```
+
+Доступны также `check` и `import-development`. Последний требует отдельного boolean-подтверждения в Run workflow или `-f confirm_development_import=true` в CLI и импортирует только версионируемый снимок выбранного ref в Development. Production во всех операциях остаётся read-only; схема не сбрасывается, записи не изменяются. Отчёт может сохраняться и при ошибке: успех определяйте по результату job и статусу отчёта.
+
+## Доступ
+
+Создайте Management Token для нужной команды в CloudKit Console и сохраните через скрытый интерактивный ввод:
+
+```sh
+xcrun cktool save-token --type management --method keychain
+```
+
+Скрипт использует штатную авторизацию cktool: `CLOUDKIT_MANAGEMENT_TOKEN` либо ранее сохранённый токен, включая Keychain. Не передавайте токен в аргументах, не сохраняйте в репозитории и не вставляйте в чат. Скрипт не читает `.env`, не использует `--token` и не печатает вывод subprocess с возможными секретами. При ошибке он указывает операцию; её диагностику смотрите локально через cktool.
+
+5 ноября 2026 проверены Xcode 27.2 (27B52), cktool 1.0.23001 и доступ к Team `YBBAN7R28K`. Живой `check` успешно экспортировал обе среды, выполнил validation и подтвердил семантическое совпадение Development и Production. Отдельная проверка заведомо неверной синтетической схемы завершилась ненулевым кодом validation. Импорт схем, прямой production-import и операции с записями не выполнялись.
+
+## Перенос в Production
+
+После `prepare` просмотрите diff, откройте CloudKit Console → нужный контейнер → Development → Deploy Schema Changes и подтвердите перенос в Production. Затем:
+
+```sh
+bash Scripts/cloudkit-schema.sh verify-production
+```
+
+Команда повторно экспортирует обе среды и сравнивает Production с версионируемым снимком. Успех означает совпадение схемы, а не доказанную синхронизацию двух устройств. Данные между средами не переносятся.
+
+Импорт или автоматический deploy в Production намеренно отсутствует. Apple описывает импорт CKDB через CLI в sandbox/Development, а promotion в Production — через Console. Аргумент `--environment` в установленном man не доказывает поддержку production-import. См. [cktool](https://developer.apple.com/icloud/ck-tool/), [текстовую схему](https://developer.apple.com/documentation/cloudkit/integrating-a-text-based-schema-into-your-workflow) и [развёртывание контейнера](https://developer.apple.com/documentation/cloudkit/deploying-an-icloud-container-s-schema).
+
+## Явный импорт Development
+
+Для восстановления или применения **версионируемого** файла в Development:
+
+```sh
+bash Scripts/cloudkit-schema.sh import-development --confirm-import-development --dry-run
+bash Scripts/cloudkit-schema.sh import-development --confirm-import-development
+```
+
+Импорт требует отдельного флага, validation и совместимости с обеими живыми средами. При совпадении с Development операция пропускается. После изменения Development повторно экспортируется и сверяется с файлом. Reset схемы и операции с записями не вызываются.
+
+## Границы проверки
+
+Локальная проверка запрещает удаление/переименование типов и полей, изменение типа или шифрования, удаление индексов и любые изменения прав существующего типа. Политика индексов и прав намеренно строже допустимого в Apple. Добавление типов, полей, индексов и ролей допускается, если cktool validation успешно.
+
+Парсер понимает DEFINE SCHEMA, CREATE ROLE, RECORD TYPE, quoted identifiers, комментарии, примитивы, LIST, ENCRYPTED, NUMBER PREFERRED AS, индексы и GRANT. Неизвестная конструкция останавливает проверку; обхода нет. Порядок, комментарии и неявные системные поля/роли нормализуются. Проверка не анализирует Core Data модель: для новых её полей сначала выполните существующую DEBUG-подготовку Development из [CloudKit.md](CloudKit.md).
+
+Без доступа к Apple можно запустить регрессии на синтетических схемах:
+
+```sh
+python3 -m unittest discover -s Scripts/tests -p test_cloudkit_schema.py
+```

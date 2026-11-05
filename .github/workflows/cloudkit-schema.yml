@@ -1,0 +1,108 @@
+name: CloudKit schema tooling
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Schema operation (Production remains read-only)
+        required: true
+        default: prepare
+        type: choice
+        options:
+          - prepare
+          - check
+          - import-development
+          - verify-production
+      confirm_development_import:
+        description: Explicitly allow importing the versioned schema into Development
+        required: false
+        default: false
+        type: boolean
+  pull_request:
+    paths:
+      - 'Scripts/cloudkit*'
+      - 'Scripts/tests/**'
+      - 'CloudKit/**'
+      - '.github/workflows/cloudkit-schema.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Scripts/cloudkit*'
+      - 'Scripts/tests/**'
+      - 'CloudKit/**'
+      - '.github/workflows/cloudkit-schema.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudkit-schema-${{ github.event_name == 'workflow_dispatch' && 'management' || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check shell syntax
+        run: sh -n Scripts/cloudkit-schema.sh
+      - name: Test schema compatibility and safe CLI behavior
+        run: python3 -m unittest discover -s Scripts/tests -v
+
+  manage:
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Manage CloudKit schema
+        shell: bash
+        env:
+          CLOUDKIT_MANAGEMENT_TOKEN: ${{ secrets.CLOUDKIT_MANAGEMENT_TOKEN }}
+          OPERATION: ${{ inputs.operation }}
+          CONFIRM_DEVELOPMENT_IMPORT: ${{ inputs.confirm_development_import }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDKIT_MANAGEMENT_TOKEN:-}" ]]; then
+            echo 'Missing repository secret CLOUDKIT_MANAGEMENT_TOKEN.' >&2
+            exit 1
+          fi
+          case "$OPERATION" in
+            prepare|check|verify-production)
+              bash Scripts/cloudkit-schema.sh "$OPERATION"
+              ;;
+            import-development)
+              if [[ "$CONFIRM_DEVELOPMENT_IMPORT" != 'true' ]]; then
+                echo 'Development import requires confirm_development_import=true.' >&2
+                exit 1
+              fi
+              bash Scripts/cloudkit-schema.sh import-development --confirm-import-development
+              ;;
+            *)
+              echo 'Unsupported schema operation.' >&2
+              exit 1
+              ;;
+          esac
+      - name: Stage validated Development snapshot
+        if: success() && inputs.operation == 'prepare'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p Artifacts/CloudKit/snapshot
+          cp CloudKit/development.ckdb Artifacts/CloudKit/snapshot/development.ckdb
+      - name: Save schema report and prepared snapshot
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cloudkit-schema-${{ github.run_id }}
+          path: |
+            Artifacts/CloudKit/report.json
+            Artifacts/CloudKit/snapshot/development.ckdb
+          if-no-files-found: warn
+          retention-days: 7

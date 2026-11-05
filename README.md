@@ -33,6 +33,10 @@ DESTINATION='platform=iOS Simulator,name=iPhone 16 Pro' RESULT_BUNDLE_PATH=Artif
 
 Настройка подписания, схемы и проверки двух устройств описана в [CloudKit](Documentation/CloudKit.md). Симулятор без настроенной команды разработчика не подтверждает работоспособность синхронизации на устройствах.
 
+Экспорт и безопасная проверка схемы одной командой: `bash Scripts/cloudkit-schema.sh`. [Авторизация, diff и перенос в Production](Documentation/CloudKitSchema.md).
+
+Ручной запуск той же подготовки в GitHub Actions: [CloudKit schema tooling](.github/workflows/cloudkit-schema.yml) → Run workflow → `prepare`; Production переносится вручную в CloudKit Console. [Порядок работы с CI artifact](Documentation/CloudKitSchema.md#запуск-через-github-actions).
+
 ## Таймеры на экране блокировки
 
 Кормление грудью и сон поддерживают Live Activities и Dynamic Island. Кнопки переключения груди и завершения сохраняют изменения в дневнике без открытия приложения. Подробности восстановления, ограничения iOS и задержки CloudKit описаны в [LiveActivities.md](Documentation/LiveActivities.md). Проект включает `MalyshWidgets`; для подписанного выпуска расширению нужен отдельный профиль из [TestFlight.md](Documentation/TestFlight.md).
