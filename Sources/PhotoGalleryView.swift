@@ -307,6 +307,7 @@ struct PhotoGalleryView: View {
     @State private var recoveryPhoto: BabyPhoto?
     @State private var recoveryItem: PhotosPickerItem?
     @State private var recoveryPicker = false
+    @State private var sharedFile: URL?
 
     private var dates: [Date] {
         Array(Set(photos.map { Calendar.current.startOfDay(for: $0.capturedAt) })).sorted(by: >)
@@ -354,6 +355,27 @@ struct PhotoGalleryView: View {
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                     }
                                     .buttonStyle(.plain)
+                                    .contextMenu {
+                                        Button(
+                                            photo.isFavorite ? "Убрать из избранного" : "В избранное",
+                                            systemImage: "heart"
+                                        ) {
+                                            perform { try store.photoGallery.toggleFavorite(photo) }
+                                        }
+                                        Button("Сделать главным", systemImage: "person.crop.square") {
+                                            perform {
+                                                try store.photoGallery.pin(photo, babyID: photo.babyID)
+                                                try store.reload()
+                                            }
+                                        }
+                                        Button("Поделиться", systemImage: "square.and.arrow.up") { share(photo) }
+                                        Button("Сохранить в Фото", systemImage: "square.and.arrow.down") {
+                                            Task { await store.photoGallery.saveToPhotos(photo) }
+                                        }.disabled(store.photoGallery.hasLocalAsset(photo))
+                                        Button("Удалить из галереи", systemImage: "trash", role: .destructive) {
+                                            perform { try store.photoGallery.delete(photo) }
+                                        }
+                                    }
                                     .accessibilityLabel(
                                         "Фотография, \(photo.capturedAt.formatted(date: .long, time: .shortened))"
                                     )
@@ -413,6 +435,18 @@ struct PhotoGalleryView: View {
         .onAppear { reload() }
         .onChange(of: store.photoGallery.revision) { reload() }
         .onChange(of: store.selectedID) { selected = nil; adding = false; dismiss() }
+        .sheet(
+            isPresented: Binding(get: { sharedFile != nil }, set: {
+                if !$0 {
+                    cleanupShare()
+                }
+            }),
+            onDismiss: cleanupShare
+        ) {
+            if let sharedFile {
+                PhotoShareSheet(url: sharedFile)
+            }
+        }
         .fullScreenCover(item: $selected) { photo in
             PhotoViewer(store: store, initialID: photo.id)
         }
@@ -426,6 +460,36 @@ struct PhotoGalleryView: View {
         )) {
             Button("Понятно", role: .cancel) { store.photoGallery.errorMessage = nil }
         } message: { Text(store.photoGallery.errorMessage ?? "") }
+    }
+
+    private func perform(_ action: () throws -> Void) {
+        do { try action() } catch { store.photoGallery.errorMessage = error.localizedDescription }
+    }
+
+    private func cleanupShare() {
+        if let sharedFile {
+            try? FileManager.default.removeItem(at: sharedFile)
+        }
+        sharedFile = nil
+    }
+
+    private func share(_ photo: BabyPhoto) {
+        guard let data = store.photoGallery.data(for: photo, thumbnail: false) else {
+            store.photoGallery.errorMessage = "Не удалось подготовить фотографию. Попробуйте снова."
+            return
+        }
+        do {
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+                "PhotoShares",
+                isDirectory: true
+            )
+            try? FileManager.default.removeItem(at: directory)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let suffix = data.starts(with: [0xFF, 0xD8]) ? "jpg" : "heic"
+            let url = directory.appendingPathComponent("\(photo.id).\(suffix)")
+            try data.write(to: url, options: .atomic)
+            sharedFile = url
+        } catch { store.photoGallery.errorMessage = "Не удалось подготовить фотографию. Попробуйте снова." }
     }
 
     private func reload() {
