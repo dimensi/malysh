@@ -27,6 +27,7 @@ final class AppStore {
     private let activityCoordinator: (any CareActivityCoordinating)?
     private let widgetSnapshotStore: WidgetSnapshotStore
     private let reloadsWidgetTimelines: Bool
+    private let selectionPreferenceKey: String
     private var widgetRefreshObservers: Set<AnyCancellable> = []
     var allowsActivityStart: () -> Bool = { false }
     private var loading = false
@@ -130,12 +131,28 @@ final class AppStore {
     {
         self.activityCoordinator = activityCoordinator
         let arguments = ProcessInfo.processInfo.arguments
-        var publishesWidgets = injectedPersistence == nil && !arguments.contains("--ui-testing")
+        var testing = arguments.contains("--ui-testing")
+        var widgetTesting = false
         #if DEBUG
-            if injectedPersistence == nil, arguments.contains("--widget-testing") {
-                publishesWidgets = true
+            // App intents can cold-launch without the UI runner's launch arguments.
+            // Retain only the explicit isolated widget-test session, never real data.
+            let widgetTestingKey = "debug.widgetTestingSession"
+            if injectedPersistence == nil {
+                if arguments.contains("--end-widget-testing") || (testing && !arguments.contains("--widget-testing")) {
+                    UserDefaults.standard.removeObject(forKey: widgetTestingKey)
+                } else if testing && arguments.contains("--widget-testing") {
+                    UserDefaults.standard.set(true, forKey: widgetTestingKey)
+                }
+                widgetTesting = UserDefaults.standard.bool(forKey: widgetTestingKey)
+                UserDefaults(suiteName: WidgetSnapshotStore.appGroupIdentifier)?.set(
+                    widgetTesting,
+                    forKey: widgetTestingKey
+                )
+                testing = testing || widgetTesting
             }
         #endif
+        selectionPreferenceKey = testing ? "debug.selectedBabyUITesting" : "selectedBaby"
+        let publishesWidgets = injectedPersistence == nil && (!testing || widgetTesting)
         reloadsWidgetTimelines = publishesWidgets
         self.widgetSnapshotStore = widgetSnapshotStore ?? (publishesWidgets
             ? WidgetSnapshotStore() : WidgetSnapshotStore(directory: nil))
@@ -149,7 +166,6 @@ final class AppStore {
             observeWidgetCalendarChanges()
             return
         }
-        let testing = ProcessInfo.processInfo.arguments.contains("--ui-testing")
         var directory: URL?
         if testing {
             directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -184,14 +200,15 @@ final class AppStore {
         // A failed cache write must never fail a successful diary save.
         do {
             if try widgetSnapshotStore.write(WidgetSnapshot(baby: baby, events: events)), reloadsWidgetTimelines {
-                WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotStore.widgetKind)
+                WidgetCenter.shared.reloadAllTimelines()
+                ControlCenter.shared.reloadAllControls()
             }
         } catch {
             // Keep the last complete atomic snapshot until the next reload retries.
         }
     }
 
-    func load() async {
+    func load(checkCloudAccount: Bool = true) async {
         guard !ready, !loading else { return }
         loading = true
         defer { loading = false }
@@ -231,13 +248,13 @@ final class AppStore {
                     try prepareAuthorFixture()
                 }
             #endif
-            let saved = UserDefaults.standard.string(forKey: "selectedBaby").flatMap(UUID.init(uuidString:))
+            let saved = UserDefaults.standard.string(forKey: selectionPreferenceKey).flatMap(UUID.init(uuidString:))
             selectedID = babies.first(where: { $0.id == saved })?.id
             try reload()
             ready = true
             if let cloudError = persistence.cloudStartupError {
                 syncStatus = CloudFailure.message(for: cloudError)
-            } else if persistence.cloudEnabled {
+            } else if persistence.cloudEnabled, checkCloudAccount {
                 await checkAccount()
             }
         } catch {
@@ -448,7 +465,7 @@ final class AppStore {
             selectedID = visibleBabies.first(where: { sharedIDs.contains($0.id) })?.id ?? visibleBabies.first?.id
         }
         if let selectedID {
-            UserDefaults.standard.set(selectedID.uuidString, forKey: "selectedBaby")
+            UserDefaults.standard.set(selectedID.uuidString, forKey: selectionPreferenceKey)
         }
     }
 
@@ -491,13 +508,13 @@ final class AppStore {
         guard let objectID = shares.first(where: { $0.value.recordID == acceptedShareID })?.key,
               let babyID = candidates[objectID] else { return }
         selectedID = babyID
-        UserDefaults.standard.set(babyID.uuidString, forKey: "selectedBaby")
+        UserDefaults.standard.set(babyID.uuidString, forKey: selectionPreferenceKey)
         pendingAcceptedShareID = nil
     }
 
     func select(_ id: UUID) {
         selectedID = id
-        UserDefaults.standard.set(id.uuidString, forKey: "selectedBaby")
+        UserDefaults.standard.set(id.uuidString, forKey: selectionPreferenceKey)
         perform { try reload() }
     }
 
@@ -595,6 +612,37 @@ final class AppStore {
         else { throw ActivityActionFailure.unavailable }
         guard event.kind == .breast || event.kind == .sleep else { throw ActivityActionFailure.wrongKind }
         return event
+    }
+
+    /// Read the requested diary again: widget selection and cached event state are not authority.
+    func recordWidgetAction(_ action: WidgetCareAction, babyID: UUID, commandID: UUID,
+                            at date: Date = Date()) throws
+    {
+        guard ready else { throw ActivityActionFailure.unavailable }
+        try reload()
+        guard try persistence.babyObject(id: babyID) != nil else { throw ActivityActionFailure.unavailable }
+        let latest = try persistence.events(babyID: babyID)
+        let receiptKey = "widgetCommands.\(babyID.uuidString)"
+        let receipts = UserDefaults.standard.stringArray(forKey: receiptKey) ?? []
+        guard !receipts.contains(commandID.uuidString),
+              !latest.contains(where: { $0.id == commandID }) else { return }
+        let kind: EventKind = switch action {
+        case .startBreastLeft, .startBreastRight: .breast
+        case .startSleep: .sleep
+        case .wetDiaper, .dirtyDiaper: .diaper
+        }
+        // A stale start cannot create a second timer or switch a newer timer's side.
+        if kind != .diaper, latest.contains(where: { $0.kind == kind && $0.end == nil }) {
+            UserDefaults.standard.set(Array(([commandID.uuidString] + receipts).prefix(512)), forKey: receiptKey)
+            return
+        }
+        let event = CareEvent(id: commandID, babyID: babyID, kind: kind, start: date,
+                              end: kind == .diaper ? date : nil,
+                              side: action == .startBreastRight ? .right : .left,
+                              diaperType: action == .dirtyDiaper ? .dirty : .wet)
+        try save(event)
+        // Only record success after Core Data save and projection refresh succeeded.
+        UserDefaults.standard.set(Array(([commandID.uuidString] + receipts).prefix(512)), forKey: receiptKey)
     }
 
     func finish(eventID: UUID, babyID: UUID, at date: Date = Date()) throws {

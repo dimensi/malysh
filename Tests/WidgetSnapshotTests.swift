@@ -2,6 +2,56 @@
 import XCTest
 
 final class WidgetSnapshotTests: XCTestCase {
+    func testFullHistoryPreservesBothOldFeedAndSleepAnchors() {
+        let baby = Baby(name: "Малыш")
+        let now = Date()
+        let old = now.addingTimeInterval(-20 * 86400)
+        let feed = CareEvent(babyID: baby.id, kind: .bottle, start: old, end: old)
+        let sleep = CareEvent(babyID: baby.id, kind: .sleep, start: old, end: old.addingTimeInterval(3600))
+        let diapers = (0 ..< WidgetSnapshot.historyLimit).map { index in
+            CareEvent(babyID: baby.id, kind: .diaper, start: now.addingTimeInterval(-Double(index)))
+        }
+        let snapshot = WidgetSnapshot(baby: baby, events: diapers + [feed, sleep], generatedAt: now)
+        XCTAssertEqual(snapshot.events.count, WidgetSnapshot.historyLimit)
+        XCTAssertEqual(snapshot.summary(at: now).lastFeeding?.id, feed.id)
+        XCTAssertEqual(snapshot.summary(at: now).lastSleep?.id, sleep.id)
+        XCTAssertEqual(snapshot.summary(at: now).recentEvents.map(\.id), Array(diapers.prefix(3)).map(\.id))
+    }
+
+    func testQuietDiaryRetainsLastSleepBeyondHistoryWindow() {
+        let baby = Baby(name: "Малыш")
+        let now = Date()
+        let old = now.addingTimeInterval(-20 * 86400)
+        let sleep = CareEvent(babyID: baby.id, kind: .sleep, start: old, end: old.addingTimeInterval(3600))
+        let newer = (1 ... 4).map { index in
+            CareEvent(babyID: baby.id, kind: .diaper, start: old.addingTimeInterval(Double(index) * 7200))
+        }
+        let snapshot = WidgetSnapshot(baby: baby, events: [sleep] + newer, generatedAt: now)
+        XCTAssertEqual(snapshot.summary(at: now).lastSleep?.id, sleep.id)
+        XCTAssertEqual(snapshot.summary(at: now).sleepSeconds, 0)
+    }
+
+    func testActiveTimersAndConfirmedBirthdayRoundTripAndLegacyDecode() throws {
+        let now = Date()
+        let baby = Baby(name: "Малыш", birthDate: now.addingTimeInterval(-86400), birthDateConfirmed: true)
+        let event = CareEvent(babyID: baby.id, kind: .breast, start: now.addingTimeInterval(-60), side: .right)
+        let snapshot = WidgetSnapshot(baby: baby, events: [event], generatedAt: now)
+        XCTAssertEqual(snapshot.activeEvents.first?.id, event.id)
+        XCTAssertEqual(snapshot.activeEvents.first?.sideStartedAt, event.start)
+        XCTAssertEqual(snapshot.birthDate, baby.birthDate)
+        XCTAssertEqual(snapshot.birthDay, baby.birthDay)
+        XCTAssertEqual(snapshot.commandID(for: .wetDiaper), snapshot.commandID(for: .wetDiaper))
+        XCTAssertNotEqual(snapshot.commandID(for: .wetDiaper), snapshot.commandID(for: .dirtyDiaper))
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(snapshot)) as? [String: Any])
+        for key in ["birthDate", "birthDay", "activeEventValues", "actionToken"] {
+            json.removeValue(forKey: key)
+        }
+        let legacy = try JSONDecoder().decode(WidgetSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertTrue(legacy.activeEvents.isEmpty)
+        XCTAssertNil(legacy.birthDate)
+        XCTAssertNil(WidgetSnapshot(baby: Baby(name: "Legacy"), events: []).birthDate)
+    }
+
     @MainActor
     func testBackgroundCalendarNotificationsRefreshSnapshotOnMainActor() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

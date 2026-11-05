@@ -7,75 +7,127 @@ import XCTest
 /// not pixel goldens: system widget compositing is additionally checked in SpringBoard.
 @MainActor
 final class DiaryWidgetRenderingTests: XCTestCase {
-    func testEveryFamilyWithDataAndEmptyStates() throws {
+    func testProductionSurfaceMatrix() throws {
         let now = Date()
-        let baby = Baby(name: "Малыш")
+        let baby = Baby(name: "Малыш", birthDate: now.addingTimeInterval(-90 * 86400), birthDateConfirmed: true)
         let events = [
-            CareEvent(babyID: baby.id, kind: .bottle, start: now.addingTimeInterval(-3600),
-                      end: now.addingTimeInterval(-3600), volumeML: 90),
-            CareEvent(babyID: baby.id, kind: .diaper, start: now.addingTimeInterval(-1800),
-                      end: now.addingTimeInterval(-1800), diaperType: .mixed),
-            CareEvent(babyID: baby.id, kind: .sleep, start: now.addingTimeInterval(-10800),
-                      end: now.addingTimeInterval(-7200)),
+            CareEvent(
+                babyID: baby.id,
+                kind: .bottle,
+                start: now.addingTimeInterval(-3600),
+                end: now.addingTimeInterval(-3600),
+                volumeML: 90
+            ),
+            CareEvent(
+                babyID: baby.id,
+                kind: .diaper,
+                start: now.addingTimeInterval(-1800),
+                end: now.addingTimeInterval(-1800),
+                diaperType: .mixed
+            ),
+            CareEvent(
+                babyID: baby.id,
+                kind: .sleep,
+                start: now.addingTimeInterval(-10800),
+                end: now.addingTimeInterval(-7200)
+            ),
+        ]
+        let active = events + [
+            CareEvent(babyID: baby.id, kind: .breast, start: now.addingTimeInterval(-420)),
+            CareEvent(babyID: baby.id, kind: .diaper, start: now.addingTimeInterval(-900),
+                      end: now.addingTimeInterval(-900), diaperType: .dirty),
+            CareEvent(babyID: baby.id, kind: .sleep, start: now.addingTimeInterval(-1800)),
         ]
         let states: [(String, WidgetSnapshot?)] = [
             ("populated", WidgetSnapshot(baby: baby, events: events, generatedAt: now)),
+            ("active", WidgetSnapshot(baby: baby, events: active, generatedAt: now)),
             ("empty", WidgetSnapshot(baby: baby, events: [], generatedAt: now)),
             ("unavailable", nil),
         ]
-        for (name, snapshot) in states {
-            for (family, size) in families {
+        for surface in DiaryWidgetSurface.allCases {
+            for family in surface.families {
+                let size = try XCTUnwrap(families.first { $0.0 == family }?.1)
                 for theme in [ColorScheme.light, .dark] {
-                    try render(entry: DiaryWidgetEntry(date: now, snapshot: snapshot), family: family,
-                               size: size, appearance: Appearance(
-                                   theme: theme,
-                                   mode: family.isAccessory ? .vibrant : .fullColor
-                               ),
-                               name: "\(family)-\(name)-\(theme)")
+                    for (state, snapshot) in states {
+                        for typeSize in [
+                            DynamicTypeSize.large,
+                            .xxxLarge,
+                            .accessibility1,
+                            .accessibility3,
+                            .accessibility5,
+                        ] {
+                            try render(entry: DiaryWidgetEntry(date: now, snapshot: snapshot), family: family,
+                                       size: size, appearance: Appearance(theme: theme,
+                                                                          mode: family
+                                                                              .isAccessory ? .vibrant : .fullColor,
+                                                                          typeSize: typeSize),
+                                       name: "\(surface)-\(family)-\(state)-\(typeSize)-\(theme)", surface: surface)
+                        }
+                    }
+                    if !family.isAccessory {
+                        for mode in [WidgetRenderingMode.accented, .vibrant] {
+                            try render(entry: DiaryWidgetEntry(date: now, snapshot: states[1].1), family: family,
+                                       size: size, appearance: Appearance(theme: theme, mode: mode),
+                                       name: "\(surface)-\(family)-\(mode)-\(theme)", surface: surface)
+                        }
+                    }
                 }
-            }
-        }
-        for (family, size) in families where !family.isAccessory {
-            for theme in [ColorScheme.light, .dark] {
-                try render(entry: DiaryWidgetEntry(date: now, snapshot: states[0].1), family: family,
-                           size: size, appearance: Appearance(theme: theme, mode: .accented),
-                           name: "\(family)-accented-\(theme)")
             }
         }
     }
 
-    func testAccessibilitySizesReachEveryFamilyWithoutClamping() throws {
+    func testLegacyInstalledFamiliesRemainRenderable() throws {
+        for (family, size) in families {
+            try render(entry: DiaryWidgetEntry(date: .now, snapshot: nil), family: family,
+                       size: size, appearance: Appearance(theme: .light, mode: .fullColor), name: "legacy-\(family)")
+        }
+    }
+
+    func testIdleRecordedTimesFromPreviousDays() throws {
         let now = Date()
         let baby = Baby(name: "Малыш")
-        let events = [CareEvent(babyID: baby.id, kind: .bottle, start: now.addingTimeInterval(-3600),
-                                end: now.addingTimeInterval(-3600), volumeML: 90)]
-        let populated = WidgetSnapshot(baby: baby, events: events, generatedAt: now)
-        let states: [(String, WidgetSnapshot?)] = [
-            ("populated", populated), ("empty", WidgetSnapshot(baby: baby, events: [], generatedAt: now)),
-            ("unavailable", nil),
-        ]
-        for (family, size) in families {
-            for theme in [ColorScheme.light, .dark] {
-                var firstSize: Data?
-                var lastSize: Data?
-                for typeSize in [DynamicTypeSize.xxxLarge, .accessibility1, .accessibility3, .accessibility5] {
-                    for (name, snapshot) in states {
-                        let image = try render(entry: DiaryWidgetEntry(date: now, snapshot: snapshot), family: family,
-                                               size: size, appearance: Appearance(
-                                                   theme: theme, mode: family.isAccessory ? .vibrant : .fullColor,
-                                                   typeSize: typeSize
-                                               ), name: "\(family)-\(name)-\(typeSize)-\(theme)")
-                        if name == "unavailable", typeSize == .accessibility1 {
-                            firstSize = image.pngData()
-                        }
-                        if name == "unavailable", typeSize == .accessibility5 {
-                            lastSize = image.pngData()
-                        }
-                    }
+        let previous = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: -2, to: now))
+        let snapshot = WidgetSnapshot(baby: baby, events: [
+            CareEvent(babyID: baby.id, kind: .bottle, start: previous, end: previous, volumeML: 90),
+            CareEvent(babyID: baby.id, kind: .sleep, start: previous.addingTimeInterval(-3600), end: previous),
+            CareEvent(babyID: baby.id, kind: .diaper, start: previous, end: previous, diaperType: .dirty),
+        ], generatedAt: now)
+        for surface in [DiaryWidgetSurface.feeding, .sleep, .quickActions, .dashboard] {
+            let family = try XCTUnwrap(surface.families.first)
+            let size = try XCTUnwrap(families.first { $0.0 == family }?.1)
+            try render(entry: DiaryWidgetEntry(date: now, snapshot: snapshot), family: family,
+                       size: size, appearance: Appearance(theme: .light, mode: .fullColor),
+                       name: "\(surface)-idle-previous-day-static-time", surface: surface)
+        }
+    }
+
+    func testLiveActivityExpandedProductionContent() throws {
+        let attributes = CareActivityAttributes(eventID: UUID(), babyID: UUID())
+        for kind in [EventKind.breast, .sleep] {
+            let state = CareActivityAttributes.ContentState(kind: kind, start: .now.addingTimeInterval(-742),
+                                                            side: kind == .breast ? .left : nil, babyName: "Малыш")
+            for typeSize in [DynamicTypeSize.large, .xxxLarge, .accessibility1, .accessibility3, .accessibility5] {
+                let view = VStack(spacing: 8) {
+                    CareActivityIslandInfo(state: state)
+                    CareActivityControls(attributes: attributes, state: state)
                 }
-                // Unavailable content has no live relative dates: size alone changes this raster.
-                XCTAssertNotEqual(try XCTUnwrap(firstSize), try XCTUnwrap(lastSize),
-                                  "\(family) must render the user's actual accessibility text size")
+                .environment(\.dynamicTypeSize, typeSize)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .frame(width: 338)
+                .background(.black)
+                let renderer = ImageRenderer(content: view)
+                renderer.scale = 2
+                let image = try XCTUnwrap(renderer.uiImage)
+                XCTAssertLessThanOrEqual(
+                    image.size.height,
+                    160,
+                    "Expanded island content must fit its native height budget"
+                )
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "liveActivity-expanded-\(kind)-\(typeSize)"
+                attachment.lifetime = .keepAlways
+                add(attachment)
             }
         }
     }
@@ -97,14 +149,19 @@ final class DiaryWidgetRenderingTests: XCTestCase {
 
     @discardableResult
     private func render(entry: DiaryWidgetEntry, family: WidgetFamily, size: CGSize,
-                        appearance: Appearance, name: String) throws -> UIImage
+                        appearance: Appearance, name: String, surface: DiaryWidgetSurface? = nil) throws -> UIImage
     {
-        let view = DiaryWidgetView(entry: entry, familyOverride: family, renderingModeOverride: appearance.mode)
-            .environment(\.colorScheme, appearance.theme)
-            .environment(\.dynamicTypeSize, appearance.typeSize)
-            .padding(family.isAccessory ? 0 : 16)
-            .frame(width: size.width, height: size.height)
-            .background(appearance.theme == .dark ? Color.black : Color.white)
+        let view = DiaryWidgetView(
+            entry: entry,
+            familyOverride: family,
+            renderingModeOverride: appearance.mode,
+            surface: surface
+        )
+        .environment(\.colorScheme, appearance.theme)
+        .environment(\.dynamicTypeSize, appearance.typeSize)
+        .padding(family.isAccessory ? 0 : 16)
+        .frame(width: size.width, height: size.height)
+        .background(appearance.theme == .dark ? Color.black : Color.white)
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
         let image = try XCTUnwrap(renderer.uiImage, name)

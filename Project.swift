@@ -67,12 +67,16 @@ let project = Project(name: "Malysh", settings: settings, targets: [
             sources: [
                 "WidgetTests/**",
                 "WidgetExtension/DiaryWidget.swift",
+                "WidgetExtension/CareActivityViews.swift",
+                "Sources/LiveActivities/CareActivityAttributes.swift",
+                "Sources/LiveActivities/CareActivityIntents.swift",
                 "Sources/Domain.swift",
                 "Sources/DesignSystem.swift",
                 "Sources/Widgets/**",
             ],
             resources: ["Resources/Assets.xcassets"],
-            dependencies: [.target(name: "Malysh")]),
+            dependencies: [.target(name: "Malysh")],
+            settings: .settings(base: ["SWIFT_ACTIVE_COMPILATION_CONDITIONS": "$(inherited) MALYSH_WIDGET_EXTENSION"])),
 ], schemes: [.scheme(name: "Malysh", shared: true, buildAction: .buildAction(targets: ["Malysh"]),
                      testAction: .targets(["MalyshTests", "MalyshWidgetTests", "MalyshUITests"], configuration: .debug),
                      runAction: .runAction(configuration: .debug))])
