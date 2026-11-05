@@ -7,8 +7,11 @@ struct ChildProfileView: View {
     }
 
     @Bindable var store: AppStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .subheadline) private var measurementIconHeight = 20.0
     @State private var choosesMeasurement = false
     @Binding var editingMeasurement: MeasurementPresentation?
+    @Binding var photoAddPresentationBusy: Bool
     @Binding var albumPresentationBusy: Bool
     let onAlbumDismiss: () -> Void
 
@@ -17,7 +20,9 @@ struct ChildProfileView: View {
             if let baby = store.baby {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.section) {
                     header(baby)
+                    Divider()
                     measurements(babyID: baby.id)
+                    Divider()
                     album(babyID: baby.id)
                 }
                 .padding(AppDesign.Spacing.contentInset)
@@ -40,81 +45,69 @@ struct ChildProfileView: View {
     }
 
     private func header(_ baby: Baby) -> some View {
-        VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
-            HStack(alignment: .top, spacing: AppDesign.Spacing.row) {
-                Image("BrandMark").resizable().scaledToFill()
-                    .frame(width: AppDesign.Metrics.brandMarkSize, height: AppDesign.Metrics.brandMarkSize)
-                    .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
-                    .accessibilityHidden(true)
-                Spacer()
-                NavigationLink(value: Destination.edit) {
-                    Image(systemName: "pencil")
-                        .font(.title3)
-                        .frame(width: AppDesign.Metrics.minimumTouch, height: AppDesign.Metrics.minimumTouch)
-                        .background(AppDesign.Palette.groupedBackground, in: Circle())
-                        .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Редактировать профиль")
-                .accessibilityIdentifier("child.profile.edit")
+        HStack(alignment: .top, spacing: AppDesign.Spacing.row) {
+            NavigationLink(value: Destination.photos) {
+                ChildPhotoAvatar(store: store)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Фотографии малыша")
+            .accessibilityIdentifier("child.profile.avatar")
+            .accessibilityValue(ChildPhotoAvatar.accessibilityValue(for: store))
             VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
                 Text(baby.name).font(.title2.bold())
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityIdentifier("child.profile.name")
                 TimelineView(.periodic(from: .now, by: 60)) { context in
                     if let age = baby.ageLabel(now: context.date) {
-                        Text(age).accessibilityIdentifier("child.profile.age")
+                        Text(age)
+                            .accessibilityIdentifier("child.profile.age")
                     } else {
                         Text("Дата рождения не указана")
                     }
                 }
-                Label(
-                    store.isSharedDiary ? "Семейный дневник" : "Личный дневник",
-                    systemImage: store.isSharedDiary ? "person.2.fill" : "person.fill"
-                )
                 .font(AppDesign.Typography.detail)
                 .foregroundStyle(.secondary)
+                Text(store.isSharedDiary ? "Семейный дневник" : "Личный дневник")
+                    .font(AppDesign.Typography.detail)
+                    .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            NavigationLink(value: Destination.edit) {
+                Image(systemName: "pencil")
+                    .font(.body)
+                    .frame(width: AppDesign.Metrics.minimumTouch, height: AppDesign.Metrics.minimumTouch)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Редактировать профиль")
+            .accessibilityIdentifier("child.profile.edit")
         }
-        .diaryCard(color: AppDesign.Palette.cardBackground)
     }
 
     private func measurements(babyID: UUID) -> some View {
-        VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
+        let columns = Array(
+            repeating: GridItem(.flexible(), spacing: AppDesign.Spacing.group, alignment: .top),
+            count: dynamicTypeSize >= .xxLarge ? 1 : 3
+        )
+        return VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
             Text("Измерения").font(.title3.bold()).accessibilityAddTraits(.isHeader)
-            ForEach(MeasurementType.allCases, id: \.self) { type in
-                let latest = store.measurements.filter { $0.type == type }.sorted(by: ChildMeasurement.newestFirst)
-                    .first
-                NavigationLink(value: Destination.history(type)) {
-                    HStack(spacing: AppDesign.Spacing.row) {
-                        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
-                            Text(type.label).font(AppDesign.Typography.itemTitle)
-                            Text(latest.map(measurementValue) ?? "Пока нет измерений")
-                                .font(latest == nil ? AppDesign.Typography.detail : .title3.weight(.semibold))
-                                .foregroundStyle(latest == nil ? AppDesign.Palette.secondaryText : AppDesign.Palette
-                                    .primaryText)
-                        }
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.right").font(.footnote).foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
-                    }
-                    .frame(minHeight: AppDesign.Metrics.minimumTouch)
-                    .foregroundStyle(AppDesign.Palette.primaryText)
-                    .diaryCard(color: AppDesign.Palette.cardBackground, inset: AppDesign.Spacing.actionInset)
-                    .contentShape(RoundedRectangle(cornerRadius: AppDesign.Radius.card))
+            LazyVGrid(columns: columns, spacing: AppDesign.Spacing.group) {
+                ForEach(MeasurementType.allCases, id: \.self) { type in
+                    measurementCard(type)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("measurement.history.\(type)")
-                .accessibilityHint("Открывает график и историю")
             }
             Button {
                 choosesMeasurement = true
             } label: {
                 Label("Добавить измерение", systemImage: "plus")
+                    .font(.headline)
                     .frame(maxWidth: .infinity, minHeight: AppDesign.Metrics.minimumTouch)
+                    .padding(.vertical, AppDesign.Spacing.related)
+                    .foregroundStyle(AppDesign.Palette.primaryText)
+                    .background(AppDesign.Palette.sleep, in: RoundedRectangle(cornerRadius: AppDesign.Radius.card))
+                    .contentShape(RoundedRectangle(cornerRadius: AppDesign.Radius.card))
             }
-            .buttonStyle(.borderedProminent)
-            .foregroundStyle(AppDesign.Palette.onAccent)
+            .buttonStyle(.plain)
             .accessibilityIdentifier("child.measurement.add")
             .confirmationDialog("Что измерили?", isPresented: $choosesMeasurement, titleVisibility: .visible) {
                 ForEach(MeasurementType.allCases, id: \.self) { type in
@@ -130,31 +123,49 @@ struct ChildProfileView: View {
         }
     }
 
+    private func measurementCard(_ type: MeasurementType) -> some View {
+        let symbol = switch type {
+        case .weight: "scalemass"
+        case .height: "ruler"
+        case .headCircumference: "circle.dashed"
+        }
+        let latest = store.measurements.filter { $0.type == type }.min(by: ChildMeasurement.newestFirst)
+        let value = latest.map(measurementValue) ?? "Нет данных"
+        return NavigationLink(value: Destination.history(type)) {
+            VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+                Image(systemName: symbol)
+                    .font(AppDesign.Typography.detail)
+                    .frame(height: measurementIconHeight)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                Text(type == .headCircumference && dynamicTypeSize < .xxLarge ? "Голова" : type.label)
+                    .font(AppDesign.Typography.itemTitle)
+                Text(value)
+                    .font(AppDesign.Typography.detail)
+                    .foregroundStyle(latest == nil ? AppDesign.Palette.secondaryText : AppDesign.Palette.primaryText)
+            }
+            .frame(minHeight: AppDesign.Metrics.minimumTouch, alignment: .topLeading)
+            .foregroundStyle(AppDesign.Palette.primaryText)
+            .diaryCard(color: AppDesign.Palette.cardBackground, inset: AppDesign.Spacing.row)
+            .contentShape(RoundedRectangle(cornerRadius: AppDesign.Radius.card))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(type.label), \(value)")
+        .accessibilityIdentifier("measurement.history.\(type)")
+        .accessibilityHint("Открывает график и историю")
+    }
+
     private func album(babyID: UUID) -> some View {
         let gallery = store.photoGallery
         _ = gallery.revision
         let photos = try? gallery.photos(babyID: babyID)
-        let latest = photos?.min(by: BabyPhoto.newestFirst)
+        let latest = Array((photos ?? []).sorted(by: BabyPhoto.newestFirst).prefix(3))
         return VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
-            Text("Фотоальбом").font(.title3.bold()).accessibilityAddTraits(.isHeader)
             NavigationLink(value: Destination.photos) {
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
-                    if let latest, let data = gallery.data(for: latest, thumbnail: true),
-                       let image = UIImage(data: data)
-                    {
-                        Color.clear
-                            .frame(height: 120)
-                            .overlay {
-                                Image(uiImage: image).resizable().scaledToFill()
-                            }
-                            .clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: AppDesign.Radius.card))
-                            .accessibilityHidden(true)
-                    }
-                    HStack(spacing: AppDesign.Spacing.row) {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
+                    HStack {
                         VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
-                            Label("Фотографии малыша", systemImage: "photo.on.rectangle")
-                                .font(AppDesign.Typography.itemTitle)
+                            Text("Фотоальбом").font(.title3.bold()).accessibilityAddTraits(.isHeader)
                             if let photos {
                                 Text(photos.isEmpty ? "Пока нет фотографий" : "Количество фото: \(photos.count)")
                                     .font(AppDesign.Typography.detail).foregroundStyle(.secondary)
@@ -168,14 +179,40 @@ struct ChildProfileView: View {
                         Image(systemName: "chevron.right").font(.footnote).foregroundStyle(.secondary)
                             .accessibilityHidden(true)
                     }
+                    .frame(minHeight: AppDesign.Metrics.minimumTouch)
+                    HStack(spacing: AppDesign.Spacing.group) {
+                        ForEach(0 ..< 3) { index in
+                            let data = latest.indices.contains(index) ? gallery.data(
+                                for: latest[index],
+                                thumbnail: true
+                            ) :
+                                nil
+                            AppDesign.Palette.cardBackground
+                                .aspectRatio(1, contentMode: .fit)
+                                .overlay {
+                                    if let data, let image = UIImage(data: data) {
+                                        Image(uiImage: image).resizable().scaledToFill()
+                                    } else {
+                                        Image(systemName: "photo").foregroundStyle(.secondary)
+                                    }
+                                }
+                                .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
+                        }
+                    }
+                    .accessibilityHidden(true)
                 }
-                .frame(minHeight: AppDesign.Metrics.minimumTouch)
                 .foregroundStyle(AppDesign.Palette.primaryText)
-                .diaryCard(color: AppDesign.Palette.cardBackground, inset: AppDesign.Spacing.actionInset)
-                .contentShape(RoundedRectangle(cornerRadius: AppDesign.Radius.card))
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("child.profile.photos")
+            PhotoAddButton(
+                store: store,
+                isPresenting: $photoAddPresentationBusy,
+                onDismiss: onAlbumDismiss,
+                handlesServiceErrors: true,
+                showsTitle: true
+            )
         }
     }
 }
@@ -187,6 +224,7 @@ private struct ChildProfileEditor: View {
     @State private var name: String
     @State private var birthDate: Date
     @State private var hasBirthDate: Bool
+    @State private var birthTimeSelection: Date?
     @State private var birthInputs: [MeasurementType: String] = [:]
     @State private var errorMessage: String?
 
@@ -196,6 +234,18 @@ private struct ChildProfileEditor: View {
         _name = State(initialValue: baby.name)
         _birthDate = State(initialValue: baby.birthDateConfirmed ? baby.displayedBirthDate() : .now)
         _hasBirthDate = State(initialValue: baby.birthDateConfirmed)
+        _birthTimeSelection = State(initialValue: baby.birthTime.map(Self.pickerDate(for:)))
+    }
+
+    private static var timePickerCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .gmt
+        return calendar
+    }
+
+    /// DatePicker needs a Date. A fixed UTC day keeps its clock independent of DST.
+    private static func pickerDate(for time: CivilTime) -> Date {
+        Date(timeIntervalSince1970: TimeInterval(time.hour * 3600 + time.minute * 60))
     }
 
     private var canSave: Bool {
@@ -212,8 +262,29 @@ private struct ChildProfileEditor: View {
                 if hasBirthDate {
                     DatePicker("Дата рождения", selection: $birthDate, in: ...Date(), displayedComponents: .date)
                         .accessibilityIdentifier("child.editor.birthDate")
-                    Button("Убрать дату рождения") { hasBirthDate = false }
+                    if let birthTimeSelection {
+                        DatePicker("Время рождения", selection: Binding(
+                            get: { self.birthTimeSelection ?? birthTimeSelection },
+                            set: { self.birthTimeSelection = $0 }
+                        ), displayedComponents: .hourAndMinute)
+                            .environment(\.calendar, Self.timePickerCalendar)
+                            .environment(\.timeZone, .gmt)
+                            .accessibilityIdentifier("child.editor.birthTime")
+                        Button("Убрать время рождения") { self.birthTimeSelection = nil }
+                            .frame(minHeight: AppDesign.Metrics.minimumTouch)
+                            .accessibilityIdentifier("child.editor.removeBirthTime")
+                    } else {
+                        Button("Указать время рождения") {
+                            birthTimeSelection = Self.pickerDate(for: CivilTime(date: .now))
+                        }
                         .frame(minHeight: AppDesign.Metrics.minimumTouch)
+                        .accessibilityIdentifier("child.editor.setBirthTime")
+                    }
+                    Button("Убрать дату рождения") {
+                        hasBirthDate = false
+                        birthTimeSelection = nil
+                    }
+                    .frame(minHeight: AppDesign.Metrics.minimumTouch)
                 } else {
                     Button("Указать дату рождения") { hasBirthDate = true }
                         .frame(minHeight: AppDesign.Metrics.minimumTouch)
@@ -286,6 +357,7 @@ private struct ChildProfileEditor: View {
                 name: name,
                 birthDate: birthDate,
                 birthDateConfirmed: hasBirthDate,
+                birthTime: birthTimeSelection.map { CivilTime(date: $0, calendar: Self.timePickerCalendar) },
                 replacing: original,
                 birthMeasurements: values,
                 skipBirthMeasurements: skipBirthMeasurements

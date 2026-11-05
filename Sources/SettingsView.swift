@@ -4,7 +4,6 @@ import SwiftUI
 @MainActor
 struct SettingsView: View {
     @Bindable var store: AppStore
-    let openChildProfile: () -> Void
     @AppStorage("cloudEnabled") private var cloudEnabled = false
     @State private var confirmsCleanup = false
     @State private var redundantEventCount = 0
@@ -13,8 +12,8 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Профиль малыша") {
-                    if store.visibleBabies.count > 1 {
+                if store.visibleBabies.count > 1 {
+                    Section("Дневники") {
                         Picker(
                             "Дневник",
                             selection: Binding(get: { store.selectedID }, set: {
@@ -27,18 +26,6 @@ struct SettingsView: View {
                         }
                         .accessibilityIdentifier("diary-picker")
                     }
-                    Button(action: openChildProfile) {
-                        HStack {
-                            Label(store.baby?.name ?? "Малыш", systemImage: "face.smiling")
-                                .accessibilityIdentifier("settings.child.name")
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.footnote).accessibilityHidden(true)
-                        }
-                        .frame(minHeight: AppDesign.Metrics.minimumTouch)
-                        .contentShape(Rectangle())
-                    }
-                    .accessibilityIdentifier("settings.child.open")
-                    .accessibilityHint("Открывает вкладку «Малыш»")
                 }
                 familySection
                 Section {
@@ -135,11 +122,11 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if let family = store.family {
-                ForEach(family.members) { member in
+            if let baby = store.baby, let members = store.family?.members ?? store.localParent.map({ [$0] }) {
+                ForEach(members) { member in
                     if member.canEdit {
                         NavigationLink {
-                            FamilyProfileEditor(store: store, member: member)
+                            FamilyProfileEditor(store: store, baby: baby, member: member)
                         } label: {
                             familyMemberLabel(member)
                         }
@@ -211,7 +198,9 @@ struct SettingsView: View {
             if member.isCurrentUser {
                 Text("Это вы").font(.subheadline).foregroundStyle(.secondary)
             }
-            Text(member.status).font(.subheadline).foregroundStyle(.secondary)
+            if !member.status.isEmpty {
+                Text(member.status).font(.subheadline).foregroundStyle(.secondary)
+            }
             if !hasName {
                 if member.canEdit {
                     Text("Добавить имя").font(.subheadline).foregroundStyle(.tint)
@@ -231,14 +220,16 @@ private struct FamilyProfileEditor: View {
     @Environment(\.dismiss) private var dismiss
     let store: AppStore
     let member: FamilyMember
+    @State private var babyID: UUID
     @State private var name: String
     @State private var role: ParentRole
     @State private var errorMessage: String?
 
-    init(store: AppStore, member: FamilyMember) {
+    init(store: AppStore, baby: Baby, member: FamilyMember) {
         self.store = store
         self.member = member
-        let profile = store.baby?.parentProfiles[member.id]
+        _babyID = State(initialValue: baby.id)
+        let profile = baby.parentProfiles[member.id]
         let fallbackName = member.name == member.role || ["Вы", "Другой родитель"].contains(member.name) ? "" : member
             .name
         _name = State(initialValue: profile?.name ?? fallbackName)
@@ -257,14 +248,16 @@ private struct FamilyProfileEditor: View {
                 }
                 .accessibilityIdentifier("family.profile.role")
             } footer: {
-                Text("Имя и роль видны обоим родителям")
+                Text(store.isSharedDiary
+                    ? "Имя и роль видны участникам семейного дневника."
+                    : "Имя и роль будут видны в ваших записях.")
             }
             if let errorMessage {
                 Text(errorMessage).foregroundStyle(AppDesign.Palette.error)
             }
             Button("Сохранить") {
                 do {
-                    try store.saveFamilyProfile(memberID: member.id, name: name, role: role)
+                    try store.saveFamilyProfile(babyID: babyID, memberID: member.id, name: name, role: role)
                     dismiss()
                 } catch {
                     errorMessage = "Не удалось сохранить имя и роль. Попробуйте снова."

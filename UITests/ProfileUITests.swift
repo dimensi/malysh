@@ -67,7 +67,7 @@ final class ProfileUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Пока нет измерений"].exists)
     }
 
-    func testProfileTabAndShortcutsOpenSameProfile() {
+    func testProfileTabAndPrivateParentSettings() {
         let app = launch()
         let tabs = app.tabBars.buttons
         XCTAssertEqual(tabs.count, 4)
@@ -82,13 +82,31 @@ final class ProfileUITests: XCTestCase {
         XCTAssertTrue(tabs["Малыш"].exists)
         tabs["Сегодня"].tap()
         app.buttons["settings.open"].tap()
-        let settingsProfile = app.buttons["settings.child.open"]
-        XCTAssertTrue(settingsProfile.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Настройки"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["settings.child.open"].exists)
         XCTAssertFalse(app.textFields["baby-name"].exists)
-        settingsProfile.tap()
-        XCTAssertTrue(app.navigationBars["Малыш"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["child.profile.edit"].exists)
-        XCTAssertTrue(tabs["Малыш"].isSelected)
+        let parent = app.buttons["family.member.owner"]
+        XCTAssertTrue(parent.waitForExistence(timeout: 5))
+        parent.tap()
+        let name = app.textFields["family.profile.name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Nikita")
+        let role = app.descendants(matching: .any).matching(identifier: "family.profile.role").firstMatch
+        role.tap()
+        app.buttons["Папа"].firstMatch.tap()
+        app.buttons["family.profile.save"].tap()
+        XCTAssertTrue(parent.waitForExistence(timeout: 5))
+        XCTAssertTrue(parent.label.contains("Nikita"))
+        XCTAssertTrue(parent.label.contains("Папа"))
+        app.terminate()
+        app.launchArguments = ["--ui-testing"]
+        app.launch()
+        XCTAssertTrue(app.buttons["settings.open"].waitForExistence(timeout: 10))
+        app.buttons["settings.open"].tap()
+        XCTAssertTrue(parent.waitForExistence(timeout: 5))
+        XCTAssertTrue(parent.label.contains("Nikita"))
+        XCTAssertTrue(parent.label.contains("Папа"))
     }
 
     func testBirthMeasurementRequiresBirthdayAndCanBeEditedInHistory() {
@@ -146,5 +164,36 @@ final class ProfileUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Изменить профиль"].waitForExistence(timeout: 5))
         XCTAssertFalse(skip.exists)
         XCTAssertFalse(app.textFields["child.editor.birth.weight"].exists)
+    }
+
+    func testOptionalBirthTimePersistsAcrossLaunchAndCanBeRemoved() {
+        let app = launch()
+        app.tabBars.buttons["Малыш"].tap()
+        let edit = app.buttons["child.profile.edit"]
+        edit.tap()
+        let addTime = app.buttons["child.editor.setBirthTime"]
+        let removeTime = app.buttons["child.editor.removeBirthTime"]
+        let save = app.buttons["child.editor.save"]
+        XCTAssertFalse(addTime.exists)
+        app.buttons["child.editor.setBirthDate"].tap()
+        XCTAssertTrue(addTime.exists)
+        XCTAssertFalse(removeTime.exists)
+        addTime.tap()
+        XCTAssertTrue(removeTime.exists)
+        save.tap()
+        XCTAssertTrue(edit.waitForExistence(timeout: 5))
+        app.terminate()
+        app.launchArguments = ["--ui-testing"]
+        app.launch()
+        app.tabBars.buttons["Малыш"].tap()
+        XCTAssertTrue(edit.waitForExistence(timeout: 5))
+        edit.tap()
+        XCTAssertTrue(removeTime.waitForExistence(timeout: 5))
+        removeTime.tap()
+        save.tap()
+        XCTAssertTrue(edit.waitForExistence(timeout: 5))
+        edit.tap()
+        XCTAssertTrue(addTime.waitForExistence(timeout: 5))
+        XCTAssertFalse(removeTime.exists)
     }
 }

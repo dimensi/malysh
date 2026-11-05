@@ -54,6 +54,7 @@ struct ContentView: View {
     @State private var editingMeasurement: MeasurementPresentation?
     @State private var showPhotos = false
     @State private var photoPresentationBusy = false
+    @State private var profilePhotoAddBusy = false
     @State private var albumPresentationBusy = false
     @State private var editing: CareEvent?
     @State private var pendingWidgetRoute: WidgetRoute?
@@ -76,11 +77,18 @@ struct ContentView: View {
                         ChildProfileView(
                             store: store,
                             editingMeasurement: $editingMeasurement,
+                            photoAddPresentationBusy: $profilePhotoAddBusy,
                             albumPresentationBusy: $albumPresentationBusy,
                             onAlbumDismiss: resumeWidgetRouteAfterSheet
                         )
                     }
-                    .tabItem { Label("Малыш", systemImage: "face.smiling") }.tag(3)
+                    .tabItem {
+                        Label {
+                            Text("Малыш")
+                        } icon: {
+                            Image("BabyBear").renderingMode(.template)
+                        }
+                    }.tag(3)
                 }
                 .tint(AppDesign.Palette.accent)
                 .sheet(item: $editing, onDismiss: resumeWidgetRouteAfterSheet) { event in
@@ -98,10 +106,7 @@ struct ContentView: View {
                     MeasurementEditor(store: store, measurement: presentation.measurement, isNew: presentation.isNew)
                 }
                 .sheet(isPresented: $showSettings, onDismiss: resumeWidgetRouteAfterSheet) {
-                    SettingsView(store: store) {
-                        showSettings = false
-                        openChildProfile()
-                    }
+                    SettingsView(store: store)
                 }
                 .sheet(isPresented: $showPhotos, onDismiss: resumeWidgetRouteAfterSheet) {
                     NavigationStack { PhotoGalleryView(
@@ -128,6 +133,7 @@ struct ContentView: View {
             editingMeasurement = nil
             showPhotos = false
             photoPresentationBusy = false
+            profilePhotoAddBusy = false
             albumPresentationBusy = false
         }
         .onAppear { receiveWidgetRoute() }
@@ -150,17 +156,6 @@ struct ContentView: View {
         } message: { Text(store.errorMessage ?? "") }
     }
 
-    private var photoAvatarValue: String {
-        let gallery = store.photoGallery
-        _ = gallery.revision
-        guard let baby = store.baby else { return "Фотографий пока нет" }
-        let photos = (try? gallery.photos(babyID: baby.id)) ?? []
-        guard let photo = BabyPhoto.avatar(in: photos, pinnedID: baby.pinnedPhotoID) else {
-            return "Фотографий пока нет"
-        }
-        return "Главное фото от \(photo.capturedAt.formatted(date: .long, time: .shortened))"
-    }
-
     private var today: some View {
         ScrollViewReader { scrollProxy in
             ScrollView {
@@ -172,7 +167,7 @@ struct ContentView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("Фотографии малыша")
                         .accessibilityIdentifier("photo.gallery.open")
-                        .accessibilityValue(photoAvatarValue)
+                        .accessibilityValue(ChildPhotoAvatar.accessibilityValue(for: store))
                         Button(action: openChildProfile) {
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack(spacing: 6) {
@@ -386,7 +381,7 @@ struct ContentView: View {
         // UIKit must finish dismissing the current sheet before its presenter
         // can show a widget action's anchored confirmation dialog.
         if editing != nil || editingMeasurement != nil || showSettings || showPhotos || photoPresentationBusy
-            || albumPresentationBusy
+            || profilePhotoAddBusy || albumPresentationBusy
         {
             widgetRouteAwaitsSheetDismissal = true
             editing = nil
@@ -394,6 +389,7 @@ struct ContentView: View {
             showSettings = false
             showPhotos = false
             photoPresentationBusy = false
+            profilePhotoAddBusy = false
             albumPresentationBusy = false
             return
         }

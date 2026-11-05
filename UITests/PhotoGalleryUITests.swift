@@ -30,6 +30,13 @@ final class PhotoGalleryUITests: XCTestCase {
         let oldID = "00000000-0000-0000-0000-000000000001"
         let newID = "00000000-0000-0000-0000-000000000002"
         let avatar = app.buttons["photo.gallery.open"]
+        let profileAvatar = app.buttons["child.profile.avatar"]
+        func checkProfileAvatar(_ expected: String?) {
+            app.tabBars.buttons["Малыш"].tap()
+            XCTAssertTrue(profileAvatar.waitForExistence(timeout: 5))
+            XCTAssertEqual(profileAvatar.value as? String, expected)
+            app.tabBars.buttons["Сегодня"].tap()
+        }
         let newestValue = avatar.value as? String
         XCTAssertNotNil(newestValue)
         XCTAssertTrue(newestValue?.hasPrefix("Главное фото от ") == true)
@@ -37,6 +44,7 @@ final class PhotoGalleryUITests: XCTestCase {
         headerLight.name = "Child photo header light"
         headerLight.lifetime = .keepAlways
         add(headerLight)
+        checkProfileAvatar(newestValue)
         avatar.tap()
         app.buttons["photo.grid.\(oldID)"].tap()
         action("photo.pin", app: app)
@@ -46,23 +54,27 @@ final class PhotoGalleryUITests: XCTestCase {
         XCTAssertNotNil(olderPinnedValue)
         XCTAssertTrue(olderPinnedValue?.hasPrefix("Главное фото от ") == true)
         XCTAssertNotEqual(olderPinnedValue, newestValue)
+        checkProfileAvatar(olderPinnedValue)
         app.terminate()
         app.launchArguments = ["--ui-testing", "--light-mode"]
         app.launch()
         XCTAssertTrue(avatar.waitForExistence(timeout: 10))
         XCTAssertEqual(avatar.value as? String, olderPinnedValue)
+        checkProfileAvatar(olderPinnedValue)
         avatar.tap()
         app.buttons["photo.grid.\(oldID)"].tap()
         action("photo.delete", app: app)
         app.buttons["photo.viewer.close"].tap()
         app.buttons["photo.gallery.close"].tap()
         XCTAssertEqual(avatar.value as? String, newestValue)
+        checkProfileAvatar(newestValue)
         avatar.tap()
         app.buttons["photo.grid.\(newID)"].tap()
         action("photo.delete", app: app)
         XCTAssertTrue(app.descendants(matching: .any)["photo.empty"].waitForExistence(timeout: 5))
         app.buttons["photo.gallery.close"].tap()
         XCTAssertEqual(avatar.value as? String, "Фотографий пока нет")
+        checkProfileAvatar("Фотографий пока нет")
     }
 
     func testFullscreenPagingSystemShareAndWidgetRoute() throws {
@@ -131,11 +143,18 @@ final class PhotoGalleryUITests: XCTestCase {
     func testWidgetRouteCancelsUndatedBatchWithoutReopeningNextPrompt() throws {
         let fixtures = ["--photo-import-date-fixture", "--photo-import-date-batch-fixture"]
         let url = try XCTUnwrap(URL(string: "malysh://widget/today"))
-        for (entry, fromAlbum) in [("Сегодня", false), ("Малыш", true)] {
-            try XCTContext.runActivity(named: "Импорт из «\(entry)»") { _ in
+        enum Entry: String, CaseIterable {
+            case today = "Сегодня"
+            case child = "Малыш"
+            case album = "Фотоальбом"
+        }
+        for entry in Entry.allCases {
+            try XCTContext.runActivity(named: "Импорт из «\(entry.rawValue)»") { _ in
                 let app = launch(fixtures)
-                if fromAlbum {
+                if entry != .today {
                     app.tabBars.buttons["Малыш"].tap()
+                }
+                if entry == .album {
                     let album = app.buttons["child.profile.photos"]
                     for _ in 0 ..< 6 where !album.isHittable {
                         app.swipeUp()
@@ -144,7 +163,14 @@ final class PhotoGalleryUITests: XCTestCase {
                     album.tap()
                     XCTAssertTrue(app.navigationBars["Фотографии малыша"].waitForExistence(timeout: 5))
                 }
-                app.buttons["photo.add"].tap()
+                let addPhoto = app.buttons["photo.add"]
+                if entry == .child {
+                    for _ in 0 ..< 6 where !addPhoto.isHittable {
+                        app.swipeUp()
+                    }
+                }
+                XCTAssertTrue(addPhoto.isHittable)
+                addPhoto.tap()
                 let source = app.buttons.matching(identifier: "photo.source.library").firstMatch
                 XCTAssertTrue(source.waitForExistence(timeout: 5))
                 source.tap()

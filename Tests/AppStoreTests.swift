@@ -88,16 +88,21 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(try persistence.events(babyID: shared.id), [sharedEvent])
     }
 
-    func testSharedImportKeepsConfirmedOrMeasuredStarter() async throws {
-        for confirmed in [false, true] {
+    func testSharedImportKeepsCustomizedStarter() async throws {
+        enum Customization: CaseIterable { case birthday, measurement, parentProfile }
+        for customization in Customization.allCases {
             let persistence = Persistence(inMemory: true)
             let store = AppStore(persistence: persistence)
             await store.load()
             var starter = try XCTUnwrap(store.baby)
-            starter.birthDateConfirmed = confirmed
-            try persistence.saveBaby(starter)
-            if !confirmed {
+            switch customization {
+            case .birthday:
+                starter.birthDateConfirmed = true
+                try persistence.saveBaby(starter)
+            case .measurement:
                 try persistence.saveMeasurement(ChildMeasurement(babyID: starter.id, type: .height, value: 50))
+            case .parentProfile:
+                try store.saveFamilyProfile(babyID: starter.id, memberID: "owner", name: "Никита", role: .father)
             }
             try insertSharedBaby(Baby(name: "Общий"), persistence: persistence)
             try store.reload()
@@ -119,28 +124,33 @@ final class AppStoreTests: XCTestCase {
             await store.load()
             let original = try XCTUnwrap(store.baby)
             let birthDate = Date(timeIntervalSinceNow: -86400)
+            let calendar = Calendar.current
+            let morning = try XCTUnwrap(calendar.date(bySettingHour: 7, minute: 23, second: 0, of: birthDate))
+            let birthTime = values.count > 1 ? CivilTime(date: morning) : nil
             try store.updateChildProfile(
                 babyID: original.id, name: original.name, birthDate: birthDate,
-                birthDateConfirmed: true, replacing: original, birthMeasurements: values
+                birthDateConfirmed: true, birthTime: birthTime, replacing: original, birthMeasurements: values
             )
             let saved = try XCTUnwrap(store.baby)
             XCTAssertTrue(saved.birthMeasurementsCompleted)
+            XCTAssertEqual(saved.birthTime, birthTime)
             let measurements = store.measurements
             XCTAssertEqual(measurements.count, values.count)
             for measurement in measurements {
                 XCTAssertEqual(measurement.value, values[measurement.type])
-                XCTAssertEqual(measurement.measuredAt, Calendar.current.startOfDay(for: birthDate))
+                XCTAssertEqual(measurement.measuredAt, birthTime == nil ? calendar.startOfDay(for: birthDate) : morning)
             }
 
             XCTAssertThrowsError(try store.updateChildProfile(
                 babyID: saved.id, name: saved.name, birthDate: birthDate,
-                birthDateConfirmed: true, replacing: saved, birthMeasurements: values
+                birthDateConfirmed: true, birthTime: birthTime, replacing: saved, birthMeasurements: values
             )) { XCTAssertEqual($0 as? ChildProfileError, .conflict) }
             try store.updateChildProfile(
                 babyID: saved.id, name: "Новое имя", birthDate: birthDate.addingTimeInterval(-86400),
                 birthDateConfirmed: true, replacing: saved
             )
             XCTAssertTrue(try XCTUnwrap(store.baby).birthMeasurementsCompleted)
+            XCTAssertNil(store.baby?.birthTime)
             XCTAssertEqual(store.measurements, measurements)
         }
     }

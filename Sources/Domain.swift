@@ -113,6 +113,35 @@ public struct CivilDay: Codable, Sendable, Equatable {
     }
 }
 
+/// Local clock time, independent of the device's current time zone.
+public struct CivilTime: Codable, Sendable, Equatable {
+    public let hour: Int
+    public let minute: Int
+
+    public init(date: Date, calendar: Calendar = .current) {
+        hour = calendar.component(.hour, from: date)
+        minute = calendar.component(.minute, from: date)
+    }
+
+    var isValid: Bool {
+        (0 ..< 24).contains(hour) && (0 ..< 60).contains(minute)
+    }
+
+    func date(on day: CivilDay, calendar: Calendar, recordedTimeZone: String? = nil) -> Date? {
+        var calendar = calendar
+        if let timeZone = recordedTimeZone.flatMap(TimeZone.init(identifier:)) {
+            calendar.timeZone = timeZone
+        }
+        let components = DateComponents(
+            year: day.year, month: day.month, day: day.day, hour: hour, minute: minute
+        )
+        guard isValid, let date = calendar.date(from: components),
+              calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date) == components
+        else { return nil }
+        return date
+    }
+}
+
 public struct Baby: Identifiable, Codable, Sendable, Equatable {
     public var id: UUID
     public var name: String
@@ -120,6 +149,8 @@ public struct Baby: Identifiable, Codable, Sendable, Equatable {
     public var parentProfiles: [String: ParentProfile]
     public var birthDateConfirmed: Bool
     public var birthDay: CivilDay?
+    public var birthTime: CivilTime?
+    var birthTimeZoneIdentifier: String?
     public var pinnedPhotoID: UUID?
     /// Stored separately on BabyRecord so edits to the profile payload cannot reset it.
     public internal(set) var birthMeasurementsCompleted = false
@@ -142,7 +173,10 @@ public struct Baby: Identifiable, Codable, Sendable, Equatable {
     }
 
     private enum CodingKeys: String,
-        CodingKey { case id, name, birthDate, parentProfiles, birthDateConfirmed, birthDay, pinnedPhotoID }
+        CodingKey
+    { case id, name, birthDate, parentProfiles, birthDateConfirmed, birthDay, birthTime,
+           birthTimeZoneIdentifier, pinnedPhotoID
+    }
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -152,6 +186,11 @@ public struct Baby: Identifiable, Codable, Sendable, Equatable {
         parentProfiles = try values.decodeIfPresent([String: ParentProfile].self, forKey: .parentProfiles) ?? [:]
         birthDateConfirmed = try values.decodeIfPresent(Bool.self, forKey: .birthDateConfirmed) ?? false
         birthDay = try values.decodeIfPresent(CivilDay.self, forKey: .birthDay)
+        let decodedBirthTime = try values.decodeIfPresent(CivilTime.self, forKey: .birthTime)
+        birthTime = birthDateConfirmed && decodedBirthTime?.isValid == true ? decodedBirthTime : nil
+        birthTimeZoneIdentifier = birthTime == nil ? nil : try values.decodeIfPresent(
+            String.self, forKey: .birthTimeZoneIdentifier
+        )
         pinnedPhotoID = try values.decodeIfPresent(UUID.self, forKey: .pinnedPhotoID)
     }
 }

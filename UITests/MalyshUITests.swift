@@ -160,8 +160,11 @@ final class MalyshUITests: XCTestCase {
         let familyEvents = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "event."))
             .allElementsBoundByIndex.map(\.label)
         XCTAssertTrue(familyEvents.contains { $0.contains("Семейная запись") })
+        let familyStatus = app.descendants(matching: .any).matching(identifier: "family.status").firstMatch
+        let sharedDiaryLabel = app.staticTexts.matching(NSPredicate(format: "label == %@", "Общий дневник")).firstMatch
         tap(app, id: "settings.open")
-        XCTAssertTrue(app.buttons["settings.child.open"].label.contains("Семейный малыш"))
+        XCTAssertTrue(familyStatus.waitForExistence(timeout: 5))
+        XCTAssertTrue(sharedDiaryLabel.waitForExistence(timeout: 5))
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "diary-picker").firstMatch.exists)
         let cleanup = app.buttons["family.cleanup"]
         XCTAssertTrue(cleanup.waitForExistence(timeout: 5))
@@ -187,7 +190,8 @@ final class MalyshUITests: XCTestCase {
         confirm.tap()
         let removed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: cleanup)
         XCTAssertEqual(XCTWaiter.wait(for: [removed], timeout: 5), .completed)
-        XCTAssertTrue(app.buttons["settings.child.open"].label.contains("Семейный малыш"))
+        XCTAssertTrue(familyStatus.waitForExistence(timeout: 5))
+        XCTAssertTrue(sharedDiaryLabel.waitForExistence(timeout: 5))
         app.terminate()
         app.launchArguments = ["--ui-testing", "--family-fixture", "--light-mode"]
         app.launch()
@@ -196,7 +200,8 @@ final class MalyshUITests: XCTestCase {
             .allElementsBoundByIndex.map(\.label)
         XCTAssertEqual(restoredEvents, familyEvents)
         tap(app, id: "settings.open")
-        XCTAssertTrue(app.buttons["settings.child.open"].label.contains("Семейный малыш"))
+        XCTAssertTrue(familyStatus.waitForExistence(timeout: 5))
+        XCTAssertTrue(sharedDiaryLabel.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["family.cleanup"].exists)
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "diary-picker").firstMatch.exists)
         capture(app, name: "Семья после удаления лишнего профиля")

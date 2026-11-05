@@ -19,6 +19,17 @@ struct ChildPhotoAvatar: View {
         .clipShape(RoundedRectangle(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
         .id(galleryRevision)
     }
+
+    static func accessibilityValue(for store: AppStore) -> String {
+        let gallery = store.photoGallery
+        _ = gallery.revision
+        guard let baby = store.baby else { return "Фотографий пока нет" }
+        let photos = (try? gallery.photos(babyID: baby.id)) ?? []
+        guard let photo = BabyPhoto.avatar(in: photos, pinnedID: baby.pinnedPhotoID) else {
+            return "Фотографий пока нет"
+        }
+        return "Главное фото от \(photo.capturedAt.formatted(date: .long, time: .shortened))"
+    }
 }
 
 /// The native source dialog belongs to the camera button, including in the home header.
@@ -27,6 +38,7 @@ struct PhotoAddButton: View {
     @Binding var isPresenting: Bool
     var onDismiss: () -> Void = {}
     var handlesServiceErrors = false
+    var showsTitle = false
     @State private var sourceDialog = false
     @State private var picker = false
     @State private var camera = false
@@ -45,14 +57,27 @@ struct PhotoAddButton: View {
 
     var body: some View {
         Button { sourceDialog = true; isPresenting = true } label: {
-            Group {
-                if isImporting {
-                    ProgressView().accessibilityLabel("Загружаем фотографии")
-                } else {
-                    Image(systemName: "camera")
+            if showsTitle {
+                Group {
+                    if isImporting {
+                        ProgressView("Загружаем фотографии")
+                    } else {
+                        Label("Добавить фотографию", systemImage: "camera")
+                    }
                 }
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: AppDesign.Metrics.minimumTouch)
+                .padding(.vertical, AppDesign.Spacing.related)
+                .foregroundStyle(AppDesign.Palette.primaryText)
+                .background(AppDesign.Palette.sleep, in: RoundedRectangle(cornerRadius: AppDesign.Radius.card))
+                .contentShape(RoundedRectangle(cornerRadius: AppDesign.Radius.card))
+            } else if isImporting {
+                ProgressView().accessibilityLabel("Загружаем фотографии")
+                    .frame(minWidth: AppDesign.Metrics.minimumTouch, minHeight: AppDesign.Metrics.minimumTouch)
+            } else {
+                Image(systemName: "camera")
+                    .frame(minWidth: AppDesign.Metrics.minimumTouch, minHeight: AppDesign.Metrics.minimumTouch)
             }
-            .frame(minWidth: AppDesign.Metrics.minimumTouch, minHeight: AppDesign.Metrics.minimumTouch)
         }
         .accessibilityLabel("Добавить фотографию")
         .accessibilityIdentifier("photo.add")
