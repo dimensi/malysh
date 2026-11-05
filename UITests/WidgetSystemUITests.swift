@@ -266,9 +266,11 @@ final class WidgetSystemUITests: XCTestCase {
         }
         edit.tap()
         attach(springboard, stage: "Native widget gallery — Edit menu")
-        let add = springboard.buttons.matching(NSPredicate(format: "label IN %@", [
-            "Add Widget", "Add Widgets", "Добавить виджет", "Добавить виджеты",
-        ])).firstMatch
+        let addWidgetLabel = NSPredicate(
+            format: "label MATCHES %@",
+            #"\s*(Add Widgets?|Добавить виджет(?:ы)?)\s*"#
+        )
+        let add = springboard.buttons.matching(addWidgetLabel).firstMatch
         guard add.waitForExistence(timeout: 5) else {
             XCTFail("Native Edit menu did not expose Add Widget; inspect attachment")
             return
@@ -282,6 +284,7 @@ final class WidgetSystemUITests: XCTestCase {
             return
         }
         search.tap()
+        dismissKeyboardTutorial(in: springboard)
         search.typeText("Малыш")
         attach(springboard, stage: "Native widget gallery — Малыш search results")
         let provider = springboard.cells.matching(NSPredicate(format: "label == %@", "Малыш")).firstMatch
@@ -292,7 +295,7 @@ final class WidgetSystemUITests: XCTestCase {
         }
         provider.tap()
         attach(springboard, stage: "Native widget gallery — Малыш descriptor picker")
-        let quickActions = springboard.staticTexts["Быстрые действия"].firstMatch
+        let quickActions = springboard.buttons["Малыш, Быстрые действия"].firstMatch
         for _ in 0 ..< 14 {
             if quickActions.exists, quickActions.isHittable {
                 break
@@ -305,9 +308,7 @@ final class WidgetSystemUITests: XCTestCase {
             return
         }
         attach(springboard, stage: "Native widget gallery — selected Быстрые действия medium")
-        let addWidget = springboard.buttons.matching(NSPredicate(format: "label IN %@", [
-            "Add Widget", "Add Widgets", "Добавить виджет", "Добавить виджеты",
-        ])).firstMatch
+        let addWidget = springboard.buttons.matching(addWidgetLabel).firstMatch
         guard addWidget.waitForExistence(timeout: 5) else {
             attach(springboard, stage: "Native widget gallery — missing Add Widget confirmation")
             XCTFail("Selected descriptor did not expose Add Widget")
