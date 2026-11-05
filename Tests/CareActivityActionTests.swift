@@ -1,9 +1,160 @@
+import CoreData
 import Foundation
 @testable import Malysh
 import XCTest
 
 @MainActor
 final class CareActivityActionTests: XCTestCase {
+    func testCapturedSleepControlReplayCannotToggleOrFinishNewerTimer() async throws {
+        let runtime = CareActivityRuntime(
+            persistence: Persistence(inMemory: true),
+            coordinator: RecordingCareCoordinator()
+        )
+        await runtime.ensureReady()
+        let babyID = try XCTUnwrap(runtime.store.baby?.id)
+        try await CareActivityRuntime.$actionRuntime.withValue(runtime) {
+            let start = SleepCareControlIntent(babyID: babyID, commandID: UUID(), eventID: nil)
+            _ = try await start.perform()
+            _ = try await start.perform()
+            let sleep = try XCTUnwrap(runtime.store.active.first { $0.kind == .sleep })
+            let stop = SleepCareControlIntent(babyID: babyID, commandID: UUID(), eventID: sleep.id)
+            _ = try await stop.perform()
+            _ = try await stop.perform()
+            XCTAssertTrue(runtime.store.active.isEmpty)
+            _ = try await SleepCareControlIntent(babyID: babyID, commandID: UUID(), eventID: nil).perform()
+            let newer = try XCTUnwrap(runtime.store.active.first)
+            XCTAssertNotEqual(newer.id, sleep.id)
+            _ = try await stop.perform()
+            XCTAssertEqual(runtime.store.active.first?.id, newer.id)
+        }
+    }
+
+    func testWidgetCommandsUseExactDiaryAndSurviveReplayAfterDeletion() async throws {
+        let persistence = Persistence(inMemory: true)
+        let runtime = CareActivityRuntime(persistence: persistence, coordinator: RecordingCareCoordinator())
+        await runtime.ensureReady()
+        let babyID = try XCTUnwrap(runtime.store.baby?.id)
+        let other = Baby(name: "Другой")
+        try persistence.saveBaby(other)
+        runtime.store.select(other.id)
+        let command = UUID()
+        try await CareActivityRuntime.$actionRuntime.withValue(runtime) {
+            let intent = WidgetCareIntent(babyID: babyID, commandID: command, action: .wetDiaper)
+            _ = try await intent.perform()
+            _ = try await intent.perform()
+        }
+        XCTAssertEqual(try persistence.events(babyID: babyID).map(\.id), [command])
+        XCTAssertTrue(try persistence.events(babyID: other.id).isEmpty)
+        try persistence.deleteEvent(id: command)
+        let restarted = AppStore(persistence: persistence)
+        await restarted.load()
+        try restarted.recordWidgetAction(.wetDiaper, babyID: babyID, commandID: command)
+        XCTAssertTrue(try persistence.events(babyID: babyID).isEmpty)
+    }
+
+    func testWidgetCommandsPersistAcrossSQLiteRuntimeRestart() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let command = UUID()
+        var runtime: CareActivityRuntime? = CareActivityRuntime(persistence: Persistence(directory: directory),
+                                                                coordinator: RecordingCareCoordinator())
+        await runtime?.ensureReady()
+        let babyID = try XCTUnwrap(runtime?.store.baby?.id)
+        try await runtime?.recordWidgetAction(.dirtyDiaper, babyID: babyID, commandID: command)
+        runtime = nil
+        let restored = CareActivityRuntime(
+            persistence: Persistence(directory: directory),
+            coordinator: RecordingCareCoordinator()
+        )
+        try await restored.recordWidgetAction(.dirtyDiaper, babyID: babyID, commandID: command)
+        XCTAssertEqual(restored.store.events.filter { $0.id == command }.count, 1)
+        XCTAssertEqual(restored.store.events.first { $0.id == command }?.diaperType, .dirty)
+        try await CareActivityRuntime.$actionRuntime.withValue(restored) {
+            _ = try await WidgetCareIntent(babyID: babyID, commandID: UUID(), action: .startSleep).perform()
+            let sleep = try XCTUnwrap(restored.store.active.first { $0.kind == .sleep })
+            _ = try await FinishCareActivityIntent(eventID: sleep.id, babyID: babyID).perform()
+        }
+        XCTAssertTrue(restored.store.active.isEmpty)
+    }
+
+    func testReadOnlyCoreDataSaveFailureThrowsAndDoesNotConsumeCommand() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let bootstrap = Persistence(directory: directory)
+        try await bootstrap.load()
+        let baby = Baby(name: "Малыш")
+        try bootstrap.saveBaby(baby)
+        func detach(_ persistence: Persistence) throws {
+            persistence.container.viewContext.reset()
+            for store in persistence.container.persistentStoreCoordinator.persistentStores {
+                try persistence.container.persistentStoreCoordinator.remove(store)
+            }
+        }
+        try detach(bootstrap)
+        let readOnly = Persistence(directory: directory)
+        for description in readOnly.container.persistentStoreDescriptions {
+            description.setOption(true as NSNumber, forKey: NSReadOnlyPersistentStoreOption)
+        }
+        let coordinator = RecordingCareCoordinator()
+        let runtime = CareActivityRuntime(persistence: readOnly, coordinator: coordinator)
+        await runtime.ensureReady()
+        XCTAssertTrue(runtime.store.ready)
+        let command = UUID()
+        var failure: Error?
+        await CareActivityRuntime.$actionRuntime.withValue(runtime) {
+            do {
+                _ = try await WidgetCareIntent(babyID: baby.id, commandID: command, action: .wetDiaper).perform()
+            } catch {
+                failure = error
+            }
+        }
+        let error = try XCTUnwrap(failure) as NSError
+        XCTAssertEqual(error.domain, NSCocoaErrorDomain)
+        XCTAssertFalse(failure is EventValidationError)
+        XCTAssertFalse(readOnly.container.viewContext.hasChanges, "Failed save must roll back inserted events")
+        XCTAssertTrue(try readOnly.events(babyID: baby.id).isEmpty)
+        XCTAssertTrue(runtime.store.events.isEmpty)
+        XCTAssertEqual(coordinator.flushes, 1)
+        XCTAssertFalse((UserDefaults.standard.stringArray(forKey: "widgetCommands.\(baby.id.uuidString)") ?? [])
+            .contains(command.uuidString))
+        try detach(readOnly)
+        let writable = Persistence(directory: directory)
+        let restored = CareActivityRuntime(persistence: writable, coordinator: RecordingCareCoordinator())
+        try await restored.recordWidgetAction(.wetDiaper, babyID: baby.id, commandID: command)
+        XCTAssertEqual(try writable.events(babyID: baby.id).map(\.id), [command])
+        try detach(writable)
+    }
+
+    func testFailedWidgetCommandDoesNotConsumeReceipt() async throws {
+        let store = AppStore(persistence: Persistence(inMemory: true))
+        await store.load()
+        let babyID = try XCTUnwrap(store.baby?.id)
+        let command = UUID()
+        XCTAssertThrowsError(try store.recordWidgetAction(.startSleep, babyID: babyID, commandID: command,
+                                                          at: Date().addingTimeInterval(86400)))
+        XCTAssertTrue(store.events.isEmpty)
+        try store.recordWidgetAction(.startSleep, babyID: babyID, commandID: command)
+        XCTAssertEqual(store.active.first?.id, command)
+    }
+
+    func testWidgetStartsRejectSecondActiveTimerAndWrongDiary() async throws {
+        let store = AppStore(persistence: Persistence(inMemory: true))
+        await store.load()
+        let babyID = try XCTUnwrap(store.baby?.id)
+        try store.recordWidgetAction(.startBreastRight, babyID: babyID, commandID: UUID())
+        let staleStart = UUID()
+        try store.recordWidgetAction(.startBreastLeft, babyID: babyID, commandID: staleStart)
+        try store.recordWidgetAction(.startSleep, babyID: babyID, commandID: UUID())
+        XCTAssertEqual(store.active.count, 2)
+        XCTAssertEqual(store.active.first { $0.kind == .breast }?.side, .right)
+        XCTAssertThrowsError(try store.recordWidgetAction(.dirtyDiaper, babyID: UUID(), commandID: UUID()))
+        XCTAssertEqual(store.events.count, 2)
+        let breast = try XCTUnwrap(store.active.first { $0.kind == .breast })
+        try store.finish(eventID: breast.id, babyID: babyID)
+        try store.recordWidgetAction(.startBreastLeft, babyID: babyID, commandID: staleStart)
+        XCTAssertFalse(store.active.contains { $0.kind == .breast })
+    }
+
     func testActionsUseLatestPersistedSideAndDuplicateRequestsAreIdempotent() async throws {
         let store = AppStore(persistence: Persistence(inMemory: true))
         await store.load()
@@ -61,5 +212,25 @@ final class CareActivityActionTests: XCTestCase {
         XCTAssertNotNil(persisted.first { $0.id == sleep.id }?.end)
         XCTAssertEqual(persisted.first { $0.id == breast.id }?.side, .right)
         XCTAssertTrue(restored.events.isEmpty)
+    }
+}
+
+@MainActor
+private final class RecordingCareCoordinator: CareActivityCoordinating {
+    var events: [CareEvent] = []
+    var babies: [Baby] = []
+    var allowStart = false
+    var calls = 0
+    var flushes = 0
+
+    func reconcile(events: [CareEvent], babies: [Baby], allowStart: Bool) {
+        self.events = events
+        self.babies = babies
+        self.allowStart = allowStart
+        calls += 1
+    }
+
+    func flush() async {
+        flushes += 1
     }
 }

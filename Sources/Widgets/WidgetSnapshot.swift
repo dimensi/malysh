@@ -9,14 +9,38 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
     let babyID: UUID?
     let babyName: String?
     let events: [WidgetSnapshotEvent]
+    let birthDate: Date?
+    let birthDay: CivilDay?
+    private let activeEventValues: [WidgetActiveEvent]?
+    private let actionToken: UUID?
+    var activeEvents: [WidgetActiveEvent] {
+        activeEventValues ?? []
+    }
+
+    /// Stable for a rendered snapshot; a refreshed snapshot permits the next point event.
+    func commandID(for action: WidgetCareAction) -> UUID {
+        var bytes = (actionToken ?? babyID ?? UUID(uuidString: "00000000-0000-0000-0000-000000000000")!).uuid
+        bytes.15 ^= UInt8(WidgetCareAction.allCases.firstIndex(of: action)! + 1)
+        return UUID(uuid: bytes)
+    }
 
     init(baby: Baby?, events: [CareEvent], generatedAt: Date = Date()) {
         version = Self.currentVersion
         self.generatedAt = generatedAt
         babyID = baby?.id
         babyName = baby?.name
-        // Retain a week for offline day/time-zone projection, plus the last feed even
-        // when the diary has been quiet for longer. Never serialize notes or authors.
+        birthDate = baby?.birthDateConfirmed == true ? baby?.birthDate : nil
+        birthDay = baby?.birthDateConfirmed == true ? baby?.birthDay : nil
+        actionToken = UUID()
+        let active = events.filter {
+            $0.babyID == baby?.id && $0.end == nil && $0.start <= generatedAt &&
+                ($0.kind == .breast || $0.kind == .sleep)
+        }.sorted { $0.start == $1.start ? $0.id.uuidString < $1.id.uuidString : $0.start > $1.start }
+        activeEventValues = [EventKind.breast, .sleep].compactMap { kind in
+            active.first { $0.kind == kind }.map(WidgetActiveEvent.init)
+        }
+        // Retain a week for offline day/time-zone projection and the latest category
+        // events in quiet diaries. Never serialize notes or authors.
         let normalizedEvents: [CareEvent] = events.map { event in
             var normalized = event
             // Imported point events can omit end or contain a legacy interval.
@@ -31,16 +55,25 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
                 $0.end! >= $0.start && $0.end! <= generatedAt
         }.sorted { $0.start == $1.start ? $0.id.uuidString < $1.id.uuidString : $0.start > $1.start }
         let cutoff = generatedAt.addingTimeInterval(-8 * 86400)
-        var retained = Array(completed.filter { $0.end! >= cutoff }.prefix(Self.historyLimit))
-        let anchors = Array(completed.prefix(3)) + Array(completed.first(where: {
-            $0.kind == .breast || $0.kind == .bottle
-        }).map { [$0] } ?? [])
-        for anchor in anchors where !retained.contains(where: { $0.id == anchor.id }) {
-            if retained.count == Self.historyLimit {
-                retained.removeLast()
-            }
+        let anchors = Array(completed.prefix(3)) + [
+            completed.first { $0.kind == .breast || $0.kind == .bottle },
+            completed.first { $0.kind == .sleep },
+            completed.first { $0.kind == .diaper && $0.diaperType != .dirty },
+            completed.first { $0.kind == .diaper && $0.diaperType == .dirty },
+        ].compactMap(\.self)
+        // Reserve distinct anchors before filling recent history so a full cache
+        // cannot evict one anchor while making room for another.
+        var retained: [CareEvent] = []
+        var retainedIDs: Set<UUID> = []
+        for anchor in anchors where retainedIDs.insert(anchor.id).inserted {
             retained.append(anchor)
         }
+        for event in completed where event.end! >= cutoff && retained.count < Self.historyLimit {
+            if retainedIDs.insert(event.id).inserted {
+                retained.append(event)
+            }
+        }
+        retained.sort { $0.start == $1.start ? $0.id.uuidString < $1.id.uuidString : $0.start > $1.start }
         self.events = retained.map(WidgetSnapshotEvent.init)
     }
 
@@ -56,7 +89,10 @@ struct WidgetSnapshot: Codable, Equatable, Sendable {
         return WidgetSummary(babyID: babyID, babyName: babyName, feeds: statistics.feeds,
                              wetDiapers: statistics.wetDiapers, sleepSeconds: statistics.sleepSeconds,
                              lastFeeding: completed.first { $0.kind == .breast || $0.kind == .bottle },
-                             recentEvents: Array(completed.prefix(3)), generatedAt: generatedAt)
+                             lastSleep: completed.first { $0.kind == .sleep },
+                             lastWetDiaper: completed.first { $0.kind == .diaper && $0.diaperType != .dirty },
+                             recentEvents: Array(completed.prefix(3)), generatedAt: generatedAt, birthDate: birthDate,
+                             birthDay: birthDay, activeEvents: activeEvents)
     }
 }
 
@@ -85,6 +121,32 @@ struct WidgetSummary: Equatable, Sendable {
     let wetDiapers: Int
     let sleepSeconds: TimeInterval
     let lastFeeding: WidgetSnapshotEvent?
+    let lastSleep: WidgetSnapshotEvent?
+    let lastWetDiaper: WidgetSnapshotEvent?
     let recentEvents: [WidgetSnapshotEvent]
     let generatedAt: Date
+    let birthDate: Date?
+    let birthDay: CivilDay?
+    let activeEvents: [WidgetActiveEvent]
+}
+
+/// Only timer display data; notes and identities never enter the shared cache.
+struct WidgetActiveEvent: Codable, Equatable, Identifiable, Sendable {
+    let id: UUID
+    let kind: EventKind
+    let start: Date
+    let side: BreastSide
+    let sideStartedAt: Date?
+    let leftSeconds: TimeInterval
+    let rightSeconds: TimeInterval
+
+    init(_ event: CareEvent) {
+        id = event.id
+        kind = event.kind
+        start = event.start
+        side = event.side
+        sideStartedAt = event.sideStartedAt
+        leftSeconds = event.leftSeconds
+        rightSeconds = event.rightSeconds
+    }
 }

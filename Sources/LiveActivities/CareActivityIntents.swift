@@ -45,7 +45,13 @@ struct FinishCareActivityIntent: LiveActivityIntent {
         #if MALYSH_WIDGET_EXTENSION
             throw CareIntentFailure.appUnavailable
         #else
-            try await CareActivityRuntime.current.finish(eventID: eventID, babyID: babyID)
+            #if DEBUG
+                try await WidgetCommandTiming.measure(action: "finish") {
+                    try await CareActivityRuntime.current.finish(eventID: eventID, babyID: babyID)
+                }
+            #else
+                try await CareActivityRuntime.current.finish(eventID: eventID, babyID: babyID)
+            #endif
         #endif
     }
 }
@@ -87,7 +93,13 @@ struct SwitchCareSideIntent: LiveActivityIntent {
         #if MALYSH_WIDGET_EXTENSION
             throw CareIntentFailure.appUnavailable
         #else
-            try await CareActivityRuntime.current.switchSide(eventID: eventID, babyID: babyID, to: side)
+            #if DEBUG
+                try await WidgetCommandTiming.measure(action: "switchSide") {
+                    try await CareActivityRuntime.current.switchSide(eventID: eventID, babyID: babyID, to: side)
+                }
+            #else
+                try await CareActivityRuntime.current.switchSide(eventID: eventID, babyID: babyID, to: side)
+            #endif
         #endif
     }
 }

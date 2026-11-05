@@ -8,9 +8,17 @@ struct WidgetSnapshotStore: Sendable {
         directory?.appendingPathComponent("diary-widget-v1.json")
     }
 
-    init(directory: URL? = FileManager.default.containerURL(
-        forSecurityApplicationGroupIdentifier: WidgetSnapshotStore.appGroupIdentifier
-    )) {
+    static var defaultDirectory: URL? {
+        let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
+        #if DEBUG
+            if UserDefaults(suiteName: appGroupIdentifier)?.bool(forKey: "debug.widgetTestingSession") == true {
+                return group?.appendingPathComponent("UITesting", isDirectory: true)
+            }
+        #endif
+        return group
+    }
+
+    init(directory: URL? = WidgetSnapshotStore.defaultDirectory) {
         self.directory = directory
     }
 
