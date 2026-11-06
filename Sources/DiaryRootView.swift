@@ -7,6 +7,7 @@ struct DiaryRootView: View {
     @State private var name = ""
     @State private var born = false
     @State private var birthday = Date()
+    @FocusState private var nameFocused: Bool
 
     private enum Step {
         case welcome, create, waitForInvitation
@@ -139,16 +140,7 @@ struct DiaryRootView: View {
             backButton { step = .welcome }
             heading("Создать дневник", symbol: "book.closed")
             VStack(alignment: .leading, spacing: AppDesign.Spacing.actionInset) {
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
-                    Text("Имя ребёнка").font(.headline)
-                    TextField("Имя ребёнка", text: $name,
-                              prompt: Text("Малыш").foregroundStyle(AppDesign.Palette.primaryText.opacity(0.72)))
-                        .textContentType(.givenName)
-                        .textInputAutocapitalization(.words)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(minHeight: AppDesign.Metrics.minimumTouch)
-                        .accessibilityIdentifier("onboarding.name")
-                }
+                nameField
                 Divider()
                 Toggle("Малыш уже родился", isOn: $born)
                     .frame(minHeight: AppDesign.Metrics.minimumTouch)
@@ -163,6 +155,33 @@ struct DiaryRootView: View {
             primary("Создать дневник", id: "onboarding.save") {
                 store.perform { try store.createFirstDiary(name: name, birthDate: born ? birthday : nil) }
             }
+        }
+    }
+
+    private var nameField: some View {
+        let outline = RoundedRectangle(cornerRadius: 12)
+        return VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
+            Text("Имя ребёнка").font(.headline)
+                .accessibilityHidden(true)
+            TextField("Имя ребёнка", text: $name,
+                      prompt: Text("Малыш").foregroundStyle(AppDesign.Palette.primaryText.opacity(0.72)))
+                .textContentType(.givenName)
+                .textInputAutocapitalization(.words)
+                .textFieldStyle(.plain)
+                .submitLabel(.done)
+                .focused($nameFocused)
+                .onSubmit { nameFocused = false }
+                .padding(.horizontal, AppDesign.Spacing.row)
+                .frame(minHeight: 48)
+                .background(Color(uiColor: .tertiarySystemFill), in: outline)
+                .overlay {
+                    outline.strokeBorder(
+                        nameFocused ? AppDesign.Palette.accent : Color(uiColor: .separator),
+                        lineWidth: nameFocused ? 1.5 : 0.5
+                    )
+                    .allowsHitTesting(false)
+                }
+                .accessibilityIdentifier("onboarding.name")
         }
     }
 

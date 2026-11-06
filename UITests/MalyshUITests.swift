@@ -281,12 +281,17 @@ final class MalyshUITests: XCTestCase {
         born.tap()
         XCTAssertTrue(app.datePickers["onboarding.birthday"].waitForExistence(timeout: 5))
         capture(app, name: "onboarding-create-birthday-dark")
+        let name = app.textFields["onboarding.name"]
+        name.tap()
+        capture(app, name: "onboarding-name-focused-dark")
+        name.typeText("Nika\n")
         tap(app, id: "onboarding.save")
         XCTAssertTrue(app.buttons["child.profile.open"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Ведите дневник вместе"].exists)
         tap(app, id: "onboarding.invite.later")
         tap(app, id: "child.profile.open")
         XCTAssertTrue(app.staticTexts["child.profile.age"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.staticTexts["child.profile.name"].label, "Nika")
         tap(app, id: "child.profile.edit")
         XCTAssertTrue(app.textFields["child.editor.birth.weight"].waitForExistence(timeout: 5))
     }
