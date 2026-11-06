@@ -28,22 +28,34 @@ final class CareActivityRuntime {
         }
         NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)
             .merge(with: NotificationCenter.default.publisher(for: .malyshSharingChanged))
+            .map { @Sendable in (name: $0.name, sender: NotificationSender($0)) }
             .receive(on: RunLoop.main)
-            .sink { [weak self] notification in
-                guard let store = self?.store else { return }
-                if notification.name == .malyshSharingChanged {
+            .sink { [weak self] notice in
+                guard let store = self?.store, store.ready, store.persistence.isLoaded else { return }
+                if notice.name == .malyshSharingChanged {
+                    guard store.cloudMirroringEnabled else { return }
                     store.syncStatus = "Доступ к дневнику изменён · ожидаем обновление iCloud"
+                } else if notice.sender.object !== store.persistence.container.persistentStoreCoordinator {
+                    return
                 }
-                guard store.ready else { return }
                 store.perform { try store.reload() }
             }
             .store(in: &subscriptions)
         NotificationCenter.default.publisher(for: NSPersistentCloudKitContainer.eventChangedNotification)
+            .compactMap { @Sendable notification -> (
+                sender: NotificationSender,
+                event: NSPersistentCloudKitContainer.Event
+            )? in
+                let key = NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+                guard let event = notification.userInfo?[key] as? NSPersistentCloudKitContainer.Event
+                else { return nil }
+                return (sender: NotificationSender(notification), event: event)
+            }
             .receive(on: RunLoop.main)
-            .sink { [weak self] notification in
-                guard let event = notification.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey]
-                    as? NSPersistentCloudKitContainer.Event else { return }
-                self?.store.handleCloudEvent(event)
+            .sink { [weak self] notice in
+                guard let store = self?.store, store.persistence.isLoaded,
+                      notice.sender.object === store.persistence.container else { return }
+                store.handleCloudEvent(notice.event)
             }
             .store(in: &subscriptions)
     }
@@ -158,5 +170,14 @@ final class CareActivityRuntime {
         #if DEBUG
             WidgetCommandTiming.current?.mark("coordinatorFlushComplete")
         #endif
+    }
+}
+
+/// Queued notifications must not keep the previous Core Data stack alive.
+private struct NotificationSender {
+    weak var object: AnyObject?
+
+    init(_ notification: Notification) {
+        object = notification.object as AnyObject?
     }
 }

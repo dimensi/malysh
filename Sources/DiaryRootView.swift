@@ -25,7 +25,11 @@ struct DiaryRootView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.section) {
-                    screen
+                    if store.cloudSwitchInProgress {
+                        cloudSwitchProgress
+                    } else {
+                        screen
+                    }
                 }
                 .frame(maxWidth: 480, alignment: .leading)
                 .padding(AppDesign.Spacing.contentInset)
@@ -58,7 +62,7 @@ struct DiaryRootView: View {
             ProgressView()
         case .loadFailed:
             heading("Не удалось открыть дневник", symbol: "exclamationmark.icloud")
-            Text("Попробуйте открыть хранилище ещё раз.").foregroundStyle(.secondary)
+            Text(store.errorMessage ?? "Попробуйте открыть хранилище ещё раз.").foregroundStyle(.secondary)
             primary("Попробовать снова", id: "onboarding.storage.retry") {
                 Task {
                     await CareActivityRuntime.shared.ensureReady(checkCloudAccount: false)
@@ -67,27 +71,14 @@ struct DiaryRootView: View {
                 }
             }
         case .restoring:
-            if store.disablingCloud {
-                heading("Дневник без iCloud", symbol: "iphone")
-                restartInstructions("После перезапуска можно будет создать дневник на этом iPhone.")
-            } else {
-                heading("Восстанавливаем дневники", symbol: "icloud.and.arrow.down")
-                if store.needsCloudRestart {
-                    restartInstructions("Приложение проверит дневники в iCloud.")
-                } else {
-                    ProgressView("Проверяем iCloud")
-                }
-            }
+            heading("Восстанавливаем дневники", symbol: "icloud.and.arrow.down")
+            ProgressView("Синхронизируем дневники из iCloud")
             useLocalButton
         case let .restoreFailed(message):
             heading("Не удалось восстановить дневники", symbol: "exclamationmark.icloud")
             Text(message).foregroundStyle(.secondary)
-            if store.persistence.cloudEnabled {
-                primary("Проверить снова", id: "onboarding.restore.retry") {
-                    Task { await store.retryRestoration() }
-                }
-            } else {
-                restartInstructions("Приложение повторит проверку iCloud.")
+            primary("Попробовать снова", id: "onboarding.restore.retry") {
+                Task { await store.retryRestoration() }
             }
             useLocalButton
         case .joining:
@@ -203,7 +194,7 @@ struct DiaryRootView: View {
             if !store.isConnectingFamily, !store.isImportingFamily || store.familyConnectionFailure != nil {
                 Button("Создать свой дневник") {
                     store.cancelInvitation()
-                    if !store.persistence.cloudEnabled {
+                    if received {
                         store.requestCloud(false)
                     }
                     step = .create
@@ -217,18 +208,11 @@ struct DiaryRootView: View {
     @ViewBuilder private var receivedInvitationStatus: some View {
         if let failure = store.familyConnectionFailure {
             Text(failure).foregroundStyle(.secondary)
-            if store.persistence.cloudEnabled, store.invitation != nil {
+            if store.invitation != nil {
                 primary("Попробовать снова", id: "onboarding.join.retry") {
-                    Task {
-                        await store.retryRestoration()
-                        await store.resumeInvitation()
-                    }
+                    Task { await store.retryRestoration() }
                 }
-            } else if store.invitation != nil {
-                restartInstructions("Приложение повторит подключение к семейному дневнику.")
             }
-        } else if store.needsCloudRestart {
-            restartInstructions("Приглашение сохранено. Приложение продолжит подключение.")
         } else if store.isImportingFamily {
             ProgressView("Синхронизируем семейный дневник")
             Text("Записи могут появиться через несколько минут. Можно свернуть приложение.")
@@ -240,21 +224,21 @@ struct DiaryRootView: View {
         }
     }
 
+    @ViewBuilder private var cloudSwitchProgress: some View {
+        heading(store.cloudRequested ? "Подключаем iCloud" : "Отключаем iCloud", symbol: "icloud")
+        ProgressView()
+        if store.cloudRequested {
+            useLocalButton
+        }
+    }
+
     private var useLocalButton: some View {
-        Button(store.cloudRequested ? "Пользоваться без iCloud" : "Вернуть подключение к iCloud") {
-            store.requestCloud(!store.cloudRequested)
+        Button("Пользоваться без iCloud") {
+            store.requestCloud(false)
             step = .welcome
         }
         .frame(minHeight: AppDesign.Metrics.minimumTouch)
         .accessibilityIdentifier("onboarding.restore.local")
-    }
-
-    private func restartInstructions(_ description: String) -> some View {
-        VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
-            Text("Закройте и снова откройте «Малыш»").font(.headline)
-            Text(description).foregroundStyle(.secondary)
-        }
-        .diaryCard(color: AppDesign.Palette.cardBackground)
     }
 
     private func heading(_ title: String, symbol: String) -> some View {

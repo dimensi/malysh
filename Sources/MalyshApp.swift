@@ -18,7 +18,7 @@ struct MalyshApp: App {
                     await store.resumeInvitation()
                 }
                 .task { await CareActivityRuntime.shared.ensureReady() }
-                .onChange(of: store.persistence.cloudEnabled, initial: true) { _, enabled in
+                .onChange(of: store.cloudMirroringEnabled, initial: true) { _, enabled in
                     if enabled {
                         UIApplication.shared.registerForRemoteNotifications()
                     }

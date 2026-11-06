@@ -216,6 +216,46 @@ final class MalyshUITests: XCTestCase {
         XCTAssertFalse(event.exists)
     }
 
+    func testCloudModeChangesInSettingsWithoutClosingDiary() {
+        let app = launch(appearance: ["--dark-mode", "--large-text"])
+        tap(app, id: "action.diaper")
+        tap(app, id: "diaper.wet", label: "Мокрый")
+        let savedEvent = button(app, prefix: "event.")
+        XCTAssertTrue(savedEvent.waitForExistence(timeout: 5))
+        let eventID = savedEvent.identifier
+        tap(app, id: "action.sleep")
+        let activeTimer = button(app, prefix: "timer.finish.")
+        XCTAssertTrue(activeTimer.waitForExistence(timeout: 5))
+        let timerID = activeTimer.identifier
+
+        tap(app, id: "settings.open")
+        let toggle = app.switches["cloud-toggle"]
+        reveal(toggle, in: app)
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        let localStatus = app.staticTexts["Записи сохраняются на этом iPhone"]
+        let cloudStatus = app.staticTexts["Войдите в iCloud в настройках iPhone."]
+        for enabled in [true, false, true] {
+            reveal(toggle, in: app)
+            XCTAssertTrue(toggle.isEnabled)
+            let control = toggle.switches.firstMatch
+            if control.exists {
+                control.tap()
+            } else {
+                toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+            }
+            XCTAssertEqual(toggle.value as? String, enabled ? "1" : "0")
+            XCTAssertTrue((enabled ? cloudStatus : localStatus).waitForExistence(timeout: 5))
+            XCTAssertTrue(app.navigationBars["Настройки"].exists)
+        }
+
+        let settings = app.navigationBars["Настройки"]
+        settings.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).press(
+            forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95))
+        )
+        XCTAssertTrue(app.buttons[timerID].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons[eventID].exists)
+    }
+
     func testFirstLaunchCanReturnFromFamilyAndCreateBeforeBirthOffline() {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "--test-onboarding", "--reset-data", "--light-mode"]
@@ -232,7 +272,7 @@ final class MalyshUITests: XCTestCase {
         XCTAssertTrue(app.buttons["onboarding.create"].waitForExistence(timeout: 10))
         capture(app, name: "onboarding-welcome-large-text")
         tap(app, id: "onboarding.restore")
-        XCTAssertTrue(app.staticTexts["Закройте и снова откройте «Малыш»"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Войдите в iCloud в настройках iPhone."].waitForExistence(timeout: 5))
         tap(app, id: "onboarding.restore.local")
         tap(app, id: "onboarding.join")
         tap(app, id: "onboarding.join.create")
