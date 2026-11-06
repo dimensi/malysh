@@ -42,10 +42,7 @@ struct CareLiveActivityWidget: Widget {
                     .foregroundStyle(context.state.islandAccent)
                     .accessibilityLabel(context.state.title)
             } compactTrailing: {
-                CareActivityTimer(start: context.state.start)
-                    .font(.caption2.weight(.medium))
-                    .frame(width: 64)
-                    .foregroundStyle(context.state.islandAccent)
+                CompactCareActivityTimer(state: context.state)
             } minimal: {
                 Image(systemName: context.state.symbol)
                     .foregroundStyle(context.state.islandAccent)
@@ -53,6 +50,20 @@ struct CareLiveActivityWidget: Widget {
             }
             .keylineTint(context.state.islandAccent)
             .contentMargins(.horizontal, 16, for: .expanded)
+        }
+    }
+}
+
+private struct CompactCareActivityTimer: View {
+    let state: CareActivityAttributes.ContentState
+    @Environment(\.isDynamicIslandLimitedInWidth) private var isLimitedInWidth
+
+    var body: some View {
+        if !isLimitedInWidth {
+            CareActivityTimer(start: state.start)
+                .font(.caption2.weight(.medium))
+                .frame(width: 64)
+                .foregroundStyle(state.islandAccent)
         }
     }
 }

@@ -580,18 +580,23 @@ private struct PhotoImage: View {
 
 private struct PhotoViewer: View {
     let store: AppStore
-    let initialID: UUID
     @Environment(\.dismiss) private var dismiss
     @State private var selection: UUID?
     @State private var sharedFile: URL?
     @State private var errorMessage: String?
+
+    init(store: AppStore, initialID: UUID) {
+        self.store = store
+        _selection = State(initialValue: initialID)
+    }
+
     private var photos: [BabyPhoto] {
         _ = store.photoGallery.revision
         return (try? store.photoGallery.photos(babyID: store.baby?.id ?? UUID())) ?? []
     }
 
     private var current: BabyPhoto? {
-        photos.first { $0.id == (selection ?? initialID) }
+        photos.first { $0.id == selection }
     }
 
     var body: some View {
@@ -604,7 +609,6 @@ private struct PhotoViewer: View {
                 }
             }
             .tabViewStyle(.page)
-            .onAppear { selection = initialID }
             .navigationTitle(current?.capturedAt.formatted(date: .abbreviated, time: .shortened) ?? "Фотография")
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {

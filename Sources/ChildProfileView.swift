@@ -10,6 +10,7 @@ struct ChildProfileView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .subheadline) private var measurementIconHeight = 20.0
     @State private var choosesMeasurement = false
+    @State private var measurementGridFitsThreeColumns = true
     @Binding var editingMeasurement: MeasurementPresentation?
     @Binding var photoAddPresentationBusy: Bool
     @Binding var albumPresentationBusy: Bool
@@ -24,6 +25,11 @@ struct ChildProfileView: View {
                     measurements(babyID: baby.id)
                     Divider()
                     album(babyID: baby.id)
+                }
+                .onGeometryChange(for: Bool.self) { geometry in
+                    geometry.size.width >= 3 * 96 + 2 * AppDesign.Spacing.group
+                } action: { fits in
+                    measurementGridFitsThreeColumns = fits
                 }
                 .padding(AppDesign.Spacing.contentInset)
             }
@@ -87,7 +93,7 @@ struct ChildProfileView: View {
     private func measurements(babyID: UUID) -> some View {
         let columns = Array(
             repeating: GridItem(.flexible(), spacing: AppDesign.Spacing.group, alignment: .top),
-            count: dynamicTypeSize >= .xxLarge ? 1 : 3
+            count: dynamicTypeSize >= .xxLarge || !measurementGridFitsThreeColumns ? 1 : 3
         )
         return VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
             Text("Измерения").font(.title3.bold()).accessibilityAddTraits(.isHeader)
