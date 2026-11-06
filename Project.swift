@@ -1,6 +1,6 @@
 import ProjectDescription
 
-let minimumIOS = "27.1"
+let minimumIOS = "27.0"
 
 let settings: Settings = .settings(base: [
     "SWIFT_VERSION": "6.0", "SWIFT_STRICT_CONCURRENCY": "complete",

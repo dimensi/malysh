@@ -3,7 +3,7 @@
 ## Platform
 ios
 ## Stack
-Swift 6, SwiftUI, Core Data, NSPersistentCloudKitContainer, CloudKit Sharing, Swift Charts. iOS 27.1+.
+Swift 6, SwiftUI, Core Data, NSPersistentCloudKitContainer, CloudKit Sharing, Swift Charts. iOS 27.0+.
 ## Users
 Два родителя новорождённого с разными Apple ID, в том числе ночью и одной рукой.
 ## Product Purpose
