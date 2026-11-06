@@ -580,9 +580,36 @@ final class AppStore {
     }
 
     func select(_ id: UUID) {
+        perform { try selectAndReload(id) }
+    }
+
+    func selectAndReload(_ id: UUID) throws {
+        guard !diaryRemovalInProgress else { throw ActivityActionFailure.unavailable }
+        let previousID = selectedID
+        let previousPreference = UserDefaults.standard.object(forKey: selectionPreferenceKey)
+        let previousBabies = babies
+        let previousVisibleBabies = visibleBabies
+        let previousRedundantBabies = redundantBabies
+        let previousEvents = events
+        let previousMeasurements = measurements
+        let previousFamily = family
+        let previousAcceptedShareID = pendingAcceptedShareID
         selectedID = id
         UserDefaults.standard.set(id.uuidString, forKey: selectionPreferenceKey)
-        perform { try reload() }
+        do {
+            try reload()
+        } catch {
+            selectedID = previousID
+            UserDefaults.standard.set(previousPreference, forKey: selectionPreferenceKey)
+            babies = previousBabies
+            visibleBabies = previousVisibleBabies
+            redundantBabies = previousRedundantBabies
+            events = previousEvents
+            measurements = previousMeasurements
+            family = previousFamily
+            pendingAcceptedShareID = previousAcceptedShareID
+            throw error
+        }
     }
 
     func save(_ event: CareEvent) throws {

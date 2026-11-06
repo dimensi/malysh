@@ -23,6 +23,7 @@ protocol CareActivityBackend: AnyObject {
     func request(attributes: CareActivityAttributes, content: CareActivityAttributes.ContentState) async throws
     func update(id: String, content: CareActivityAttributes.ContentState) async
     func end(id: String) async
+    func finish(id: String, content: CareActivityAttributes.ContentState, dismissalDate: Date) async
 }
 
 /// Reconciles only committed persistence snapshots. A single worker rechecks the latest snapshot
@@ -36,6 +37,7 @@ final class CareActivityCoordinator: CareActivityCoordinating {
 
     private let backend: any CareActivityBackend
     private var desired: [UUID: Desired] = [:]
+    private var pendingFinalContent: [String: CareActivityAttributes.ContentState] = [:]
     private var allowStart = false
     private var revision = 0
     private var worker: Task<Void, Never>?
@@ -47,13 +49,14 @@ final class CareActivityCoordinator: CareActivityCoordinating {
     func reconcile(events: [CareEvent], babies: [Baby], allowStart: Bool) {
         let names = Dictionary(babies.map { ($0.id, $0.name) }, uniquingKeysWith: { _, latest in latest })
         desired = [:]
-        for event in events where event.end == nil && (event.kind == .breast || event.kind == .sleep) {
+        for event in events where event.kind == .breast || event.kind == .sleep {
             guard let name = names[event.babyID] else { continue }
             desired[event.id] = Desired(
                 attributes: CareActivityAttributes(eventID: event.id, babyID: event.babyID),
                 content: .init(kind: event.kind, start: event.start,
                                side: event.kind == .breast ? event.side : nil,
-                               babyName: String(String.UnicodeScalarView(name.unicodeScalars.prefix(120))))
+                               babyName: String(String.UnicodeScalarView(name.unicodeScalars.prefix(120))),
+                               end: event.end)
             )
         }
         self.allowStart = allowStart
@@ -73,38 +76,39 @@ final class CareActivityCoordinator: CareActivityCoordinating {
         var attemptedRevision = -1
         var attemptedRequests = Set<UUID>()
         var attemptedUpdates = Set<String>()
+        var attemptedFinishes = Set<String>()
         while true {
             if attemptedRevision != revision {
                 attemptedRevision = revision
                 attemptedRequests = []
                 attemptedUpdates = []
+                attemptedFinishes = []
             }
             let instances = backend.instances().sorted { $0.id < $1.id }
-            // System-ended activities can remain visible for four hours. Remove that stale
-            // presentation before restoring a running event, or when its event is gone.
-            if let ended = instances.first(where: { $0.status == .ended }) {
-                await backend.end(id: ended.id)
+            let instanceIDs = Set(instances.map(\.id))
+            pendingFinalContent = pendingFinalContent.filter { instanceIDs.contains($0.key) }
+            if let obsolete = obsoleteInstance(in: instances) {
+                await backend.end(id: obsolete.id)
                 continue
             }
-            var kept = Set<UUID>()
-            var obsolete: CareActivityInstance?
-            for instance in instances where instance.status == .active {
-                let eventID = instance.attributes.eventID
-                guard let target = desired[eventID],
-                      target.attributes.babyID == instance.attributes.babyID,
-                      !backend.dismissedEventIDs.contains(eventID),
-                      kept.insert(eventID).inserted
-                else {
-                    obsolete = instance
-                    break
+            if let finished = instances.first(where: {
+                $0.status == .active && !attemptedFinishes.contains($0.id)
+                    && pendingFinalContent[$0.id] == nil
+                    && desired[$0.attributes.eventID]?.content.end != nil
+            }), let target = desired[finished.attributes.eventID], let end = target.content.end {
+                attemptedFinishes.insert(finished.id)
+                let dismissalDate = end.addingTimeInterval(15 * 60)
+                if dismissalDate > Date() {
+                    pendingFinalContent[finished.id] = target.content
+                    await backend.finish(id: finished.id, content: target.content, dismissalDate: dismissalDate)
+                } else {
+                    await backend.end(id: finished.id)
                 }
-            }
-            if let obsolete {
-                await backend.end(id: obsolete.id)
                 continue
             }
             if let changed = instances.first(where: {
                 $0.status == .active && !attemptedUpdates.contains($0.id)
+                    && desired[$0.attributes.eventID]?.content.end == nil
                     && desired[$0.attributes.eventID]?.content != $0.content
             }), let target = desired[changed.attributes.eventID] {
                 // ActivityKit can ignore updates or expose their content with a delay. Bound
@@ -116,7 +120,8 @@ final class CareActivityCoordinator: CareActivityCoordinating {
             let active = Set(instances.filter { $0.status == .active }.map(\.attributes.eventID))
             if allowStart, backend.enabled,
                let eventID = desired.keys.sorted(by: { $0.uuidString < $1.uuidString }).first(where: {
-                   !active.contains($0) && !backend.dismissedEventIDs.contains($0) && !attemptedRequests.contains($0)
+                   desired[$0]?.content.end == nil && !active.contains($0)
+                       && !backend.dismissedEventIDs.contains($0) && !attemptedRequests.contains($0)
                }), let target = desired[eventID]
             {
                 attemptedRequests.insert(eventID)
@@ -127,6 +132,37 @@ final class CareActivityCoordinator: CareActivityCoordinating {
             worker = nil
             return
         }
+    }
+
+    private func obsoleteInstance(in instances: [CareActivityInstance]) -> CareActivityInstance? {
+        var kept = Set<UUID>()
+        // Preserve one deliberately finished card, but never confuse a system timeout
+        // (whose state has no end date) with the committed end of a care event.
+        for instance in instances where instance.status == .ended {
+            let eventID = instance.attributes.eventID
+            guard let target = desired[eventID],
+                  target.attributes.babyID == instance.attributes.babyID,
+                  let end = target.content.end,
+                  end.addingTimeInterval(15 * 60) > Date(),
+                  !backend.dismissedEventIDs.contains(eventID),
+                  kept.insert(eventID).inserted
+            else { return instance }
+            if instance.content == target.content {
+                pendingFinalContent.removeValue(forKey: instance.id)
+            } else if pendingFinalContent[instance.id] != target.content {
+                return instance
+            }
+        }
+        for instance in instances where instance.status == .active {
+            let eventID = instance.attributes.eventID
+            guard let target = desired[eventID],
+                  target.attributes.babyID == instance.attributes.babyID,
+                  pendingFinalContent[instance.id].map({ $0 == target.content }) ?? true,
+                  !backend.dismissedEventIDs.contains(eventID),
+                  kept.insert(eventID).inserted
+            else { return instance }
+        }
+        return nil
     }
 }
 
@@ -160,12 +196,17 @@ final class SystemCareActivityBackend: CareActivityBackend {
         for activity in Activity<CareActivityAttributes>.activities {
             observe(activity)
         }
-        return observedActivities.values.map { activity in
+        return Array(observedActivities.values).compactMap { activity in
             if activity.activityState == .ended {
                 endedIDs.insert(activity.id)
             }
             if activity.activityState == .dismissed, !endedIDs.contains(activity.id) {
                 rememberDismissal(activity.attributes.eventID)
+            }
+            if activity.activityState == .dismissed {
+                observations.removeValue(forKey: activity.id)?.cancel()
+                observedActivities.removeValue(forKey: activity.id)
+                return nil
             }
             let status: CareActivityInstance.Status = switch activity.activityState {
             case .active, .stale: .active
@@ -197,8 +238,16 @@ final class SystemCareActivityBackend: CareActivityBackend {
         await activity.end(nil, dismissalPolicy: .immediate)
     }
 
+    func finish(id: String, content: CareActivityAttributes.ContentState, dismissalDate: Date) async {
+        guard let activity = observedActivities[id] else { return }
+        // Keep tracking the ended activity so a later deletion or access loss can remove it.
+        endedIDs.insert(id)
+        await activity.end(ActivityContent(state: content, staleDate: nil), dismissalPolicy: .after(dismissalDate))
+    }
+
     private func observe(_ activity: Activity<CareActivityAttributes>) {
-        guard observedActivities[activity.id] == nil, !endedIDs.contains(activity.id) else { return }
+        guard activity.activityState != .dismissed,
+              observedActivities[activity.id] == nil, !endedIDs.contains(activity.id) else { return }
         observedActivities[activity.id] = activity
         observations[activity.id] = Task { [weak self] in
             for await state in activity.activityStateUpdates {
@@ -206,8 +255,13 @@ final class SystemCareActivityBackend: CareActivityBackend {
                 if state == .ended {
                     self?.endedIDs.insert(activity.id)
                 }
-                if state == .dismissed, self?.endedIDs.contains(activity.id) == false {
-                    self?.rememberDismissal(activity.attributes.eventID)
+                if state == .dismissed {
+                    if self?.endedIDs.contains(activity.id) == false {
+                        self?.rememberDismissal(activity.attributes.eventID)
+                    }
+                    self?.observations.removeValue(forKey: activity.id)
+                    self?.observedActivities.removeValue(forKey: activity.id)
+                    return
                 }
             }
         }

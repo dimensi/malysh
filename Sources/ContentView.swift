@@ -63,6 +63,10 @@ struct ContentView: View {
     @State private var widgetRouteAwaitsSheetDismissal = false
     @State private var visibleWidgetActions: Set<String> = []
     @State private var widgetActionScrollRequest = 0
+    @State private var activityScrollTarget: UUID?
+    @State private var activityScrollRequest = 0
+    @State private var activityTargetTab = 0
+    @State private var handledTodayActivityScrollRequest = 0
 
     var body: some View {
         Group {
@@ -70,8 +74,12 @@ struct ContentView: View {
                 TabView(selection: $tab) {
                     NavigationStack { today }
                         .tabItem { Label("Сегодня", systemImage: "sun.max.fill") }.tag(0)
-                    NavigationStack { HistoryView(store: store, edit: edit) }
-                        .tabItem { Label("История", systemImage: "clock.fill") }.tag(1)
+                    NavigationStack {
+                        HistoryView(store: store, edit: edit,
+                                    activityTarget: activityTargetTab == 1 ? activityScrollTarget : nil,
+                                    activityScrollRequest: $activityScrollRequest)
+                    }
+                    .tabItem { Label("История", systemImage: "clock.fill") }.tag(1)
                     NavigationStack { StatisticsView(store: store) }
                         .tabItem { Label("Статистика", systemImage: "chart.bar.fill") }.tag(2)
                     NavigationStack(path: $childPath) {
@@ -213,6 +221,7 @@ struct ContentView: View {
                                 finish: { store.finish(event) },
                                 switchSide: { store.switchSide(event) }
                             )
+                            .id("activity.\(event.id.uuidString)")
                         }
                     }
 
@@ -320,10 +329,29 @@ struct ContentView: View {
                 if let route = pendingWidgetRoute {
                     scrollProxy.scrollTo("widget." + route.destination.rawValue, anchor: .center)
                 }
+                if tab == 0, activityTargetTab == 0, let activityScrollTarget,
+                   handledTodayActivityScrollRequest != activityScrollRequest
+                {
+                    handledTodayActivityScrollRequest = activityScrollRequest
+                    scrollProxy.scrollTo("activity." + activityScrollTarget.uuidString, anchor: .center)
+                }
             }
             .onChange(of: widgetActionScrollRequest) {
                 if let route = pendingWidgetRoute {
                     scrollProxy.scrollTo("widget." + route.destination.rawValue, anchor: .center)
+                }
+            }
+            .onChange(of: activityScrollRequest) {
+                if tab == 0, activityTargetTab == 0, let activityScrollTarget,
+                   handledTodayActivityScrollRequest != activityScrollRequest
+                {
+                    handledTodayActivityScrollRequest = activityScrollRequest
+                    let request = activityScrollRequest
+                    Task { @MainActor in
+                        await Task.yield()
+                        guard request == activityScrollRequest else { return }
+                        scrollProxy.scrollTo("activity." + activityScrollTarget.uuidString, anchor: .center)
+                    }
                 }
             }
             .navigationTitle("Сегодня")
@@ -375,13 +403,15 @@ struct ContentView: View {
 
     private func receiveWidgetRoute() {
         guard let route = widgetRouteInbox.take() else { return }
+        activityScrollTarget = nil
+        activityScrollRequest += 1
         pendingWidgetRoute = route
         openPendingWidgetRoute()
     }
 
     private func openPendingWidgetRoute() {
         guard store.ready, !widgetRouteAwaitsSheetDismissal, let route = pendingWidgetRoute else { return }
-        guard route.babyID == nil || route.babyID == store.baby?.id else {
+        guard route.destination == .activity || route.babyID == nil || route.babyID == store.baby?.id else {
             pendingWidgetRoute = nil
             return
         }
@@ -400,6 +430,10 @@ struct ContentView: View {
             albumPresentationBusy = false
             return
         }
+        if route.destination == .activity {
+            openActivityRoute(route)
+            return
+        }
         let needsAction = route.destination == .breast || route.destination == .diaper ||
             (route.destination == .sleep && !store.active.contains(where: { $0.kind == .sleep }))
         if needsAction, !visibleWidgetActions.contains(route.destination.rawValue) {
@@ -408,6 +442,7 @@ struct ContentView: View {
             return
         }
         pendingWidgetRoute = nil
+        activityScrollTarget = nil
         showFeed = false
         showDiaper = false
         showWidgetSleep = false
@@ -417,8 +452,44 @@ struct ContentView: View {
         case .diaper: showDiaper = true
         case .sleep:
             showWidgetSleep = !store.active.contains(where: { $0.kind == .sleep })
-        case .today, .history: break
+        case .today, .history, .activity: break
         }
+    }
+
+    private func openActivityRoute(_ route: WidgetRoute) {
+        pendingWidgetRoute = nil
+        guard let babyID = route.babyID, let eventID = route.eventID else {
+            store.errorMessage = "Дневник недоступен. Проверьте доступ к нему и попробуйте ещё раз."
+            return
+        }
+        do {
+            guard !store.diaryRemovalInProgress else { throw AppStore.ActivityActionFailure.unavailable }
+            try store.reload()
+            guard store.babies.contains(where: { $0.id == babyID }) else {
+                store.errorMessage = "Дневник недоступен. Проверьте доступ к нему и попробуйте ещё раз."
+                return
+            }
+            if store.selectedID != babyID {
+                try store.selectAndReload(babyID)
+            }
+        } catch {
+            store.errorMessage = error.localizedDescription
+            return
+        }
+        guard store.baby?.id == babyID,
+              let event = store.events.first(where: { $0.id == eventID && $0.babyID == babyID }),
+              event.kind == .sleep || event.kind == .breast
+        else {
+            store.errorMessage = "Запись недоступна. Возможно, она была удалена или доступ к дневнику изменился."
+            return
+        }
+        showFeed = false
+        showDiaper = false
+        showWidgetSleep = false
+        activityScrollTarget = event.id
+        activityTargetTab = event.isActive ? 0 : 1
+        tab = activityTargetTab
+        activityScrollRequest += 1
     }
 
     private func updateWidgetActionVisibility(_ action: String, visible: Bool) {
@@ -487,7 +558,10 @@ private struct TimerCard: View {
 private struct HistoryView: View {
     @Bindable var store: AppStore
     let edit: (CareEvent) -> Void
+    let activityTarget: UUID?
+    @Binding var activityScrollRequest: Int
     @State private var filter: EventKind?
+    @State private var handledActivityScrollRequest = 0
     private var filtered: [CareEvent] {
         store.events.filter { filter == nil || $0.kind == filter }
     }
@@ -497,27 +571,54 @@ private struct HistoryView: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                Picker("Показать", selection: $filter) {
-                    Text("Все события").tag(EventKind?.none)
-                    ForEach(EventKind.allCases, id: \.self) { Text($0.label).tag(Optional($0)) }
-                }.accessibilityIdentifier("history.filter")
+        ScrollViewReader { scrollProxy in
+            List {
+                Section {
+                    Picker("Показать", selection: $filter) {
+                        Text("Все события").tag(EventKind?.none)
+                        ForEach(EventKind.allCases, id: \.self) { Text($0.label).tag(Optional($0)) }
+                    }.accessibilityIdentifier("history.filter")
+                }
+                if filtered.isEmpty {
+                    ContentUnavailableView(
+                        "Пока нет записей",
+                        systemImage: "clock",
+                        description: Text("Новые события появятся здесь.")
+                    )
+                }
+                ForEach(days, id: \.self) { day in
+                    Section(day.formatted(date: .complete, time: .omitted)) {
+                        ForEach(filtered.filter { Calendar.current.isDate($0.start, inSameDayAs: day) }) { event in
+                            EventRow(event: event, authorLabel: store.eventAuthorLabel(for: event)) { edit(event) }
+                                .id("activity.\(event.id.uuidString)")
+                                .swipeActions {
+                                    Button("Удалить", role: .destructive) { store.perform { try store.delete(event) } }
+                                }
+                        }
+                    }
+                }
             }
-            if filtered.isEmpty {
-                ContentUnavailableView(
-                    "Пока нет записей",
-                    systemImage: "clock",
-                    description: Text("Новые события появятся здесь.")
-                )
+            .onAppear {
+                if let activityTarget, handledActivityScrollRequest != activityScrollRequest {
+                    handledActivityScrollRequest = activityScrollRequest
+                    filter = nil
+                    let request = activityScrollRequest
+                    Task { @MainActor in
+                        await Task.yield()
+                        guard request == activityScrollRequest else { return }
+                        scrollProxy.scrollTo("activity." + activityTarget.uuidString, anchor: .center)
+                    }
+                }
             }
-            ForEach(days, id: \.self) { day in
-                Section(day.formatted(date: .complete, time: .omitted)) {
-                    ForEach(filtered.filter { Calendar.current.isDate($0.start, inSameDayAs: day) }) { event in
-                        EventRow(event: event, authorLabel: store.eventAuthorLabel(for: event)) { edit(event) }
-                            .swipeActions {
-                                Button("Удалить", role: .destructive) { store.perform { try store.delete(event) } }
-                            }
+            .onChange(of: activityScrollRequest) {
+                if let activityTarget, handledActivityScrollRequest != activityScrollRequest {
+                    handledActivityScrollRequest = activityScrollRequest
+                    filter = nil
+                    let request = activityScrollRequest
+                    Task { @MainActor in
+                        await Task.yield()
+                        guard request == activityScrollRequest else { return }
+                        scrollProxy.scrollTo("activity." + activityTarget.uuidString, anchor: .center)
                     }
                 }
             }

@@ -23,10 +23,12 @@ final class LiveActivityUITests: XCTestCase {
         switchSide.tap()
         // Wait for the updated card before sending its next intent.
         let updatedCover = showActivity(button: "Переключить на левую грудь")
-        XCTAssertTrue(updatedCover.staticTexts["Правая грудь"].waitForExistence(timeout: 10))
+        let rightSide = updatedCover.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Правая грудь"))
+            .firstMatch
+        XCTAssertTrue(rightSide.waitForExistence(timeout: 10))
         XCTAssertNotEqual(app.state, .runningForeground)
         updatedCover.buttons["Завершить кормление"].tap()
-        assertSystemActivityRemoved(button: "Завершить кормление", app: app)
+        assertSystemActivityFinished(button: "Завершить кормление", status: "Кормление завершено", app: app)
         XCTAssertNotEqual(app.state, .runningForeground)
         app.activate()
         waitForRemoval(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'")).firstMatch)
@@ -50,7 +52,7 @@ final class LiveActivityUITests: XCTestCase {
         let finish = cover.buttons["Завершить сон"]
         capture("Сон — системные кнопки")
         finish.tap()
-        assertSystemActivityRemoved(button: "Завершить сон", app: app)
+        assertSystemActivityFinished(button: "Завершить сон", status: "Сон завершён", app: app)
         XCTAssertNotEqual(app.state, .runningForeground)
         app.activate()
         waitForRemoval(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'")).firstMatch)
@@ -125,12 +127,14 @@ final class LiveActivityUITests: XCTestCase {
         return cover
     }
 
-    private func assertSystemActivityRemoved(button: String, app: XCUIApplication) {
+    private func assertSystemActivityFinished(button: String, status: String, app: XCUIApplication) {
         XCTAssertNotEqual(app.state, .runningForeground)
         // Refresh iOS 26's stale AX snapshot before querying the removed card.
         XCUIDevice.shared.press(.home)
         let cover = openNotificationCenter(XCUIApplication(bundleIdentifier: "com.apple.springboard"))
         waitForSystemDismissal(cover.buttons[button])
+        XCTAssertTrue(cover.staticTexts[status].waitForExistence(timeout: 15))
+        capture("\(status) — итог")
         XCTAssertTrue(cover.isHittable)
         XCTAssertNotEqual(app.state, .runningForeground)
     }
