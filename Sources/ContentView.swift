@@ -46,6 +46,7 @@ struct ContentView: View {
     @Bindable var store: AppStore
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var tab = 0
+    @State private var actionGridFitsTwoColumns = true
     @State private var showFeed = false
     @State private var showDiaper = false
     @State private var showWidgetSleep = false
@@ -215,7 +216,7 @@ struct ContentView: View {
                         }
                     }
 
-                    LazyVGrid(columns: dynamicTypeSize.isAccessibilitySize
+                    LazyVGrid(columns: dynamicTypeSize.isAccessibilitySize || !actionGridFitsTwoColumns
                         ? [GridItem(.flexible())]
                         : [GridItem(.flexible()), GridItem(.flexible())], spacing: AppDesign.Spacing.row)
                     {
@@ -306,7 +307,13 @@ struct ContentView: View {
                             }
                         }
                     }
-                }.padding(AppDesign.Spacing.contentInset)
+                }
+                .onGeometryChange(for: Bool.self) { geometry in
+                    geometry.size.width >= 2 * 140 + AppDesign.Spacing.row
+                } action: { fits in
+                    actionGridFitsTwoColumns = fits
+                }
+                .padding(AppDesign.Spacing.contentInset)
             }
             .background(AppDesign.Palette.groupedBackground)
             .onAppear {

@@ -45,7 +45,7 @@ git push origin v1.2.3
 gh workflow run testflight.yml --ref main -f release_tag=v1.2.3
 ```
 
-Workflow использует Apple Silicon runner `macos-26`, Xcode 26.3 и Ruby 4.0. Toolchain сверена с [описанием образа arm64](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md). Fastlane закреплён на `2.241.2` в `Gemfile`. Workflow выбирает доступный iPhone Simulator с самой ранней установленной версией iOS не ниже 26.0 (на текущем образе — 26.2) и ждёт его готовности в отдельном шаге с лимитом 10 минут. Журнал загрузки сохраняется в `Artifacts/simulator-boot.log`, список доступных устройств — в `Artifacts/simulators.json`. Подпись и загрузка требуют успешного полного набора unit- и UI-тестов. CI использует сохранённый в репозитории `Malysh.xcworkspace` без запуска Tuist.
+Workflow использует Apple Silicon runner `xcode-27`, Xcode 27.2 и Ruby 4.0. Toolchain сверена с [описанием образа arm64](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md). Fastlane закреплён на `2.241.2` в `Gemfile`. Workflow выбирает доступный iPhone Simulator с самой ранней установленной версией iOS не ниже 27.1 и ждёт его готовности в отдельном шаге с лимитом 10 минут. Журнал загрузки сохраняется в `Artifacts/simulator-boot.log`, список доступных устройств — в `Artifacts/simulators.json`. Подпись и загрузка требуют успешного полного набора unit- и UI-тестов. CI использует сохранённый в репозитории `Malysh.xcworkspace` без запуска Tuist.
 
 Pull request в `main`, меняющий этот workflow, `Scripts/simulator-id.py`, `Gemfile`, `Gemfile.lock` или `fastlane/**`, проверяет установку закреплённых Ruby-зависимостей, загрузку Fastlane-конфигурации и запускает тот же полный набор тестов на hosted runner. Проверка тега, подпись и публикация в таком запуске пропускаются; секреты подписи не используются. Проверки PR имеют отдельную группу concurrency и не задерживают выпуск. Изменения инфраструктуры можно проверить до слияния без повторной публикации уже выпущенной версии.
 
@@ -72,7 +72,7 @@ GitHub хранит результаты тестов, журнал загруз
 
 [Инструкция и шаблоны TestFlight](https://gist.github.com/dimensi/60b088b2c3035c0351b68b7b42b866c2#file-00-readme-md) и [готовый промпт](https://gist.github.com/dimensi/60b088b2c3035c0351b68b7b42b866c2#file-01-prompt-md) предназначены для настройки выпуска в других проектах и не содержат секретов. Это отдельный playbook; действующие настройки «Малыша», сроки подписи и проверенные выпуски описаны в этом репозитории.
 
-Минимальная система приложения, расширения и тестовых целей — iOS 26.0. Перед загрузкой Fastlane проверяет MinimumOSVersion=26.0 в архиве вместе с версией, номером сборки и декларацией шифрования приложения; для встроенного `MalyshWidgets.appex` проверяет наличие, bundle ID, ту же версию, номер сборки и MinimumOSVersion=26.0.
+Минимальная система приложения, расширения и тестовых целей — iOS 27.1. Перед загрузкой Fastlane проверяет MinimumOSVersion=27.1 в архиве вместе с версией, номером сборки и декларацией шифрования приложения; для встроенного `MalyshWidgets.appex` проверяет наличие, bundle ID, ту же версию, номер сборки и MinimumOSVersion=27.1.
 
 ## Попытка 1.3.0 — 6 ноября 2026
 
