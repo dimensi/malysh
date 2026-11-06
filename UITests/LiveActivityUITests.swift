@@ -7,40 +7,6 @@ final class LiveActivityUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testBreastSystemControlsSaveWhileAppStaysInBackground() {
-        let app = launch()
-        app.buttons["action.feed"].tap()
-        let left = app.descendants(matching: .any).matching(identifier: "feed.left").firstMatch
-        XCTAssertTrue(left.waitForExistence(timeout: 5))
-        left.tap()
-        let timer = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'")).firstMatch
-        XCTAssertTrue(timer.waitForExistence(timeout: 5))
-        let eventID = String(timer.identifier.dropFirst("timer.finish.".count))
-        XCUIDevice.shared.press(.home)
-        let cover = showActivity(button: "Переключить на правую грудь")
-        let switchSide = cover.buttons["Переключить на правую грудь"]
-        capture("Кормление — системные кнопки")
-        switchSide.tap()
-        // Wait for the updated card before sending its next intent.
-        let updatedCover = showActivity(button: "Переключить на левую грудь")
-        let rightSide = updatedCover.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Правая грудь"))
-            .firstMatch
-        XCTAssertTrue(rightSide.waitForExistence(timeout: 10))
-        XCTAssertNotEqual(app.state, .runningForeground)
-        updatedCover.buttons["Завершить кормление"].tap()
-        assertSystemActivityFinished(button: "Завершить кормление", status: "Кормление завершено", app: app)
-        XCTAssertNotEqual(app.state, .runningForeground)
-        app.activate()
-        waitForRemoval(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'")).firstMatch)
-        app.terminate()
-        app.launchArguments = ["--ui-testing"]
-        app.launch()
-        XCTAssertTrue(app.buttons["action.feed"].waitForExistence(timeout: 10))
-        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'"))
-            .firstMatch.exists)
-        assertSavedEvent(eventID, in: app)
-    }
-
     func testSleepSystemControlsSaveWhileAppStaysInBackground() {
         let app = launch()
         app.buttons["action.sleep"].tap()

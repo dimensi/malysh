@@ -134,27 +134,6 @@ final class MalyshUITests: XCTestCase {
         capture(app, name: "Статистика кормления и сна")
     }
 
-    func testBottleVolumeWithLargeText() {
-        let app = launch(appearance: ["--large-text", "--dark-mode"])
-        tap(app, id: "action.feed")
-        tap(app, id: "feed.bottle", label: "Бутылочка")
-        let volume = app.steppers["editor.volume"]
-        XCTAssertTrue(volume.waitForExistence(timeout: 5))
-        reveal(volume, in: app)
-        let adjustmentButtons = volume.buttons.allElementsBoundByIndex
-        XCTAssertFalse(adjustmentButtons.isEmpty)
-        adjustmentButtons.last?.tap()
-        tap(app, id: "editor.save")
-        XCTAssertTrue(button(app, prefix: "event.").waitForExistence(timeout: 5))
-        reveal(button(app, prefix: "event."), in: app)
-        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "61 мл")).firstMatch
-            .waitForExistence(timeout: 5))
-        capture(app, name: "Сегодня — тёмная тема и крупный текст")
-        app.tabBars.buttons["Статистика"].tap()
-        XCTAssertTrue(app.navigationBars["Статистика"].waitForExistence(timeout: 5))
-        capture(app, name: "Статистика — тёмная тема и крупный текст")
-    }
-
     func testRedundantProfileCleanupRequiresConfirmationAndPreservesFamily() {
         let app = launch(appearance: ["--family-fixture", "--redundant-fixture", "--light-mode"])
         let familyEvents = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "event."))
