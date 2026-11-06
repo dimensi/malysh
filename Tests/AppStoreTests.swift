@@ -15,6 +15,58 @@ final class AppStoreTests: XCTestCase {
         try context.save()
     }
 
+    func testDiaryDeletionAndResetRemoveContentsAndCreateNewStarter() async throws {
+        let persistence = Persistence(inMemory: true)
+        let store = AppStore(persistence: persistence)
+        await store.load()
+        let starter = try XCTUnwrap(store.baby)
+        let named = Baby(name: "Тестовый")
+        try persistence.saveBaby(named)
+        let event = CareEvent(babyID: starter.id, kind: .diaper, end: Date(), diaperType: .wet)
+        try persistence.saveEvent(event)
+        let photo = BabyPhoto(babyID: named.id, capturedAt: Date(), addedBy: "owner", pixelWidth: 20, pixelHeight: 30)
+        try persistence.savePhoto(photo, imageData: Data([1]), thumbnailData: Data([2]))
+        let measurement = ChildMeasurement(babyID: named.id, type: .weight, measuredAt: Date(), value: 4)
+        try persistence.saveMeasurement(measurement)
+        try store.reload()
+        store.select(named.id)
+
+        try await store.removeDiaries(.one(named.id, invited: false))
+        XCTAssertEqual(store.selectedID, starter.id)
+        XCTAssertEqual(store.events.map(\.id), [event.id])
+        XCTAssertNil(try persistence.photoData(id: photo.id))
+        XCTAssertTrue(try persistence.measurements(babyID: named.id).isEmpty)
+
+        try await store.removeDiaries(.all)
+        let replacement = try XCTUnwrap(store.baby)
+        XCTAssertNotEqual(replacement.id, starter.id)
+        XCTAssertEqual(try persistence.babies(), [replacement])
+        XCTAssertTrue(try persistence.events(babyID: starter.id).isEmpty)
+        XCTAssertTrue(store.events.isEmpty)
+    }
+
+    func testOfflineResetAndRemovalPreserveInvitedDiaryAndOwnedData() async throws {
+        let persistence = Persistence(inMemory: true)
+        let store = AppStore(persistence: persistence)
+        await store.load()
+        let owned = Baby(name: "Личный")
+        try persistence.saveBaby(owned)
+        let invited = Baby(name: "Семейный")
+        try insertSharedBaby(invited, persistence: persistence)
+        let event = CareEvent(babyID: invited.id, kind: .diaper, end: Date(), diaperType: .wet)
+        try persistence.saveEvent(event)
+        try store.reload()
+
+        for removal in [AppStore.DiaryRemoval.one(invited.id, invited: false), .one(invited.id, invited: true), .all] {
+            do {
+                try await store.removeDiaries(removal)
+                XCTFail("Удаление чужого дневника без iCloud должно быть заблокировано")
+            } catch is Persistence.Failure {}
+        }
+        XCTAssertEqual(Set(store.babies.map(\.id)), [owned.id, invited.id])
+        XCTAssertEqual(try persistence.events(babyID: invited.id).map(\.id), [event.id])
+    }
+
     func testSharedDiaryHidesRedundantDefaultWithoutDeletingRecordsUntilConfirmedAndRestoresAfterLeaving() async throws {
         let previous = UserDefaults.standard.object(forKey: "selectedBaby")
         defer { UserDefaults.standard.set(previous, forKey: "selectedBaby") }

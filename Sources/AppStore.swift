@@ -45,6 +45,8 @@ final class AppStore {
     var errorMessage: String?
     var syncStatus = "Записи сохраняются на этом iPhone"
     var cloudBusy = false
+    private var acceptingShares = 0
+    private(set) var diaryRemovalInProgress = false
     private var cloudSetup = CloudSetupState()
     private var cloudAccountAvailable = false
     var pendingShare: CKShare?
@@ -286,6 +288,7 @@ final class AppStore {
     }
 
     func reload() throws {
+        guard !diaryRemovalInProgress else { return }
         photoGallery.revision += 1
         Task { await photoGallery.saveReceivedIfEnabled() }
         babies = try persistence.babies()
@@ -523,6 +526,31 @@ final class AppStore {
         try reload()
     }
 
+    enum DiaryRemoval {
+        case one(UUID, invited: Bool)
+        case all
+    }
+
+    func removeDiaries(_ removal: DiaryRemoval) async throws {
+        guard ready, !diaryRemovalInProgress, !cloudBusy, acceptingShares == 0,
+              persistence.cloudStartupError == nil, !persistence.cloudEnabled || cloudSharingReady
+        else {
+            throw Persistence.Failure.diaryChanged
+        }
+        diaryRemovalInProgress = true
+        defer {
+            diaryRemovalInProgress = false
+            perform { try reload() }
+        }
+        switch removal {
+        case let .one(id, invited):
+            try await persistence.removeDiary(id: id, invited: invited)
+        case .all:
+            try await persistence.resetDiaries()
+            pendingAcceptedShareID = nil
+        }
+    }
+
     static func isPreSharedDefault(_ baby: Baby, isShared: Bool, hasSharedDiary: Bool,
                                    family: FamilySnapshot?) -> Bool
     {
@@ -643,7 +671,7 @@ final class AppStore {
     }
 
     private func latestActivityEvent(eventID: UUID, babyID: UUID) throws -> CareEvent {
-        guard ready else { throw ActivityActionFailure.unavailable }
+        guard ready, !diaryRemovalInProgress else { throw ActivityActionFailure.unavailable }
         // Reconcile removals and remote edits before acting on a potentially stale card.
         try reload()
         guard try persistence.babyObject(id: babyID) != nil,
@@ -659,7 +687,7 @@ final class AppStore {
     {
         widgetSnapshotBatchDepth += 1
         defer { finishWidgetSnapshotBatch() }
-        guard ready else { throw ActivityActionFailure.unavailable }
+        guard ready, !diaryRemovalInProgress else { throw ActivityActionFailure.unavailable }
         try reload()
         guard try persistence.babyObject(id: babyID) != nil else { throw ActivityActionFailure.unavailable }
         let latest = try persistence.events(babyID: babyID)
@@ -727,7 +755,7 @@ final class AppStore {
     }
 
     func invite() async {
-        guard !cloudBusy else { return }
+        guard !cloudBusy, !diaryRemovalInProgress else { return }
         guard cloudSharingReady else {
             errorMessage = syncStatus
             return
@@ -743,6 +771,12 @@ final class AppStore {
     }
 
     func accept(_ metadata: CKShare.Metadata) async {
+        guard !diaryRemovalInProgress else {
+            errorMessage = "Дождитесь завершения операции и откройте приглашение ещё раз."
+            return
+        }
+        acceptingShares += 1
+        defer { acceptingShares -= 1 }
         do {
             if !ready {
                 await load()
