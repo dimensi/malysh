@@ -26,19 +26,30 @@ final class WidgetSnapshotTests: XCTestCase {
         let now = Date()
         let baby = Baby(name: "Малыш", birthDate: now.addingTimeInterval(-86400), birthDateConfirmed: true)
         let event = CareEvent(babyID: baby.id, kind: .breast, start: now.addingTimeInterval(-60), side: .right)
-        let snapshot = WidgetSnapshot(baby: baby, events: [event], generatedAt: now)
+        let finished = CareEvent(babyID: baby.id, kind: .breast, start: now.addingTimeInterval(-1200),
+                                 end: now.addingTimeInterval(-600), side: .right)
+        let snapshot = WidgetSnapshot(baby: baby, events: [event, finished], generatedAt: now)
         XCTAssertEqual(snapshot.activeEvents.first?.id, event.id)
         XCTAssertEqual(snapshot.activeEvents.first?.sideStartedAt, event.start)
         XCTAssertEqual(snapshot.birthDate, baby.birthDate)
         XCTAssertEqual(snapshot.birthDay, baby.birthDay)
         XCTAssertNotEqual(snapshot.commandID(for: .wetDiaper), snapshot.commandID(for: .dirtyDiaper))
-        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(snapshot)) as? [String: Any])
+        let encoded = try JSONEncoder().encode(snapshot)
+        let restored = try JSONDecoder().decode(WidgetSnapshot.self, from: encoded)
+        XCTAssertEqual(restored.summary(at: now).lastFeeding?.side, .right)
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        var completed = try XCTUnwrap(json["events"] as? [[String: Any]])
+        XCTAssertEqual(completed.count, 1)
+        completed[0].removeValue(forKey: "side")
+        json["events"] = completed
         for key in ["birthDate", "birthDay", "activeEventValues", "actionToken"] {
             json.removeValue(forKey: key)
         }
         let legacy = try JSONDecoder().decode(WidgetSnapshot.self, from: JSONSerialization.data(withJSONObject: json))
         XCTAssertTrue(legacy.activeEvents.isEmpty)
         XCTAssertNil(legacy.birthDate)
+        XCTAssertEqual(legacy.summary(at: now).lastFeeding?.id, finished.id)
+        XCTAssertNil(legacy.summary(at: now).lastFeeding?.side)
         XCTAssertNil(WidgetSnapshot(baby: Baby(name: "Legacy"), events: []).birthDate)
     }
 

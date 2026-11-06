@@ -41,10 +41,18 @@ final class WidgetSystemUITests: XCTestCase {
     func testColdDiaperControlsPersistWetAndStoolWithoutOpeningApp() {
         let app = launchIsolatedDiary()
         let springboard = home()
-        installMedium(in: springboard)
+        let medium = widgetHost("Быстрые действия", in: springboard)
+        installWidget("Быстрые действия", in: springboard, within: medium)
         app.terminate()
-        tapWidget("widget.diaper.wet", label: "Мокрый подгузник", in: springboard, app: app, repeated: true)
-        waitForDiaperFeedback("widget.diaper.wet", label: "Мокрый подгузник", in: springboard, app: app)
+        tapWidget(
+            "widget.diaper.wet",
+            label: "Мокрый подгузник",
+            in: springboard,
+            app: app,
+            repeated: true,
+            within: medium
+        )
+        waitForDiaperFeedback("widget.diaper.wet", label: "Мокрый подгузник", in: medium, app: app)
         // Observe the first committed save before sending another independent action.
         relaunch(app)
         XCTAssertTrue(events(app).firstMatch.waitForExistence(timeout: 10))
@@ -53,8 +61,8 @@ final class WidgetSystemUITests: XCTestCase {
         XCTAssertTrue(events(app).firstMatch.label.contains("Мокрый"))
         _ = home()
         app.terminate()
-        tapWidget("widget.diaper.dirty", label: "Стул", in: springboard, app: app)
-        waitForDiaperFeedback("widget.diaper.dirty", label: "Стул", in: springboard, app: app)
+        tapWidget("widget.diaper.dirty", label: "Стул", in: springboard, app: app, within: medium)
+        waitForDiaperFeedback("widget.diaper.dirty", label: "Стул", in: medium, app: app)
         attach(springboard, stage: "Interactive diapers — stool feedback persisted on Home")
         relaunch(app)
         let committed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "count == 2"), object: events(app))
@@ -71,17 +79,30 @@ final class WidgetSystemUITests: XCTestCase {
     func testColdSleepControlsPersistOneTimerAndAgreeWithLiveActivity() {
         let app = launchIsolatedDiary()
         let springboard = home()
-        installMedium(in: springboard)
+        let smallSleep = widgetHost("Сон", in: springboard)
+        installWidget("Сон", in: springboard, within: smallSleep)
         app.terminate()
-        tapWidget("widget.sleep.start", label: "Начать сон", in: springboard, app: app, repeated: true)
-        waitForWidget("widget.sleep.finish", label: "Завершить сон", in: springboard)
+        tapWidget(
+            "widget.sleep.start",
+            label: "Начать сон",
+            in: springboard,
+            app: app,
+            repeated: true,
+            within: smallSleep
+        )
+        waitForWidget("widget.sleep.finish", label: "Завершить сон", in: smallSleep)
         let foregrounded = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "state == %d", XCUIApplication.State.runningForeground.rawValue),
             object: app
         )
         foregrounded.isInverted = true
         XCTAssertEqual(XCTWaiter.wait(for: [foregrounded], timeout: 5), .completed)
-        attach(springboard, stage: "Interactive sleep — native first presentation settled on Home")
+        let finish = widgetControl("widget.sleep.finish", label: "Завершить сон", in: smallSleep)
+        let finishFrame = finish.frame
+        XCTAssertFalse(finishFrame.isInfinite || finishFrame.isEmpty)
+        XCTAssertTrue(smallSleep.frame.contains(finishFrame))
+        XCTAssertTrue(finish.isHittable, "The active Small sleep widget must keep its finish button reachable")
+        attach(springboard, stage: "Interactive Small sleep — native first presentation settled on Home")
         relaunch(app)
         XCTAssertEqual(timers(app).count, 1)
         let eventID = String(timers(app).firstMatch.identifier.dropFirst("timer.finish.".count))
@@ -92,8 +113,9 @@ final class WidgetSystemUITests: XCTestCase {
         attach(springboard, stage: "Interactive sleep — same active timer in Live Activity")
         _ = home()
         app.terminate()
-        tapWidget("widget.sleep.finish", label: "Завершить сон", in: springboard, app: app)
-        waitForWidget("widget.sleep.start", label: "Начать сон", in: springboard)
+        tapWidget("widget.sleep.finish", label: "Завершить сон", in: springboard, app: app, within: smallSleep)
+        waitForWidget("widget.sleep.start", label: "Начать сон", in: smallSleep)
+        XCTAssertFalse(finish.exists)
         let endedCover = notificationCenter(in: springboard)
         let removed = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == false OR hittable == false"),
@@ -127,25 +149,29 @@ final class WidgetSystemUITests: XCTestCase {
         XCTAssertTrue(app.buttons["action.feed"].waitForExistence(timeout: 10))
     }
 
-    private func widgetControl(_ identifier: String, label: String, in springboard: XCUIApplication) -> XCUIElement {
-        let identified = springboard.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    private func widgetHost(_ title: String, in springboard: XCUIApplication) -> XCUIElement {
+        springboard.icons.matching(identifier: "Малыш").containing(.staticText, identifier: title).firstMatch
+    }
+
+    private func widgetControl(_ identifier: String, label: String, in host: XCUIElement) -> XCUIElement {
+        let identified = host.descendants(matching: .any).matching(identifier: identifier).firstMatch
         if identified.exists {
             return identified
         }
-        return springboard.buttons[label].firstMatch
+        return host.buttons[label].firstMatch
     }
 
-    private func waitForWidget(_ identifier: String, label: String, in springboard: XCUIApplication) {
+    private func waitForWidget(_ identifier: String, label: String, in host: XCUIElement) {
         logTiming("wait.begin", control: identifier)
-        let control = widgetControl(identifier, label: label, in: springboard)
-        XCTAssertTrue(control.waitForExistence(timeout: 30), springboard.debugDescription)
+        let control = widgetControl(identifier, label: label, in: host)
+        XCTAssertTrue(control.waitForExistence(timeout: 30), host.debugDescription)
         logTiming("wait.observed", control: identifier)
     }
 
     private func waitForDiaperFeedback(_ identifier: String, label: String,
-                                       in springboard: XCUIApplication, app: XCUIApplication)
+                                       in host: XCUIElement, app: XCUIApplication)
     {
-        let control = widgetControl(identifier, label: label, in: springboard)
+        let control = widgetControl(identifier, label: label, in: host)
         logTiming("feedback.wait.begin", control: identifier)
         let feedback = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "count >= 2"), object: control.staticTexts
@@ -165,9 +191,9 @@ final class WidgetSystemUITests: XCTestCase {
     }
 
     private func tapWidget(_ identifier: String, label: String, in springboard: XCUIApplication,
-                           app: XCUIApplication, repeated: Bool = false)
+                           app: XCUIApplication, repeated: Bool = false, within host: XCUIElement? = nil)
     {
-        let control = widgetControl(identifier, label: label, in: springboard)
+        let control = widgetControl(identifier, label: label, in: host ?? springboard)
         XCTAssertTrue(control.waitForExistence(timeout: 30), springboard.debugDescription)
         XCTAssertTrue(control.isHittable)
         logTiming("tap.begin", control: identifier)
@@ -249,8 +275,8 @@ final class WidgetSystemUITests: XCTestCase {
         return true
     }
 
-    private func installMedium(in springboard: XCUIApplication) {
-        let installed = widgetControl("widget.sleep.start", label: "Начать сон", in: springboard)
+    private func installWidget(_ title: String, in springboard: XCUIApplication, within host: XCUIElement) {
+        let installed = widgetControl("widget.sleep.start", label: "Начать сон", in: host)
         if installed.exists, installed.isHittable {
             return
         }
@@ -295,19 +321,19 @@ final class WidgetSystemUITests: XCTestCase {
         }
         provider.tap()
         attach(springboard, stage: "Native widget gallery — Малыш descriptor picker")
-        let quickActions = springboard.buttons["Малыш, Быстрые действия"].firstMatch
+        let descriptor = springboard.buttons["Малыш, " + title].firstMatch
         for _ in 0 ..< 14 {
-            if quickActions.exists, quickActions.isHittable {
+            if descriptor.exists, descriptor.isHittable {
                 break
             }
             springboard.swipeLeft()
         }
-        guard quickActions.exists, quickActions.isHittable else {
-            attach(springboard, stage: "Native widget gallery — missing quick actions descriptor")
-            XCTFail("Widget picker did not expose Быстрые действия")
+        guard descriptor.exists, descriptor.isHittable else {
+            attach(springboard, stage: "Native widget gallery — missing descriptor " + title)
+            XCTFail("Widget picker did not expose " + title)
             return
         }
-        attach(springboard, stage: "Native widget gallery — selected Быстрые действия medium")
+        attach(springboard, stage: "Native widget gallery — selected " + title)
         let addWidget = springboard.buttons.matching(addWidgetLabel).firstMatch
         guard addWidget.waitForExistence(timeout: 5) else {
             attach(springboard, stage: "Native widget gallery — missing Add Widget confirmation")
@@ -322,7 +348,7 @@ final class WidgetSystemUITests: XCTestCase {
             return
         }
         done.tap()
-        waitForWidget("widget.sleep.start", label: "Начать сон", in: springboard)
+        waitForWidget("widget.sleep.start", label: "Начать сон", in: host)
         attach(springboard, stage: "Native widget gallery — installed on Home")
     }
 
