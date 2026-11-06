@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag (vX.Y.Z)
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -15,6 +21,7 @@ concurrency:
 jobs:
   release:
     name: Test, sign and upload
+    if: ${{ github.event_name == 'push' || github.ref == 'refs/heads/main' }}
     runs-on: macos-15
     timeout-minutes: 90
     env:
@@ -23,25 +30,40 @@ jobs:
       FASTLANE_HIDE_CHANGELOG: '1'
       FASTLANE_DISABLE_COLORS: '1'
       FASTLANE_OPT_OUT_USAGE: '1'
-      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
     steps:
-      - name: Check out release
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Validate tag and main ancestry
+      - name: Validate release tag name
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$GITHUB_REF_TYPE" == tag ]]
           [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
             echo 'Release tag must match vX.Y.Z' >&2
             exit 1
           }
+
+      - name: Check out release
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.release_tag) || '' }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate tag and main ancestry
+        id: validate_release
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_commit="$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")"
+          [[ "$release_commit" == "$(git rev-parse HEAD)" ]] || {
+            echo 'Checked-out commit must match the release tag' >&2
+            exit 1
+          }
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            [[ "$GITHUB_REF_TYPE" == tag ]]
+            [[ "$release_commit" == "$(git rev-parse --verify "${GITHUB_SHA}^{commit}")" ]]
+          fi
           git show-ref --verify --quiet refs/remotes/origin/main
-          git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main || {
+          git merge-base --is-ancestor "$release_commit" refs/remotes/origin/main || {
             echo 'Release commit must belong to origin/main' >&2
             exit 1
           }
@@ -53,12 +75,20 @@ jobs:
           ruby-version: '4.0'
           bundler-cache: true
 
-      - name: Test on an available iPhone simulator
+      - name: Boot an available iPhone simulator
+        timeout-minutes: 10
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p Artifacts
           SIMULATOR_ID="$(xcrun simctl list devices available -j | python3 Scripts/simulator-id.py)"
+          printf 'SIMULATOR_ID=%s\n' "$SIMULATOR_ID" >> "$GITHUB_ENV"
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b 2>&1 | tee Artifacts/simulator-boot.log
+
+      - name: Test on an available iPhone simulator
+        shell: bash
+        run: |
+          set -euo pipefail
           xcodebuild \
             -workspace Malysh.xcworkspace \
             -scheme Malysh \
@@ -84,10 +114,11 @@ jobs:
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: bundle exec fastlane ios beta
+        # Fastlane expects a tag ref. The tag and checked-out commit were verified above.
+        run: GITHUB_REF_TYPE=tag bundle exec fastlane ios beta
 
       - name: Remove temporary signing material
-        if: always()
+        if: ${{ always() && steps.validate_release.outcome == 'success' }}
         shell: bash
         run: bash Scripts/ci-signing.sh cleanup
 
@@ -99,6 +130,7 @@ jobs:
           path: |
             Artifacts/Tests.xcresult
             Artifacts/tests.log
+            Artifacts/simulator-boot.log
             Artifacts/BuildLogs/*.log
           if-no-files-found: ignore
           retention-days: 7
