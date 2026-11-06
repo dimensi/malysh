@@ -104,14 +104,18 @@ final class LiveActivityUITests: XCTestCase {
         let cover = openNotificationCenter(springboard)
         let control = cover.buttons[button]
         // Await the first WidgetKit render and its permission before interacting with the card.
-        for _ in 0 ..< 3 {
+        for scrollCount in 0 ... 3 {
             allowActivityIfNeeded(springboard)
             if control.waitForExistence(timeout: 10) {
                 allowActivityIfNeeded(springboard)
-                if control.isHittable {
+                let ready = XCTNSPredicateExpectation(
+                    predicate: NSPredicate(format: "exists == true AND hittable == true"), object: control
+                )
+                if XCTWaiter.wait(for: [ready], timeout: 2) == .completed {
                     return cover
                 }
             }
+            guard scrollCount < 3 else { break }
             // Notification Center lazily exposes cards below the clock's initial viewport.
             let list = cover.scrollViews.firstMatch
             XCTAssertTrue(list.exists)
