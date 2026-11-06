@@ -470,7 +470,6 @@ private struct HomeDiaryWidget: View {
         } else {
             HStack(alignment: .bottom, spacing: 5) {
                 feedingButtons(babyID: babyID, snapshot: snapshot, compact: false)
-                    .frame(width: 94)
                 diaperButton(.wetDiaper, snapshot: snapshot, compact: false)
                 diaperButton(.dirtyDiaper, snapshot: snapshot, compact: false)
                 sleepButton(babyID: babyID, snapshot: snapshot, compact: false)
@@ -507,34 +506,18 @@ private struct HomeDiaryWidget: View {
                     .accessibilityIdentifier("widget.breast.switch")
                 }
             }
+        } else if compact {
+            feedingSides(snapshot: snapshot, compact: compact)
+                .frame(maxWidth: .infinity)
+                .background { tileSurface(.feeding) }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Начать кормление")
         } else {
-            Group {
-                if !compact, family == .systemLarge, !typeSize.isAccessibilitySize {
-                    HStack(spacing: 3) {
-                        careArt("heart.fill", category: .feeding, size: 34).accessibilityHidden(true)
-                        VStack(spacing: 0) {
-                            Text("Кормить").font(.caption.weight(.semibold)).accessibilityHidden(true)
-                            feedingSides(snapshot: snapshot, compact: compact)
-                        }
-                    }
-                    .padding(.horizontal, 5)
-                } else {
-                    VStack(spacing: 0) {
-                        if !compact, !typeSize.isAccessibilitySize {
-                            HStack(spacing: 2) {
-                                careArt("heart.fill", category: .feeding, size: 20)
-                                Text("Кормить").font(.caption2.weight(.semibold))
-                            }
-                            .accessibilityHidden(true)
-                        }
-                        feedingSides(snapshot: snapshot, compact: compact)
-                    }
-                }
+            Link(destination: WidgetRoute(.breast, babyID: babyID).url) {
+                tile("Кормить", icon: "heart.fill", category: .feeding, compact: false)
             }
-            .frame(maxWidth: .infinity)
-            .background { tileSurface(.feeding) }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Начать кормление")
+            .accessibilityLabel("Открыть выбор кормления")
+            .accessibilityIdentifier("widget.breast.open")
         }
     }
 
