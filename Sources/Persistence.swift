@@ -6,7 +6,7 @@ import Foundation
 /// All application access is on the main actor. CloudKit mirroring runs in Core Data.
 @MainActor
 final class Persistence {
-    static let containerIdentifier = "iCloud.dev.dimensi.malysh"
+    static let containerIdentifier = AppConfiguration.cloudKitContainer
     var container: NSPersistentCloudKitContainer {
         guard let activeContainer else { preconditionFailure("The persistence container is unavailable") }
         return activeContainer

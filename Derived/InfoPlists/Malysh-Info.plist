@@ -22,10 +22,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>dev.dimensi.malysh.widgets</string>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER).widgets</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>malysh</string>
+				<string>$(MALYSH_WIDGET_URL_SCHEME)</string>
 			</array>
 		</dict>
 	</array>
@@ -37,6 +37,12 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>MalyshAppGroup</key>
+	<string>$(MALYSH_APP_GROUP)</string>
+	<key>MalyshCloudKitContainer</key>
+	<string>$(MALYSH_CLOUDKIT_CONTAINER)</string>
+	<key>MalyshWidgetURLScheme</key>
+	<string>$(MALYSH_WIDGET_URL_SCHEME)</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Сфотографировать малыша и добавить снимок в семейный дневник.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

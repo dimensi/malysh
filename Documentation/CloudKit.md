@@ -4,7 +4,7 @@
 
 Для подписанной сборки и полноценной проверки нужны платная Apple Developer Program, доступ к команде разработчика и два физических iPhone с поддерживаемой версией iOS. Назначьте приложению свою команду и зарегистрируйте заданный Bundle ID `dev.dimensi.malysh` в настройках проекта. Зарегистрируйте контейнер `iCloud.dev.dimensi.malysh`, разрешите его для App ID и включите возможности iCloud / CloudKit и Background Modes / Remote notifications. Обновите provisioning profiles после изменения возможностей.
 
-Проверьте, что подписанная сборка содержит entitlement `com.apple.developer.icloud-container-identifiers` с `iCloud.dev.dimensi.malysh`, сервис `CloudKit` и корректное значение `com.apple.developer.icloud-container-environment`. Сборки разработки должны использовать Development, а распространяемые сборки — Production. В проекте значение задано через `$(CLOUDKIT_ENVIRONMENT)`: Debug → Development, Release → Production. APNs сохраняет исходную настройку development; при экспорте для распространения Xcode формирует подпись по distribution-профилю. Подписание и provisioning profile должны разрешать выбранную среду. Одного изменения файла недостаточно без настройки Apple Developer.
+Проверьте, что подписанная сборка содержит entitlement `com.apple.developer.icloud-container-identifiers` с `iCloud.dev.dimensi.malysh`, сервис `CloudKit` и корректное значение `com.apple.developer.icloud-container-environment`. Сборки разработки должны использовать Development, а распространяемые сборки — Production. В проекте значение задано через `$(CLOUDKIT_ENVIRONMENT)`: Dev и Debug → Development, Release → Production. APNs сохраняет исходную настройку development; при экспорте для распространения Xcode формирует подпись по distribution-профилю. Подписание и provisioning profile должны разрешать выбранную среду. Одного изменения файла недостаточно без настройки Apple Developer.
 
 Контейнер должен принадлежать выбранной команде. Без настроенной команды запуск на симуляторе проверяет только локальное поведение и не доказывает работу CloudKit.
 
@@ -16,7 +16,15 @@
 
 Development и Production — разные среды. Данные между ними не переносятся при развёртывании схемы. Оба тестовых устройства должны использовать одну среду и одну версию схемы.
 
-Обычная команда Run схемы Malysh в Xcode использует Debug/Development. Для сравнения с TestFlight выберите Edit Scheme → Run → Build Configuration → Release: у такой сборки CloudKit Production. Ссылка из Development не является проверкой приглашения в TestFlight Production. Не чередуйте среды на одном рабочем дневнике: локальные SQLite используются те же, а Core Data вынужден обновлять метаданные синхронизации при смене среды.
+## Малыш Dev рядом с обычным приложением
+
+Откройте `Malysh.xcworkspace`, выберите схему **Malysh** и свой iPhone. ⌘R использует конфигурацию `Dev` и устанавливает «Малыш Dev» с бирюзовой иконкой. Тесты схемы используют `Debug`, архив использует `Release`. Для повседневной разработки на телефоне выбирайте именно схему **Malysh**.
+
+При первой настройке в Apple Developer зарегистрируйте два explicit App ID — `dev.dimensi.malysh.dev` и `dev.dimensi.malysh.dev.widgets`. Назначьте обоим App Group `group.dev.dimensi.malysh.dev`. Для App ID приложения включите iCloud / CloudKit и Push Notifications, зарегистрируйте и привяжите только `iCloud.dev.dimensi.malysh.dev`. Xcode создаст development-профили автоматически. У виджета из облачных возможностей есть только App Group.
+
+Проверьте подписи приложения и виджета перед установкой. В обоих должна быть только dev-группа, в приложении дополнительно только dev-контейнер, среда `Development` и development APNs. Один раз запустите с аргументами `--initialize-cloudkit-schema`, `-cloudEnabled` и `YES` и дождитесь `SCHEMA_INITIALIZATION_SUCCEEDED` в консоли. `-cloudEnabled YES` включает iCloud только для этого запуска, в том числе на чистой установке. Затем уберите все три аргумента. Для «Малыш Dev» достаточно схемы Development в его контейнере.
+
+В чистой установке создайте тестовый дневник и при необходимости включите iCloud. Dev использует отдельные локальные данные, облачные записи и ссылки `malysh-dev://`. Для проверки совместной синхронизации оба устройства должны использовать «Малыш Dev» и актуальную схему его контейнера. Проверка Production выполняется на TestFlight.
 
 ## Локальное хранение и включение
 
@@ -51,7 +59,7 @@ iCloud по умолчанию выключен. Переключатель пе
 
 ## Точные действия для первоначальной схемы
 
-В Xcode запустите подписанную DEBUG-сборку на iPhone с включённым iCloud. Для однократной подготовки добавьте в Scheme → Run → Arguments ключ `--initialize-cloudkit-schema`. В этом служебном режиме приложение не открывает пользовательские хранилища дневника: оно вызовет `prepareDevelopmentSchema()`, выведет `SCHEMA_INITIALIZATION_SUCCEEDED` и завершится. Затем уберите аргумент. В Release этот код не компилируется.
+Для подготовки схемы релизного контейнера явно выберите конфигурацию `Debug` для Run и используйте отдельное тестовое устройство без установленного прод-приложения. Убедитесь, что подпись указывает на `iCloud.dev.dimensi.malysh` в среде Development. Для однократной подготовки добавьте в Scheme → Run → Arguments ключ `--initialize-cloudkit-schema`. В этом служебном режиме приложение не открывает пользовательские хранилища дневника: оно вызовет `prepareDevelopmentSchema()`, выведет `SCHEMA_INITIALIZATION_SUCCEEDED` и завершится. Затем уберите аргумент и верните Run в `Dev`. В Release этот код не компилируется.
 
 Инициализатор использует отдельный временный SQLite и только private scope того же контейнера. Пользовательские private/shared-хранилища дневника он не меняет. Нельзя вызывать `initializeCloudKitSchema` непосредственно на рабочем контейнере с shared store. Стандартный API Apple загружает собственные образцовые записи со всеми полями модели и удаляет эти образцы после создания схемы; существующие пользовательские данные не удаляются.
 
@@ -73,7 +81,7 @@ API сверены с [документацией Apple по общему дос
 
 ## Если приглашение возвращает Bad Container
 
-Это означает неизвестный или недоступный приложению контейнер, а не ошибку локального дневника. Сверьте точное имя `iCloud.dev.dimensi.malysh` в коде, подписи готовой `.app`, provisioning profile и CloudKit Console выбранной Team. Для запуска из Xcode Debug итоговая подпись должна содержать `com.apple.developer.icloud-container-environment = Development`. Файл исходных entitlements сам по себе не доказывает, что значение попало в подпись.
+Это означает неизвестный или недоступный приложению контейнер, а не ошибку локального дневника. Сверьте точное имя контейнера в `Info.plist`, подписи готовой `.app`, provisioning profile и CloudKit Console выбранной Team. Для запуска из Xcode в Dev или Debug итоговая подпись должна содержать `com.apple.developer.icloud-container-environment = Development`. Файл исходных entitlements сам по себе не доказывает, что значение попало в подпись.
 
 После правки требуется пересборка и повторный запуск. Удалять приложение или локальную базу не нужно. Откройте CloudKit Console из Xcode и убедитесь, что контейнер доступен выбранной команде и открывается его Development-среда. После изменения серверной конфигурации нажмите «Попробовать снова» в настройках iCloud, чтобы переоткрыть хранилище при ошибке первоначальной инициализации.
 
