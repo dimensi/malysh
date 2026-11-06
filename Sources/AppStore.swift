@@ -396,9 +396,9 @@ final class AppStore {
         Task { await photoGallery.saveReceivedIfEnabled() }
         babies = try persistence.babies()
         try updateVisibleBabiesAndSelection()
-        try selectAcceptedSharedBabyIfAvailable()
-        if selectedID != nil, invitation == nil {
-            hasOpenedDiary = true
+        let joinedID = try importedDiaryForInvitation()
+        if let joinedID {
+            selectedID = joinedID
         }
         events = try selectedID.map { try persistence.events(babyID: $0).sorted { $0.start > $1.start } } ?? []
         measurements = try selectedID.map { try persistence.measurements(babyID: $0) } ?? []
@@ -421,6 +421,14 @@ final class AppStore {
         if let activityCoordinator {
             let allEvents = try babies.flatMap { try persistence.events(babyID: $0.id) }
             activityCoordinator.reconcile(events: allEvents, babies: babies, allowStart: allowsActivityStart())
+        }
+        if let joinedID {
+            UserDefaults.standard.set(joinedID.uuidString, forKey: selectionPreferenceKey)
+            joinedDiaryID = joinedID
+            cancelInvitation()
+        }
+        if selectedID != nil, invitation == nil {
+            hasOpenedDiary = true
         }
         refreshWidgetSnapshot()
     }
@@ -695,8 +703,8 @@ final class AppStore {
         return !hasAcceptedOtherParent
     }
 
-    private func selectAcceptedSharedBabyIfAvailable() throws {
-        guard let invitation, let sharedStore = persistence.sharedStore else { return }
+    private func importedDiaryForInvitation() throws -> UUID? {
+        guard let invitation, let sharedStore = persistence.sharedStore else { return nil }
         let acceptedShareID = invitation.metadata.share.recordID
         var candidates: [NSManagedObjectID: UUID] = [:]
         for baby in babies {
@@ -707,17 +715,39 @@ final class AppStore {
         guard !candidates.isEmpty,
               let shares = try? persistence.container.fetchShares(matching: Array(candidates.keys)),
               let objectID = shares.first(where: { $0.value.recordID == acceptedShareID })?.key,
-              let babyID = candidates[objectID] else { return }
-        selectedID = babyID
-        UserDefaults.standard.set(babyID.uuidString, forKey: selectionPreferenceKey)
-        joinedDiaryID = babyID
-        cancelInvitation()
+              let babyID = candidates[objectID] else { return nil }
+        return babyID
     }
 
     func select(_ id: UUID) {
+        perform { try selectAndReload(id) }
+    }
+
+    func selectAndReload(_ id: UUID) throws {
+        guard !diaryRemovalInProgress else { throw ActivityActionFailure.unavailable }
+        let previousID = selectedID
+        let previousPreference = UserDefaults.standard.object(forKey: selectionPreferenceKey)
+        let previousBabies = babies
+        let previousVisibleBabies = visibleBabies
+        let previousRedundantBabies = redundantBabies
+        let previousEvents = events
+        let previousMeasurements = measurements
+        let previousFamily = family
         selectedID = id
         UserDefaults.standard.set(id.uuidString, forKey: selectionPreferenceKey)
-        perform { try reload() }
+        do {
+            try reload()
+        } catch {
+            selectedID = previousID
+            UserDefaults.standard.set(previousPreference, forKey: selectionPreferenceKey)
+            babies = previousBabies
+            visibleBabies = previousVisibleBabies
+            redundantBabies = previousRedundantBabies
+            events = previousEvents
+            measurements = previousMeasurements
+            family = previousFamily
+            throw error
+        }
     }
 
     func save(_ event: CareEvent) throws {

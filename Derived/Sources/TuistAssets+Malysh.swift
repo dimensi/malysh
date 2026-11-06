@@ -32,6 +32,7 @@ import SwiftUI
 
 public enum MalyshAsset: Sendable {
   public static let accentColor = MalyshColors(name: "AccentColor")
+  public static let activityFeeding = MalyshColors(name: "ActivityFeeding")
   public static let babyBear = MalyshImages(name: "BabyBear")
   public static let brandMark = MalyshImages(name: "BrandMark")
   public static let diaper = MalyshColors(name: "Diaper")
