@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DiaryRootView: View {
     let store: AppStore
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var step: Step = .welcome
     @State private var name = ""
     @State private var born = false
@@ -30,6 +31,7 @@ struct DiaryRootView: View {
                 .padding(.vertical, AppDesign.Spacing.row)
                 .frame(maxWidth: .infinity)
             }
+            .id(step)
             .scrollDismissesKeyboard(.interactively)
             .background(AppDesign.Palette.groupedBackground.ignoresSafeArea())
             .tint(AppDesign.Palette.accent)
@@ -101,11 +103,12 @@ struct DiaryRootView: View {
     }
 
     private var welcome: some View {
-        VStack(alignment: .leading, spacing: AppDesign.Spacing.section) {
+        let logoSize: CGFloat = dynamicTypeSize.isAccessibilitySize ? 72 : 124
+        return VStack(alignment: .leading, spacing: AppDesign.Spacing.section) {
             Image("BrandMark")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 124, height: 124)
+                .frame(width: logoSize, height: logoSize)
                 .clipShape(.rect(cornerRadius: AppDesign.Radius.card))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
@@ -113,7 +116,8 @@ struct DiaryRootView: View {
                     .font(.largeTitle.bold())
                     .accessibilityAddTraits(.isHeader)
                 Text("Всё важное о первых днях жизни малыша — в одном месте")
-                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+                    .foregroundStyle(AppDesign.Palette.primaryText.opacity(0.78))
             }
             VStack(spacing: AppDesign.Spacing.row) {
                 choice("Создать дневник", detail: "Для своего малыша", symbol: "book.closed",
@@ -137,12 +141,12 @@ struct DiaryRootView: View {
             VStack(alignment: .leading, spacing: AppDesign.Spacing.actionInset) {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
                     Text("Имя ребёнка").font(.headline)
-                    TextField("Малыш", text: $name)
+                    TextField("Имя ребёнка", text: $name,
+                              prompt: Text("Малыш").foregroundStyle(AppDesign.Palette.primaryText.opacity(0.72)))
                         .textContentType(.givenName)
                         .textInputAutocapitalization(.words)
                         .textFieldStyle(.roundedBorder)
                         .frame(minHeight: AppDesign.Metrics.minimumTouch)
-                        .accessibilityLabel("Имя ребёнка")
                         .accessibilityIdentifier("onboarding.name")
                 }
                 Divider()
@@ -236,10 +240,12 @@ struct DiaryRootView: View {
 
     private func heading(_ title: String, symbol: String) -> some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.row) {
-            Image(systemName: symbol)
-                .font(.largeTitle)
-                .foregroundStyle(AppDesign.Palette.accent)
-                .accessibilityHidden(true)
+            if !dynamicTypeSize.isAccessibilitySize {
+                Image(systemName: symbol)
+                    .font(.largeTitle)
+                    .foregroundStyle(AppDesign.Palette.accent)
+                    .accessibilityHidden(true)
+            }
             Text(title)
                 .font(.largeTitle.bold())
                 .accessibilityAddTraits(.isHeader)
