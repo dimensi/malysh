@@ -7,6 +7,7 @@ struct CareActivityAttributes: ActivityAttributes, Sendable {
         var start: Date
         var side: BreastSide?
         var babyName: String
+        var end: Date?
     }
 
     let eventID: UUID

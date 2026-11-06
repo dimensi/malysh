@@ -27,15 +27,30 @@ struct CareLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: CareActivityAttributes.self) { context in
             CareActivityLockScreen(attributes: context.attributes, state: context.state)
+                .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
+                                       eventID: context.attributes.eventID).url)
                 .activityBackgroundTint(context.state.surfaceColor)
                 .activitySystemActionForegroundColor(.primary)
         } dynamicIsland: { context in
             DynamicIsland {
-                DynamicIslandExpandedRegion(.bottom) {
-                    VStack(spacing: 8) {
-                        CareActivityIslandInfo(state: context.state)
-                        CareActivityControls(attributes: context.attributes, state: context.state)
+                DynamicIslandExpandedRegion(.leading) {
+                    CareActivityIslandHeaderCell {
+                        CareActivityIslandHeading(state: context.state)
                     }
+                }
+                .contentMargins(.leading, 26)
+                DynamicIslandExpandedRegion(.trailing) {
+                    CareActivityIslandHeaderCell {
+                        CareActivityTimer(start: context.state.start, end: context.state.end, alignment: .trailing)
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .padding(.trailing, 11)
+                    }
+                }
+                .contentMargins(.trailing, 26)
+                DynamicIslandExpandedRegion(.bottom) {
+                    CareActivityIslandActions(attributes: context.attributes, state: context.state)
                 }
             } compactLeading: {
                 Image(systemName: context.state.symbol)
@@ -48,7 +63,8 @@ struct CareLiveActivityWidget: Widget {
                     .foregroundStyle(context.state.islandAccent)
                     .accessibilityLabel(context.state.title)
             }
-            .keylineTint(context.state.islandAccent)
+            .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
+                                   eventID: context.attributes.eventID).url)
             .contentMargins(.horizontal, 16, for: .expanded)
         }
     }
@@ -60,10 +76,10 @@ private struct CompactCareActivityTimer: View {
 
     var body: some View {
         if !isLimitedInWidth {
-            CareActivityTimer(start: state.start)
+            CareActivityTimer(start: state.start, alignment: .trailing)
                 .font(.caption2.weight(.medium))
-                .frame(width: 64)
-                .foregroundStyle(state.islandAccent)
+                .frame(width: 64, alignment: .trailing)
+                .foregroundStyle(.white)
         }
     }
 }

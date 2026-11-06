@@ -43,6 +43,19 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(try persistence.babies(), [replacement])
         XCTAssertTrue(try persistence.events(babyID: starter.id).isEmpty)
         XCTAssertTrue(store.events.isEmpty)
+
+        // L/W: a failed diary switch must not show the old diary under a different child.
+        store.diaper(.wet)
+        let eventsBeforeFailure = store.events
+        let preferenceBeforeFailure = UserDefaults.standard.string(forKey: "selectedBaby")
+        for persistentStore in persistence.container.persistentStoreCoordinator.persistentStores {
+            try persistence.container.persistentStoreCoordinator.remove(persistentStore)
+        }
+        XCTAssertThrowsError(try store.selectAndReload(UUID()))
+        XCTAssertEqual(store.selectedID, replacement.id)
+        XCTAssertEqual(store.baby?.id, replacement.id)
+        XCTAssertEqual(store.events, eventsBeforeFailure)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "selectedBaby"), preferenceBeforeFailure)
     }
 
     func testOfflineResetAndRemovalPreserveInvitedDiaryAndOwnedData() async throws {
