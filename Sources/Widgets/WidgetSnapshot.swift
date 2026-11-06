@@ -103,6 +103,7 @@ struct WidgetSnapshotEvent: Codable, Equatable, Identifiable, Sendable {
     let end: Date
     let volumeML: Int
     let diaperType: DiaperType
+    let side: BreastSide?
 
     init(_ event: CareEvent) {
         id = event.id
@@ -111,6 +112,7 @@ struct WidgetSnapshotEvent: Codable, Equatable, Identifiable, Sendable {
         end = event.end ?? event.start
         volumeML = event.kind == .bottle ? event.volumeML : 0
         diaperType = event.kind == .diaper ? event.diaperType : .wet
+        side = event.kind == .breast ? event.side : nil
     }
 }
 
