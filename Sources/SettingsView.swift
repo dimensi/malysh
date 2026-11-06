@@ -226,8 +226,8 @@ private struct DiaryManagementView: View {
     }
 
     var body: some View {
-        Form {
-            Section("Дневники") {
+        List {
+            Section {
                 ForEach(store.babies) { baby in
                     DiaryRemovalRow(baby: baby, invited: store.persistence.isInvitedDiary(id: baby.id)) {
                         remove($0)
@@ -237,6 +237,7 @@ private struct DiaryManagementView: View {
             Section {
                 Button("Начать заново", role: .destructive) { confirmsReset = true }
                     .accessibilityIdentifier("diary.reset")
+                    // A full reset keeps a visible Cancel button.
                     .alert("Начать заново?", isPresented: $confirmsReset) {
                         Button("Удалить и начать заново", role: .destructive) { remove(.all) }
                             .accessibilityIdentifier("diary.reset.confirm")
@@ -257,6 +258,7 @@ private struct DiaryManagementView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
         .disabled(!canRemove || store.diaryRemovalInProgress)
         .overlay {
             if store.diaryRemovalInProgress {
@@ -265,7 +267,8 @@ private struct DiaryManagementView: View {
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
             }
         }
-        .navigationTitle("Управление дневниками")
+        .navigationTitle("Дневники")
+        .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(store.diaryRemovalInProgress)
         .interactiveDismissDisabled(store.diaryRemovalInProgress)
         .alert("Не удалось завершить действие", isPresented: Binding(
@@ -305,30 +308,41 @@ private struct DiaryRemovalRow: View {
     @State private var confirmsRemoval = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(baby.name).font(.headline)
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+            Text(baby.name).font(AppDesign.Typography.itemTitle)
             if baby.birthDateConfirmed {
                 Text(baby.birthDate.formatted(date: .abbreviated, time: .omitted))
-                    .font(.subheadline).foregroundStyle(.secondary)
+                    .font(AppDesign.Typography.detail)
+                    .foregroundStyle(AppDesign.Palette.secondaryText)
             }
-            Button(invited ? "Выйти из дневника" : "Удалить дневник", role: .destructive) {
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button {
                 confirmsRemoval = true
+            } label: {
+                Label(
+                    invited ? "Выйти" : "Удалить",
+                    systemImage: invited ? "rectangle.portrait.and.arrow.right" : "trash"
+                )
             }
-            .buttonStyle(.borderless)
-            .frame(minHeight: AppDesign.Metrics.minimumTouch)
+            .tint(AppDesign.Palette.error)
             .accessibilityIdentifier("diary.remove")
-            .alert(invited ? "Выйти из дневника?" : "Удалить дневник?", isPresented: $confirmsRemoval) {
-                Button(invited ? "Выйти" : "Удалить", role: .destructive) {
-                    remove(.one(baby.id, invited: invited))
-                }
-                .accessibilityIdentifier("diary.remove.confirm")
-                Button("Отмена", role: .cancel) {}
-            } message: {
-                Text(invited
-                    ? "Дневник «\(baby.name)» останется у владельца и других участников."
-                    :
-                    "Дневник «\(baby.name)» и его содержимое будут удалены. Если у дневника есть участники, они потеряют доступ.")
+        }
+        .confirmationDialog(
+            invited ? "Выйти из дневника?" : "Удалить дневник?",
+            isPresented: $confirmsRemoval,
+            titleVisibility: .visible
+        ) {
+            Button(invited ? "Выйти" : "Удалить", role: .destructive) {
+                remove(.one(baby.id, invited: invited))
             }
+            .accessibilityIdentifier("diary.remove.confirm")
+            Button("Отмена", role: .cancel) {}
+        } message: {
+            Text(invited
+                ? "Дневник «\(baby.name)» останется у владельца и других участников."
+                : "Дневник «\(baby.name)» и всё его содержимое будут удалены. Участники потеряют доступ.")
         }
     }
 }
