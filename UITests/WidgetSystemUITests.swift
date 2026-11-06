@@ -90,7 +90,8 @@ final class WidgetSystemUITests: XCTestCase {
             repeated: true,
             within: smallSleep
         )
-        waitForWidget("widget.sleep.finish", label: "Завершить сон", in: smallSleep)
+        // Cold App Intent dispatch and WidgetKit extension recovery can exceed 30 seconds on CI.
+        waitForWidget("widget.sleep.finish", label: "Завершить сон", in: smallSleep, timeout: 90)
         let foregrounded = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "state == %d", XCUIApplication.State.runningForeground.rawValue),
             object: app
@@ -114,7 +115,7 @@ final class WidgetSystemUITests: XCTestCase {
         _ = home()
         app.terminate()
         tapWidget("widget.sleep.finish", label: "Завершить сон", in: springboard, app: app, within: smallSleep)
-        waitForWidget("widget.sleep.start", label: "Начать сон", in: smallSleep)
+        waitForWidget("widget.sleep.start", label: "Начать сон", in: smallSleep, timeout: 90)
         XCTAssertFalse(finish.exists)
         let endedCover = notificationCenter(in: springboard)
         let removed = XCTNSPredicateExpectation(
@@ -161,10 +162,10 @@ final class WidgetSystemUITests: XCTestCase {
         return host.buttons[label].firstMatch
     }
 
-    private func waitForWidget(_ identifier: String, label: String, in host: XCUIElement) {
+    private func waitForWidget(_ identifier: String, label: String, in host: XCUIElement, timeout: TimeInterval = 30) {
         logTiming("wait.begin", control: identifier)
         let control = widgetControl(identifier, label: label, in: host)
-        XCTAssertTrue(control.waitForExistence(timeout: 30), host.debugDescription)
+        XCTAssertTrue(control.waitForExistence(timeout: timeout), host.debugDescription)
         logTiming("wait.observed", control: identifier)
     }
 

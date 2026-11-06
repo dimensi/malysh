@@ -6,6 +6,9 @@ on:
     paths:
       - '.github/workflows/testflight.yml'
       - 'Scripts/simulator-id.py'
+      - 'Gemfile'
+      - 'Gemfile.lock'
+      - 'fastlane/**'
   push:
     tags:
       - 'v*'
@@ -77,11 +80,13 @@ jobs:
           xcodebuild -version
 
       - name: Set up Ruby
-        if: github.event_name != 'pull_request'
         uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1
         with:
           ruby-version: '4.0'
           bundler-cache: true
+
+      - name: Validate Fastlane configuration
+        run: bundle exec fastlane lanes
 
       - name: Boot an available iPhone simulator
         timeout-minutes: 10
