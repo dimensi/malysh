@@ -1,6 +1,6 @@
 # Малыш
 
-Приложение для iPhone: кормление грудью и из бутылочки, подгузники и сон. Записи сохраняются локально; синхронизация через iCloud включается отдельно. Минимальная система — iOS 27.0, язык — Swift 6.
+В «Малыше» для iPhone и Apple Watch можно записывать кормление грудью и из бутылочки, подгузники и сон. Записи сохраняются локально. Синхронизация через iCloud включается отдельно на iPhone. Минимальная система — iOS 27.0, язык — Swift 6.
 
 ## Сборка
 
@@ -28,6 +28,8 @@ bash Scripts/check.sh
 ```sh
 DESTINATION='platform=iOS Simulator,name=iPhone 16 Pro' RESULT_BUNDLE_PATH=Artifacts/Tests-repeat.xcresult bash Scripts/check.sh
 ```
+
+Для приложения Apple Watch, его виджетов и проверки сопряжённой пары см. [Apple Watch](Documentation/AppleWatch.md).
 
 ## Данные и iCloud
 

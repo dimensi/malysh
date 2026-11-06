@@ -56,6 +56,34 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "504ACA83536B2870A61E51C7"
+               BuildableName = "MalyshWatch.app"
+               BlueprintName = "MalyshWatch"
+               ReferencedContainer = "container:Malysh.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "BFAC27421C2C156D9CEC91B4"
+               BuildableName = "MalyshWatchWidgets.appex"
+               BlueprintName = "MalyshWatchWidgets"
+               ReferencedContainer = "container:Malysh.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "B071ACBF0BC8211711810046"
                BuildableName = "MalyshWidgets.appex"
                BlueprintName = "MalyshWidgets"

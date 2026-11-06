@@ -32,6 +32,7 @@ final class AppStore {
     private var widgetRefreshObservers: Set<AnyCancellable> = []
     @ObservationIgnored private var widgetSnapshotBatchDepth = 0
     @ObservationIgnored private var widgetSnapshotRefreshPending = false
+    @ObservationIgnored var watchSnapshotDidChange: (() -> Void)?
     var allowsActivityStart: () -> Bool = { false }
     private var loading = false
     var babies: [Baby] = []
@@ -495,6 +496,7 @@ final class AppStore {
         }
         refreshWidgetSnapshot()
         feedingReminders.update(babyID: selectedID, events: events, babyName: baby?.name)
+        watchSnapshotDidChange?()
     }
 
     func createFirstDiary(name: String, birthDate: Date?) throws {
@@ -560,6 +562,7 @@ final class AppStore {
             cloudSwitchInProgress = false
             cloudSwitchTask = nil
             updateCloudStatus()
+            watchSnapshotDidChange?()
             if ready, persistence.cloudEnabled {
                 await checkAccount()
             }
@@ -881,7 +884,7 @@ final class AppStore {
         }
     }
 
-    func save(_ event: CareEvent) throws {
+    func save(_ event: CareEvent, transactionAuthor: String? = nil) throws {
         var normalized = event
         if normalized.kind == .bottle || normalized.kind == .diaper {
             normalized.end = normalized.start
@@ -900,7 +903,7 @@ final class AppStore {
             normalized.lastEditedBy = nil
         }
         normalized.modifiedAt = now
-        try persistence.saveEvent(normalized)
+        try persistence.saveEvent(normalized, transactionAuthor: transactionAuthor)
         try reload()
     }
 

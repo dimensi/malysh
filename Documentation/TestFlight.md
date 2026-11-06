@@ -12,6 +12,8 @@ Workflow `.github/workflows/testflight.yml` предназначен для ре
 | `IOS_DISTRIBUTION_P12_PASSWORD` | Пароль экспорта `.p12` |
 | `IOS_PROVISIONING_PROFILE_BASE64` | Base64 профиля распространения App Store Connect для `dev.dimensi.malysh` |
 | `IOS_WIDGET_PROVISIONING_PROFILE_BASE64` | Base64 отдельного профиля App Store Connect для `dev.dimensi.malysh.widgets` (обязателен) |
+| `WATCHOS_PROVISIONING_PROFILE_BASE64` | Base64 профиля App Store Connect для `dev.dimensi.malysh.watchkitapp` |
+| `WATCHOS_WIDGET_PROVISIONING_PROFILE_BASE64` | Base64 профиля App Store Connect для `dev.dimensi.malysh.watchkitapp.widgets` |
 | `ASC_PRIVATE_KEY_BASE64` | Base64 закрытого ключа App Store Connect API (`.p8`) |
 | `ASC_KEY_ID` | Идентификатор API-ключа |
 | `ASC_ISSUER_ID` | Issuer ID команды App Store Connect |
@@ -20,13 +22,16 @@ Workflow `.github/workflows/testflight.yml` предназначен для ре
 
 Для CI созданы ручные профили `Malysh GitHub Actions App Store App Group` и `Malysh Widgets GitHub Actions App Store App Group` с одним уже существующим сертификатом Apple Distribution. Профили, автоматически управляемые Xcode, для ручной подписи CI не используются. Текущий сертификат и оба профиля действуют до **4 декабря 2026**: до этой даты обновите сертификат/профили и соответствующие секреты GitHub, чтобы следующие выпуски продолжали подписываться.
 
-Скрипт `Scripts/ci-signing.sh setup` устанавливает материалы во временные файлы и отдельную связку ключей. Он передаёт следующим шагам через `GITHUB_ENV` значения `PROFILE_UUID`, `PROFILE_NAME`, `WIDGET_PROFILE_UUID`, `CI_KEYCHAIN_PATH`, `CI_KEYCHAIN_PASSWORD` и `ASC_KEY_PATH`; пароль связки должен быть замаскирован в журнале. Подкоманда `cleanup` выполняется даже после ошибки и должна безопасно работать, если установка не началась или завершилась частично. Профили и сертификаты имеют срок действия: обновляйте секреты до истечения или после отзыва. При отзыве API-ключа замените также его ID и закрытый ключ.
+Скрипт `Scripts/ci-signing.sh setup` устанавливает материалы во временные файлы и отдельную связку ключей. Он передаёт следующим шагам через `GITHUB_ENV` значения `PROFILE_UUID`, `PROFILE_NAME`, `WIDGET_PROFILE_UUID`, `WATCH_PROFILE_UUID`, `WATCH_WIDGET_PROFILE_UUID`, `CI_KEYCHAIN_PATH`, `CI_KEYCHAIN_PASSWORD` и `ASC_KEY_PATH`; пароль связки должен быть замаскирован в журнале. Подкоманда `cleanup` выполняется даже после ошибки и должна безопасно работать, если установка не началась или завершилась частично. Профили и сертификаты имеют срок действия: обновляйте секреты до истечения или после отзыва. При отзыве API-ключа замените также его ID и закрытый ключ.
 
 ## Расширение и App Group
 
+Для Apple Watch зарегистрируйте ещё два explicit App ID и добавьте их в `group.dev.dimensi.malysh`. Создайте по одному App Store Connect profile для приложения часов и для его расширения с тем же сертификатом Apple Distribution, затем настройте два секрета `WATCHOS_…` из таблицы. Перед загрузкой Fastlane проверяет вложенные `Watch/MalyshWatch.app` и `PlugIns/MalyshWatchWidgets.appex`, их bundle ID, версию, номер сборки, минимальный watchOS 26.0 и ссылку на companion iPhone. Сборка Dev и проверки на устройстве описаны в [AppleWatch.md](AppleWatch.md).
+
+
 Explicit App ID `dev.dimensi.malysh.widgets` и App Group `group.dev.dimensi.malysh` зарегистрированы в команде `YBBAN7R28K`. Группа назначена обоим App ID: `dev.dimensi.malysh` и `dev.dimensi.malysh.widgets`. Оба distribution-профиля и их GitHub Secrets обновлены под эту группу и проверены выпуском 1.1.6. У расширения нет CloudKit или Push Notifications; у приложения эти возможности сохранены. При следующих изменениях capabilities пересоздавайте нужные профили и обновляйте соответствующие секреты. Изменения кода сами не создают App ID, группу, профиль или секрет.
 
-Скрипт проверяет оба профиля, устанавливает их без перезаписи существующих файлов и при очистке удаляет только принадлежащие этому запуску файлы. Fastlane передаёт `MALYSH_PROFILE_UUID` и `MALYSH_WIDGET_PROFILE_UUID`; каждая цель использует свой `PROVISIONING_PROFILE_SPECIFIER`. Экспорт IPA содержит соответствие обоих bundle ID своим профилям.
+Скрипт проверяет четыре профиля, устанавливает их без перезаписи существующих файлов и при очистке удаляет только принадлежащие этому запуску файлы. Fastlane передаёт `MALYSH_PROFILE_UUID` и `MALYSH_WIDGET_PROFILE_UUID`; каждая цель использует свой `PROVISIONING_PROFILE_SPECIFIER`. Экспорт IPA содержит соответствие обоих bundle ID своим профилям.
 
 ## Выпуск
 

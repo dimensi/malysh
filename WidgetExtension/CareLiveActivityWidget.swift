@@ -27,14 +27,9 @@ struct MalyshWidgetBundle: WidgetBundle {
 struct CareLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: CareActivityAttributes.self) { context in
-            let isFeeding = context.state.kind == .breast
-            CareActivityLockScreen(attributes: context.attributes, state: context.state)
+            CareActivityContent(attributes: context.attributes, state: context.state)
                 .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
                                        eventID: context.attributes.eventID).url)
-                .activityBackgroundTint(
-                    isFeeding ? CareActivityAppearance.feedingLockScreenSurface : context.state.appearance.surfaceColor
-                )
-                .activitySystemActionForegroundColor(isFeeding ? .white : .primary)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
@@ -58,6 +53,49 @@ struct CareLiveActivityWidget: Widget {
             .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
                                    eventID: context.attributes.eventID).url)
             .contentMargins(.horizontal, AppDesign.Spacing.row, for: .expanded)
+        }
+        .supplementalActivityFamilies([.small])
+    }
+}
+
+private struct CareActivityContent: View {
+    let attributes: CareActivityAttributes
+    let state: CareActivityAttributes.ContentState
+
+    @Environment(\.activityFamily) private var family
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+
+    var body: some View {
+        if family == .small {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Label(state.title, systemImage: state.appearance.symbol)
+                        .font(.headline)
+                        .lineLimit(1)
+                    Text(state.babyName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                if isLuminanceReduced, state.end == nil {
+                    Text(state.start, style: .relative)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                } else {
+                    CareActivityTimer(start: state.start, end: state.end, alignment: .trailing)
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+            .padding(.horizontal, 12)
+            .privacySensitive()
+        } else {
+            let isFeeding = state.kind == .breast
+            CareActivityLockScreen(attributes: attributes, state: state)
+                .activityBackgroundTint(
+                    isFeeding ? CareActivityAppearance.feedingLockScreenSurface : state.appearance.surfaceColor
+                )
+                .activitySystemActionForegroundColor(isFeeding ? .white : .primary)
         }
     }
 }

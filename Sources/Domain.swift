@@ -269,6 +269,10 @@ public struct CareEvent: Identifiable, Codable, Sendable, Equatable {
         self.note = note
     }
 
+    var feedingReferenceDate: Date {
+        kind == .breast ? end ?? start : start
+    }
+
     public func elapsed(now: Date = Date()) -> TimeInterval {
         max(0, min(end ?? now, now).timeIntervalSince(start))
     }

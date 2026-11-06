@@ -408,7 +408,14 @@ final class Persistence {
         return merged.parentProfiles
     }
 
-    func saveEvent(_ event: CareEvent) throws {
+    func saveEvent(_ event: CareEvent, transactionAuthor: String? = nil) throws {
+        guard isLoaded else { throw Failure.notLoaded }
+        let context = container.viewContext
+        let previousAuthor = context.transactionAuthor
+        if let transactionAuthor {
+            context.transactionAuthor = transactionAuthor
+        }
+        defer { context.transactionAuthor = previousAuthor }
         try transaction {
             guard let baby = try babyObject(id: event.babyID) else { throw Failure.missingBaby }
             let existing = try objects(
