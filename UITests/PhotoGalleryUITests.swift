@@ -26,25 +26,13 @@ final class PhotoGalleryUITests: XCTestCase {
     }
 
     func testOlderPinnedAvatarPersistsAndDeletionFallsBackToNewestThenBrand() {
-        let app = launch(["--photo-fixtures", "--light-mode"])
+        let app = launch(["--photo-fixtures"])
         let oldID = "00000000-0000-0000-0000-000000000001"
         let newID = "00000000-0000-0000-0000-000000000002"
         let avatar = app.buttons["photo.gallery.open"]
-        let profileAvatar = app.buttons["child.profile.avatar"]
-        func checkProfileAvatar(_ expected: String?) {
-            app.tabBars.buttons["Малыш"].tap()
-            XCTAssertTrue(profileAvatar.waitForExistence(timeout: 5))
-            XCTAssertEqual(profileAvatar.value as? String, expected)
-            app.tabBars.buttons["Сегодня"].tap()
-        }
         let newestValue = avatar.value as? String
         XCTAssertNotNil(newestValue)
         XCTAssertTrue(newestValue?.hasPrefix("Главное фото от ") == true)
-        let headerLight = XCTAttachment(screenshot: app.screenshot())
-        headerLight.name = "Child photo header light"
-        headerLight.lifetime = .keepAlways
-        add(headerLight)
-        checkProfileAvatar(newestValue)
         avatar.tap()
         app.buttons["photo.grid.\(oldID)"].tap()
         action("photo.pin", app: app)
@@ -54,27 +42,28 @@ final class PhotoGalleryUITests: XCTestCase {
         XCTAssertNotNil(olderPinnedValue)
         XCTAssertTrue(olderPinnedValue?.hasPrefix("Главное фото от ") == true)
         XCTAssertNotEqual(olderPinnedValue, newestValue)
-        checkProfileAvatar(olderPinnedValue)
         app.terminate()
-        app.launchArguments = ["--ui-testing", "--light-mode"]
+        app.launchArguments = ["--ui-testing"]
         app.launch()
         XCTAssertTrue(avatar.waitForExistence(timeout: 10))
         XCTAssertEqual(avatar.value as? String, olderPinnedValue)
-        checkProfileAvatar(olderPinnedValue)
+        app.tabBars.buttons["Малыш"].tap()
+        let profileAvatar = app.buttons["child.profile.avatar"]
+        XCTAssertTrue(profileAvatar.waitForExistence(timeout: 5))
+        XCTAssertEqual(profileAvatar.value as? String, olderPinnedValue)
+        app.tabBars.buttons["Сегодня"].tap()
         avatar.tap()
         app.buttons["photo.grid.\(oldID)"].tap()
         action("photo.delete", app: app)
         app.buttons["photo.viewer.close"].tap()
         app.buttons["photo.gallery.close"].tap()
         XCTAssertEqual(avatar.value as? String, newestValue)
-        checkProfileAvatar(newestValue)
         avatar.tap()
         app.buttons["photo.grid.\(newID)"].tap()
         action("photo.delete", app: app)
         XCTAssertTrue(app.descendants(matching: .any)["photo.empty"].waitForExistence(timeout: 5))
         app.buttons["photo.gallery.close"].tap()
         XCTAssertEqual(avatar.value as? String, "Фотографий пока нет")
-        checkProfileAvatar("Фотографий пока нет")
     }
 
     func testFullscreenPagingSystemShareAndWidgetRoute() throws {

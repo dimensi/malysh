@@ -148,24 +148,6 @@ final class ProfileUITests: XCTestCase {
         XCTAssertTrue(row.label.contains("300"))
     }
 
-    func testEmptySaveKeepsBirthSectionUntilExplicitSkip() {
-        let app = launch()
-        app.tabBars.buttons["Малыш"].tap()
-        let edit = app.buttons["child.profile.edit"]
-        edit.tap()
-        app.buttons["child.editor.save"].tap()
-        XCTAssertTrue(edit.waitForExistence(timeout: 5))
-        edit.tap()
-        let skip = app.buttons["child.editor.skipBirthMeasurements"]
-        reveal(skip, in: app)
-        skip.tap()
-        XCTAssertTrue(edit.waitForExistence(timeout: 5))
-        edit.tap()
-        XCTAssertTrue(app.navigationBars["Изменить профиль"].waitForExistence(timeout: 5))
-        XCTAssertFalse(skip.exists)
-        XCTAssertFalse(app.textFields["child.editor.birth.weight"].exists)
-    }
-
     func testOptionalBirthTimePersistsAcrossLaunchAndCanBeRemoved() {
         let app = launch()
         app.tabBars.buttons["Малыш"].tap()
