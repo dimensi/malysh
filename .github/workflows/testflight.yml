@@ -6,7 +6,9 @@ on:
     paths:
       - '.github/workflows/testflight.yml'
       - 'Scripts/simulator-id.py'
+      - 'Scripts/testflight-test-results.py'
       - 'Scripts/tests/test_simulator_id.py'
+      - 'Scripts/tests/test_testflight_test_results.py'
       - 'Scripts/tests/test_testflight_delivery.rb'
       - 'Gemfile'
       - 'Gemfile.lock'
@@ -116,6 +118,7 @@ jobs:
           bundle exec fastlane lanes
           ruby Scripts/tests/test_testflight_delivery.rb
           python3 -m unittest discover -s Scripts/tests -p test_simulator_id.py
+          python3 -m unittest discover -s Scripts/tests -p test_testflight_test_results.py
 
       - name: Boot iPhone 18 Pro on iOS 27.2
         timeout-minutes: 10
@@ -153,19 +156,36 @@ jobs:
               ;;
             *) exit 1 ;;
           esac
-          xcodebuild \
-            -workspace Malysh.xcworkspace \
-            -scheme Malysh \
-            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
-            -derivedDataPath DerivedData/CI \
-            -resultBundlePath Artifacts/Tests.xcresult \
-            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- \
-            -parallel-testing-enabled NO \
-            -test-timeouts-enabled YES \
-            -default-test-execution-time-allowance 240 \
-            -maximum-test-execution-time-allowance 300 \
-            -retry-tests-on-failure -test-iterations 2 -test-repetition-relaunch-enabled YES \
-            "${selection[@]}" test 2>&1 | tee Artifacts/tests.log
+          xcode_args=(
+            -workspace Malysh.xcworkspace
+            -scheme Malysh
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID"
+            -derivedDataPath DerivedData/CI
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-
+            -parallel-testing-enabled NO
+            -test-timeouts-enabled YES
+            -default-test-execution-time-allowance 240
+            -maximum-test-execution-time-allowance 300
+          )
+          if xcodebuild "${xcode_args[@]}" -resultBundlePath Artifacts/Tests.xcresult \
+            "${selection[@]}" test 2>&1 | tee Artifacts/tests.log; then
+            exit 0
+          else
+            statuses=("${PIPESTATUS[@]}")
+          fi
+          [[ "${statuses[0]}" == 65 && "${statuses[1]}" == 0 ]] || exit 1
+
+          failed=$(python3 Scripts/testflight-test-results.py Artifacts/Tests.xcresult)
+          retry_ids=()
+          retry_selection=()
+          while IFS= read -r identifier; do
+            retry_ids+=("$identifier")
+            retry_selection+=("-only-testing:$identifier")
+          done <<< "$failed"
+          printf 'Retrying failed test: %s\n' "${retry_ids[@]}"
+          xcodebuild "${xcode_args[@]}" -resultBundlePath Artifacts/Retry.xcresult \
+            "${retry_selection[@]}" test-without-building 2>&1 | tee Artifacts/retry.log
+          python3 Scripts/testflight-test-results.py Artifacts/Retry.xcresult --verify "${retry_ids[@]}"
 
       - name: Save test results and simulator logs
         if: always()
@@ -175,6 +195,8 @@ jobs:
           path: |
             Artifacts/Tests.xcresult
             Artifacts/tests.log
+            Artifacts/Retry.xcresult
+            Artifacts/retry.log
             Artifacts/simulator-boot.log
             Artifacts/simulators.json
           if-no-files-found: ignore
