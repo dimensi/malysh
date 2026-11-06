@@ -1,10 +1,10 @@
 # Малыш
 
-Приложение для iPhone: кормление грудью и из бутылочки, подгузники и сон. Записи сохраняются локально; синхронизация через iCloud включается отдельно. Минимальная система — iOS 27.1, язык — Swift 6.
+Приложение для iPhone: кормление грудью и из бутылочки, подгузники и сон. Записи сохраняются локально; синхронизация через iCloud включается отдельно. Минимальная система — iOS 27.0, язык — Swift 6.
 
 ## Сборка
 
-Для запуска готового проекта нужен Xcode 27.2 с SDK iOS 27.2. Для перегенерации проекта и проверок нужны Tuist, SwiftFormat и SwiftLint. Готовый `Malysh.xcworkspace` уже включён в исходники. Для запуска откройте его в Xcode, выберите схему `Malysh` и iPhone Simulator с iOS 27.1 или новее, затем нажмите Run (⌘R). Для запуска на физическом устройстве выберите свою Team в Signing & Capabilities.
+Для запуска готового проекта нужен Xcode 27.2 с SDK iOS 27.2. Для перегенерации проекта и проверок нужны Tuist, SwiftFormat и SwiftLint. Готовый `Malysh.xcworkspace` уже включён в исходники. Для запуска откройте его в Xcode, выберите схему `Malysh` и iPhone Simulator с iOS 27.0 или новее, затем нажмите Run (⌘R). Для запуска на физическом устройстве выберите свою Team в Signing & Capabilities.
 
 Команды выполняются из этой папки. `Project.swift` описывает проект; Tuist создаёт `Malysh.xcworkspace` со схемой `Malysh`.
 
@@ -13,7 +13,7 @@ tuist generate --no-open
 xcodebuild -workspace Malysh.xcworkspace -scheme Malysh -destination 'platform=iOS Simulator,name=iPhone 16 Pro' CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- -derivedDataPath DerivedData -resultBundlePath Artifacts/Tests.xcresult test
 ```
 
-Пример использует iPhone 16 Pro с установленной iOS 27.1 или новее. На другом Mac выберите имя установленного симулятора или передайте его идентификатор через `DESTINATION`. Перед повторным запуском выберите новый путь результата или удалите предыдущий `Artifacts/Tests.xcresult`.
+Пример использует iPhone 16 Pro с установленной iOS 27.0 или новее. На другом Mac выберите имя установленного симулятора или передайте его идентификатор через `DESTINATION`. Перед повторным запуском выберите новый путь результата или удалите предыдущий `Artifacts/Tests.xcresult`.
 
 Состав проверок, правила добавления тестов и выборочный запуск — в [матрице тестов](Documentation/TestMatrix.md).
 

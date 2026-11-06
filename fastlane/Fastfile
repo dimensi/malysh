@@ -72,7 +72,7 @@ platform :ios do
     )
     app_info = File.expand_path("../Artifacts/TestFlight/Malysh.xcarchive/Products/Applications/Malysh.app/Info.plist", FastlaneCore::FastlaneFolder.path)
     { "CFBundleShortVersionString" => version, "CFBundleVersion" => build_number.to_s,
-      "MinimumOSVersion" => "27.1",
+      "MinimumOSVersion" => "27.0",
       "ITSAppUsesNonExemptEncryption" => "false" }.each do |key, expected|
       actual = sh("/usr/libexec/PlistBuddy", "-c", "Print :#{key}", app_info, log: false).strip
       UI.user_error!("Archived #{key} does not match the intended release") unless actual == expected
@@ -81,7 +81,7 @@ platform :ios do
     UI.user_error!("Archived widget extension is missing") unless File.file?(widget_info)
     { "CFBundleIdentifier" => "dev.dimensi.malysh.widgets",
       "CFBundleShortVersionString" => version, "CFBundleVersion" => build_number.to_s,
-      "MinimumOSVersion" => "27.1" }.each do |key, expected|
+      "MinimumOSVersion" => "27.0" }.each do |key, expected|
       actual = sh("/usr/libexec/PlistBuddy", "-c", "Print :#{key}", widget_info, log: false).strip
       UI.user_error!("Archived widget #{key} does not match the intended release") unless actual == expected
     end
