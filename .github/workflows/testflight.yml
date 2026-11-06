@@ -93,7 +93,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [app, system]
+        suite: [app, profile-and-photos, system]
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
     steps:
@@ -138,7 +138,15 @@ jobs:
           set -euo pipefail
           case "$TEST_SUITE" in
             app)
-              selection=(-skip-testing:MalyshUITests/LiveActivityUITests -skip-testing:MalyshUITests/WidgetSystemUITests)
+              selection=(
+                -skip-testing:MalyshUITests/ProfileUITests
+                -skip-testing:MalyshUITests/PhotoGalleryUITests
+                -skip-testing:MalyshUITests/LiveActivityUITests
+                -skip-testing:MalyshUITests/WidgetSystemUITests
+              )
+              ;;
+            profile-and-photos)
+              selection=(-only-testing:MalyshUITests/ProfileUITests -only-testing:MalyshUITests/PhotoGalleryUITests)
               ;;
             system)
               selection=(-only-testing:MalyshUITests/LiveActivityUITests -only-testing:MalyshUITests/WidgetSystemUITests)
