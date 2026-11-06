@@ -157,6 +157,20 @@ extension Persistence {
             }
         }
     }
+
+    func purgeDiaryZone(_ zoneID: CKRecordZone.ID, in store: NSPersistentStore) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            // A private-store purge deletes an owned share. A shared-store purge ends only our participation.
+            container.purgeObjectsAndRecordsInZone(with: zoneID, in: store) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+        container.viewContext.reset()
+    }
 }
 
 extension Notification.Name {

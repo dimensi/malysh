@@ -17,7 +17,7 @@ final class Persistence {
     private var loaded = false
 
     enum Failure: LocalizedError {
-        case missingModel, notLoaded, missingBaby, missingStore, cloudDisabled
+        case missingModel, notLoaded, missingBaby, missingStore, cloudDisabled, diaryChanged
         var errorDescription: String? {
             switch self {
             case .missingModel: "Не найдена модель базы данных."
@@ -25,6 +25,7 @@ final class Persistence {
             case .missingBaby: "Профиль ребёнка не найден."
             case .missingStore: "Хранилище недоступно."
             case .cloudDisabled: "Включите iCloud в настройках и перезапустите приложение."
+            case .diaryChanged: "Список дневников изменился. Проверьте его и повторите действие."
             }
         }
     }
@@ -377,6 +378,73 @@ final class Persistence {
             }
         }
         try parentProfileCache.forget(babyIDs: ids)
+        try? eventAuthorCache.forget(babyIDs: ids)
+    }
+
+    func isInvitedDiary(id: UUID) -> Bool {
+        guard let sharedStore, let record = try? babyObject(id: id) else { return false }
+        return record.objectID.persistentStore == sharedStore
+    }
+
+    func removeDiary(id: UUID, invited: Bool) async throws {
+        guard let baby = try babyObject(id: id) else { return }
+        guard let store = baby.objectID.persistentStore,
+              store == (invited ? sharedStore : privateStore) else { throw Failure.diaryChanged }
+        let share = try container.fetchShares(matching: [baby.objectID])[baby.objectID]
+        if let share {
+            guard cloudEnabled else { throw Failure.cloudDisabled }
+            try await purgeDiaryZone(share.recordID.zoneID, in: store)
+        } else {
+            guard !invited else { throw cloudEnabled ? Failure.diaryChanged : Failure.cloudDisabled }
+            try transaction { try deleteDiaryRecords(babyID: id, in: store) }
+        }
+        forgetDiaryCaches(ids: [id])
+    }
+
+    func resetDiaries() async throws {
+        guard let privateStore, let sharedStore else { throw Failure.missingStore }
+        let records = try objects(entity: "BabyRecord", predicate: nil)
+        let ids = Set(records.compactMap { $0.value(forKey: "id") as? UUID })
+        if cloudEnabled {
+            let cloud = CKContainer(identifier: Self.containerIdentifier)
+            // This container is dedicated to diaries. Include zones without an imported root.
+            let sharedZones = try await cloud.sharedCloudDatabase.allRecordZones()
+            let privateZones = try await cloud.privateCloudDatabase.allRecordZones()
+            for zone in sharedZones {
+                try await purgeDiaryZone(zone.zoneID, in: sharedStore)
+            }
+            for zone in privateZones where zone.zoneID != CKRecordZone.default().zoneID {
+                try await purgeDiaryZone(zone.zoneID, in: privateStore)
+            }
+        }
+        // Never save deletes of individual records in the shared database.
+        let remaining = try objects(entity: "BabyRecord", predicate: nil)
+        guard !remaining.contains(where: { $0.objectID.persistentStore == sharedStore }) else {
+            throw cloudEnabled ? Failure.diaryChanged : Failure.cloudDisabled
+        }
+        if !cloudEnabled, try !container.fetchShares(in: privateStore).isEmpty {
+            throw Failure.cloudDisabled
+        }
+        let removedIDs = ids.union(remaining.compactMap { $0.value(forKey: "id") as? UUID })
+        try transaction { try deleteDiaryRecords(babyID: nil, in: privateStore) }
+        forgetDiaryCaches(ids: removedIDs)
+    }
+
+    private func deleteDiaryRecords(babyID: UUID?, in store: NSPersistentStore) throws {
+        // The foreign key also finds legacy records without a Core Data relationship.
+        for entity in ["EventRecord", "MeasurementRecord", "PhotoRecord", "BabyRecord"] {
+            let key = entity == "BabyRecord" ? "id" : "babyID"
+            let predicate = babyID.map { NSPredicate(format: "%K == %@", key, $0 as NSUUID) }
+            for record in try objects(entity: entity, predicate: predicate)
+                where record.objectID.persistentStore == store
+            {
+                container.viewContext.delete(record)
+            }
+        }
+    }
+
+    private func forgetDiaryCaches(ids: Set<UUID>) {
+        try? parentProfileCache.forget(babyIDs: ids)
         try? eventAuthorCache.forget(babyIDs: ids)
     }
 

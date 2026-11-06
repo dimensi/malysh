@@ -206,4 +206,33 @@ final class MalyshUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "diary-picker").firstMatch.exists)
         capture(app, name: "Семья после удаления лишнего профиля")
     }
+
+    func testDiaryResetRequiresConfirmationAndStaysEmptyAfterRelaunch() {
+        let app = launch(appearance: ["--dark-mode", "--large-text"])
+        tap(app, id: "action.diaper")
+        tap(app, id: "diaper.wet", label: "Мокрый")
+        let event = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "event.")).firstMatch
+        XCTAssertTrue(event.waitForExistence(timeout: 5))
+        tap(app, id: "settings.open")
+        tap(app, id: "diary.manage")
+        tap(app, id: "diary.reset")
+        let alert = app.alerts["Начать заново?"].firstMatch
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Отмена"].firstMatch.tap()
+        app.terminate()
+        _ = launch(reset: false, appearance: ["--dark-mode", "--large-text"])
+        XCTAssertTrue(event.waitForExistence(timeout: 5))
+
+        tap(app, id: "settings.open")
+        tap(app, id: "diary.manage")
+        tap(app, id: "diary.reset")
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["diary.reset.confirm"].firstMatch.tap()
+        let resetComplete = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"),
+                                                      object: app.buttons["diary.reset"])
+        XCTAssertEqual(XCTWaiter.wait(for: [resetComplete], timeout: 5), .completed)
+        app.terminate()
+        _ = launch(reset: false)
+        XCTAssertFalse(event.exists)
+    }
 }

@@ -12,8 +12,8 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                if store.visibleBabies.count > 1 {
-                    Section("Дневники") {
+                Section("Дневники") {
+                    if store.visibleBabies.count > 1 {
                         Picker(
                             "Дневник",
                             selection: Binding(get: { store.selectedID }, set: {
@@ -26,22 +26,20 @@ struct SettingsView: View {
                         }
                         .accessibilityIdentifier("diary-picker")
                     }
+                    NavigationLink("Управление дневниками") {
+                        DiaryManagementView(store: store)
+                    }
+                    .accessibilityIdentifier("diary.manage")
                 }
                 familySection
                 Section {
-                    Toggle("Сохранять полученные фотографии в Фото", isOn: Binding(
+                    Toggle("Копировать фото других участников в «Фото»", isOn: Binding(
                         get: { store.photoGallery.autoSaveReceived },
                         set: { enabled in Task { await store.photoGallery.setAutoSaveReceived(enabled) } }
                     ))
                     .accessibilityIdentifier("photo.autoSave")
-                    Link("Общая медиатека Apple", destination: URL(string: "https://support.apple.com/118229")!)
-                        .accessibilityIdentifier("photo.sharedLibrary.help")
                 } header: { Text("Фотографии") } footer: {
-                    Text(
-                        "Только на этом устройстве. Фотографии из семейного дневника сохраняются отдельными копиями в вашей медиатеке Фото. "
-                            + "Общая медиатека настраивается в системе: Настройки → Приложения → Фото → Общая медиатека. "
-                            + "Существующие снимки можно перенести в неё в приложении Фото."
-                    )
+                    Text("Снимки с камеры «Малыша» всегда сохраняются в «Фото».")
                 }
                 Section {
                     Toggle("Синхронизация через iCloud", isOn: $cloudEnabled)
@@ -212,6 +210,126 @@ struct SettingsView: View {
         .frame(minHeight: 44, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
+    }
+}
+
+@MainActor
+private struct DiaryManagementView: View {
+    let store: AppStore
+    @AppStorage("cloudEnabled") private var cloudEnabled = false
+    @State private var confirmsReset = false
+    @State private var errorMessage: String?
+
+    private var canRemove: Bool {
+        cloudEnabled == store.persistence.cloudEnabled && store.persistence.cloudStartupError == nil
+            && (!cloudEnabled || store.cloudSharingReady) && !store.cloudBusy
+    }
+
+    var body: some View {
+        Form {
+            Section("Дневники") {
+                ForEach(store.babies) { baby in
+                    DiaryRemovalRow(baby: baby, invited: store.persistence.isInvitedDiary(id: baby.id)) {
+                        remove($0)
+                    }
+                }
+            }
+            Section {
+                Button("Начать заново", role: .destructive) { confirmsReset = true }
+                    .accessibilityIdentifier("diary.reset")
+                    .alert("Начать заново?", isPresented: $confirmsReset) {
+                        Button("Удалить и начать заново", role: .destructive) { remove(.all) }
+                            .accessibilityIdentifier("diary.reset.confirm")
+                        Button("Отмена", role: .cancel) {}
+                    } message: {
+                        Text(cloudEnabled
+                            ? "Ваши дневники и их содержимое будут удалены из iCloud для всех участников. "
+                            + "Вы выйдете из чужих дневников. Приложение создаст один пустой дневник."
+                            : "Дневники будут удалены с этого iPhone. Для сброса данных в iCloud сначала включите "
+                            + "синхронизацию. Приложение создаст один пустой дневник.")
+                    }
+            } footer: {
+                if !canRemove {
+                    Text(cloudEnabled == store.persistence.cloudEnabled
+                        ? store.syncStatus : "Перезапустите приложение, чтобы применить настройку iCloud.")
+                } else if !cloudEnabled {
+                    Text("Чтобы сбросить дневники в iCloud, включите синхронизацию и перезапустите приложение.")
+                }
+            }
+        }
+        .disabled(!canRemove || store.diaryRemovalInProgress)
+        .overlay {
+            if store.diaryRemovalInProgress {
+                ProgressView("Обновляем дневники…")
+                    .padding()
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+            }
+        }
+        .navigationTitle("Управление дневниками")
+        .navigationBarBackButtonHidden(store.diaryRemovalInProgress)
+        .interactiveDismissDisabled(store.diaryRemovalInProgress)
+        .alert("Не удалось завершить действие", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: {
+                if !$0 {
+                    errorMessage = nil
+                }
+            }
+        )) {
+            Button("Понятно", role: .cancel) { errorMessage = nil }
+        } message: { Text(errorMessage ?? "") }
+    }
+
+    private func remove(_ removal: AppStore.DiaryRemoval) {
+        Task {
+            do {
+                try await store.removeDiaries(removal)
+            } catch {
+                let detail = error is Persistence.Failure
+                    ? error.localizedDescription : "Проверьте подключение к iCloud и повторите действие."
+                if case .all = removal {
+                    errorMessage = "Часть дневников уже могла быть удалена. " + detail
+                } else {
+                    errorMessage = detail
+                }
+            }
+        }
+    }
+}
+
+@MainActor
+private struct DiaryRemovalRow: View {
+    let baby: Baby
+    let invited: Bool
+    let remove: (AppStore.DiaryRemoval) -> Void
+    @State private var confirmsRemoval = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(baby.name).font(.headline)
+            if baby.birthDateConfirmed {
+                Text(baby.birthDate.formatted(date: .abbreviated, time: .omitted))
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+            Button(invited ? "Выйти из дневника" : "Удалить дневник", role: .destructive) {
+                confirmsRemoval = true
+            }
+            .buttonStyle(.borderless)
+            .frame(minHeight: AppDesign.Metrics.minimumTouch)
+            .accessibilityIdentifier("diary.remove")
+            .alert(invited ? "Выйти из дневника?" : "Удалить дневник?", isPresented: $confirmsRemoval) {
+                Button(invited ? "Выйти" : "Удалить", role: .destructive) {
+                    remove(.one(baby.id, invited: invited))
+                }
+                .accessibilityIdentifier("diary.remove.confirm")
+                Button("Отмена", role: .cancel) {}
+            } message: {
+                Text(invited
+                    ? "Дневник «\(baby.name)» останется у владельца и других участников."
+                    :
+                    "Дневник «\(baby.name)» и его содержимое будут удалены. Если у дневника есть участники, они потеряют доступ.")
+            }
+        }
     }
 }
 
