@@ -15,7 +15,7 @@ struct WidgetRoute: Equatable, Sendable {
 
     init?(url: URL) {
         guard let parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              parts.scheme == "malysh", parts.host == "widget",
+              parts.scheme == AppConfiguration.widgetURLScheme, parts.host == "widget",
               parts.user == nil, parts.password == nil, parts.port == nil, parts.fragment == nil,
               let destination = Destination(rawValue: String(parts.path.dropFirst())),
               parts.path == "/" + destination.rawValue else { return nil }
@@ -43,7 +43,7 @@ struct WidgetRoute: Equatable, Sendable {
 
     var url: URL {
         var parts = URLComponents()
-        parts.scheme = "malysh"
+        parts.scheme = AppConfiguration.widgetURLScheme
         parts.host = "widget"
         parts.path = "/" + destination.rawValue
         var query: [URLQueryItem] = []

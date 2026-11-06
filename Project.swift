@@ -8,8 +8,17 @@ let settings: Settings = .settings(base: [
     "APS_ENVIRONMENT": "development",
     "IPHONEOS_DEPLOYMENT_TARGET": .string(minimumIOS), "TARGETED_DEVICE_FAMILY": "1",
     "MARKETING_VERSION": "1.0.0", "CURRENT_PROJECT_VERSION": "1",
+    "MALYSH_APP_GROUP": "group.dev.dimensi.malysh",
+    "MALYSH_CLOUDKIT_CONTAINER": "iCloud.dev.dimensi.malysh",
+    "MALYSH_WIDGET_URL_SCHEME": "malysh",
 ], configurations: [
     .debug(name: "Debug", settings: ["CLOUDKIT_ENVIRONMENT": "Development"]),
+    .debug(name: "Dev", settings: [
+        "CLOUDKIT_ENVIRONMENT": "Development",
+        "MALYSH_APP_GROUP": "group.dev.dimensi.malysh.dev",
+        "MALYSH_CLOUDKIT_CONTAINER": "iCloud.dev.dimensi.malysh.dev",
+        "MALYSH_WIDGET_URL_SCHEME": "malysh-dev",
+    ]),
     .release(name: "Release", settings: ["CLOUDKIT_ENVIRONMENT": "Production"]),
 ])
 let project = Project(name: "Malysh", settings: settings, targets: [
@@ -24,8 +33,11 @@ let project = Project(name: "Malysh", settings: settings, targets: [
                 "UILaunchScreen": [:], "UIBackgroundModes": ["remote-notification"],
                 "CKSharingSupported": true,
                 "NSSupportsLiveActivities": true,
-                "CFBundleURLTypes": [["CFBundleURLName": "dev.dimensi.malysh.widgets",
-                                      "CFBundleURLSchemes": ["malysh"]]],
+                "MalyshAppGroup": "$(MALYSH_APP_GROUP)",
+                "MalyshCloudKitContainer": "$(MALYSH_CLOUDKIT_CONTAINER)",
+                "MalyshWidgetURLScheme": "$(MALYSH_WIDGET_URL_SCHEME)",
+                "CFBundleURLTypes": [["CFBundleURLName": "$(PRODUCT_BUNDLE_IDENTIFIER).widgets",
+                                      "CFBundleURLSchemes": ["$(MALYSH_WIDGET_URL_SCHEME)"]]],
                 "ITSAppUsesNonExemptEncryption": false,
                 "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
                 "UIApplicationSceneManifest": ["UIApplicationSupportsMultipleScenes": false],
@@ -35,6 +47,14 @@ let project = Project(name: "Malysh", settings: settings, targets: [
             settings: .settings(base: [
                 "INFOPLIST_KEY_CFBundleDisplayName": "Малыш",
                 "PROVISIONING_PROFILE_SPECIFIER": "$(MALYSH_PROFILE_UUID)",
+            ], configurations: [
+                .debug(name: "Dev", settings: [
+                    "PRODUCT_BUNDLE_IDENTIFIER": "dev.dimensi.malysh.dev",
+                    "INFOPLIST_KEY_CFBundleDisplayName": "Малыш Dev",
+                    "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIconDev",
+                    "PROVISIONING_PROFILE_SPECIFIER": "",
+                    "REGISTER_APP_GROUPS": "YES",
+                ]),
             ]),
             coreDataModels: [.coreDataModel("Resources/Malysh.xcdatamodeld")]),
     .target(name: "MalyshWidgets", destinations: [.iPhone], product: .appExtension,
@@ -43,8 +63,11 @@ let project = Project(name: "Malysh", settings: settings, targets: [
                 "CFBundleDisplayName": "$(INFOPLIST_KEY_CFBundleDisplayName)", "CFBundleDevelopmentRegion": "ru",
                 "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                 "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
+                "MalyshAppGroup": "$(MALYSH_APP_GROUP)",
+                "MalyshWidgetURLScheme": "$(MALYSH_WIDGET_URL_SCHEME)",
                 "NSExtension": ["NSExtensionPointIdentifier": "com.apple.widgetkit-extension"],
-            ]), sources: ["WidgetExtension/**", "Sources/Domain.swift", "Sources/DesignSystem.swift",
+            ]), sources: ["WidgetExtension/**", "Sources/AppConfiguration.swift",
+                          "Sources/Domain.swift", "Sources/DesignSystem.swift",
                           "Sources/Widgets/**",
                           "Sources/LiveActivities/CareActivityAttributes.swift",
                           "Sources/LiveActivities/CareActivityIntents.swift"],
@@ -55,6 +78,13 @@ let project = Project(name: "Malysh", settings: settings, targets: [
                 "INFOPLIST_KEY_CFBundleDisplayName": "Малыш · виджеты",
                 "PROVISIONING_PROFILE_SPECIFIER": "$(MALYSH_WIDGET_PROFILE_UUID)",
                 "SWIFT_ACTIVE_COMPILATION_CONDITIONS": "$(inherited) MALYSH_WIDGET_EXTENSION",
+            ], configurations: [
+                .debug(name: "Dev", settings: [
+                    "PRODUCT_BUNDLE_IDENTIFIER": "dev.dimensi.malysh.dev.widgets",
+                    "INFOPLIST_KEY_CFBundleDisplayName": "Малыш Dev · виджеты",
+                    "PROVISIONING_PROFILE_SPECIFIER": "",
+                    "REGISTER_APP_GROUPS": "YES",
+                ]),
             ])),
     .target(name: "MalyshTests", destinations: [.iPhone], product: .unitTests,
             bundleId: "dev.dimensi.malysh.tests", deploymentTargets: .iOS(minimumIOS),
@@ -65,4 +95,4 @@ let project = Project(name: "Malysh", settings: settings, targets: [
             infoPlist: .default, sources: ["UITests/**"], dependencies: [.target(name: "Malysh")]),
 ], schemes: [.scheme(name: "Malysh", shared: true, buildAction: .buildAction(targets: ["Malysh"]),
                      testAction: .targets(["MalyshTests", "MalyshUITests"], configuration: .debug),
-                     runAction: .runAction(configuration: .debug))])
+                     runAction: .runAction(configuration: "Dev"))])

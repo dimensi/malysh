@@ -20,6 +20,10 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>MalyshAppGroup</key>
+	<string>$(MALYSH_APP_GROUP)</string>
+	<key>MalyshWidgetURLScheme</key>
+	<string>$(MALYSH_WIDGET_URL_SCHEME)</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>

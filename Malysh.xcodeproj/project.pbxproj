@@ -60,6 +60,7 @@
 		AC51A80628E140BB694B5B9F /* CareActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 754529FCC0E07F606825A2B8 /* CareActivityAttributes.swift */; };
 		AFCF53F170C0545ED90A6BA7 /* MalyshWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CFD96C656BDC9151995D4C54 /* MalyshWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B2A7A83F97C181ECF436E190 /* WidgetRouteInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52776983C90FA0DFDE019FC6 /* WidgetRouteInbox.swift */; };
+		B4267217CE704E21907B5796 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7E65D32F2B4DE72FAC657C /* AppConfiguration.swift */; };
 		B7163E483965FD4D0588C9C2 /* MalyshApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 163EA23D70ABAF9E0B136375 /* MalyshApp.swift */; };
 		BC0692F9092F09E7BDDCE267 /* PhotoGalleryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A8E86027D81DA5E3D72D8A /* PhotoGalleryUITests.swift */; };
 		C298B7DA824AEAA6A7422608 /* CloudFailureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894E384B7F7EBB9ADFCA1B45 /* CloudFailureTests.swift */; };
@@ -67,6 +68,7 @@
 		C5ED665559A95E8811A8DC02 /* WidgetRouteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13F36745A8E246E830575A5A /* WidgetRouteTests.swift */; };
 		CCC7BA958E89B0040B6ECFE2 /* ChildProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A4168CA6855FEC2A480A92E /* ChildProfile.swift */; };
 		CF0054F95D706E885B88C65F /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DD992A50110540FC676286B /* AppStore.swift */; };
+		D10098762EE74B2618D1F329 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7E65D32F2B4DE72FAC657C /* AppConfiguration.swift */; };
 		D13202CB00A5433C3351A157 /* PhotoWorkflowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FD7DDB542E49DFCFA6C8D69 /* PhotoWorkflowTests.swift */; };
 		D150E738DE8872A7A529567A /* PhotoPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6C2B65094C01B6252EF7AB /* PhotoPersistenceTests.swift */; };
 		D28CAA9F1FC6CD2A8B38164F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1C8F15FAB8ABEF7E07B2A0C7 /* PrivacyInfo.xcprivacy */; };
@@ -211,6 +213,7 @@
 		8221E9168F2FE8C1DC2F6FA7 /* MalyshUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MalyshUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		892C506F7C92B8100B9D1C01 /* DomainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainTests.swift; sourceTree = "<group>"; };
 		894E384B7F7EBB9ADFCA1B45 /* CloudFailureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudFailureTests.swift; sourceTree = "<group>"; };
+		8D7E65D32F2B4DE72FAC657C /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		95A8E86027D81DA5E3D72D8A /* PhotoGalleryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoGalleryUITests.swift; sourceTree = "<group>"; };
 		9A4F9D817C68BDF127D819AC /* DiaryRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryRootView.swift; sourceTree = "<group>"; };
 		9C6C2B65094C01B6252EF7AB /* PhotoPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPersistenceTests.swift; sourceTree = "<group>"; };
@@ -398,6 +401,7 @@
 			children = (
 				0E0B87C49D1DD53ADA46C4E4 /* LiveActivities */,
 				20DA4B93465DA28E12101281 /* Widgets */,
+				8D7E65D32F2B4DE72FAC657C /* AppConfiguration.swift */,
 				3DD992A50110540FC676286B /* AppStore.swift */,
 				00D9AF466A93712355CEF51C /* BabyPhoto.swift */,
 				2A4168CA6855FEC2A480A92E /* ChildProfile.swift */,
@@ -616,6 +620,7 @@
 			files = (
 				D505360A7AEBEC59100C87E6 /* TuistAssets+MalyshWidgets.swift in Sources */,
 				228E388971D3954E88EC9311 /* TuistBundle+MalyshWidgets.swift in Sources */,
+				B4267217CE704E21907B5796 /* AppConfiguration.swift in Sources */,
 				6B55CD9DFB2C58A44771BADA /* DesignSystem.swift in Sources */,
 				C4DCD121F98897D5E6D67BED /* Domain.swift in Sources */,
 				AC51A80628E140BB694B5B9F /* CareActivityAttributes.swift in Sources */,
@@ -638,6 +643,7 @@
 			files = (
 				FA549E306B4C98F66025D754 /* TuistAssets+Malysh.swift in Sources */,
 				9761D7F5D866652F67387C29 /* TuistBundle+Malysh.swift in Sources */,
+				D10098762EE74B2618D1F329 /* AppConfiguration.swift in Sources */,
 				CF0054F95D706E885B88C65F /* AppStore.swift in Sources */,
 				3E6610DDECCFD5A078666738 /* BabyPhoto.swift in Sources */,
 				CCC7BA958E89B0040B6ECFE2 /* ChildProfile.swift in Sources */,
@@ -852,6 +858,9 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MALYSH_APP_GROUP = group.dev.dimensi.malysh;
+				MALYSH_CLOUDKIT_CONTAINER = iCloud.dev.dimensi.malysh;
+				MALYSH_WIDGET_URL_SCHEME = malysh;
 				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -861,6 +870,75 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
+		};
+		6081DA2F0AEDA2CACEEB5D73 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconDev;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Resources/Malysh.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = "Derived/InfoPlists/Malysh-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Малыш Dev";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dimensi.malysh.dev;
+				PRODUCT_NAME = Malysh;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited)",
+					DEBUG,
+				);
+				SWIFT_COMPILATION_MODE = singlefile;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Dev;
+		};
+		81091E2C98C7B976066C2F99 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = "Derived/InfoPlists/MalyshUITests-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dimensi.malysh.uitests;
+				PRODUCT_NAME = MalyshUITests;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited)",
+					DEBUG,
+				);
+				SWIFT_COMPILATION_MODE = singlefile;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Malysh;
+			};
+			name = Dev;
 		};
 		98568A763CA1B3612CD3A7D3 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -915,6 +993,9 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MALYSH_APP_GROUP = group.dev.dimensi.malysh;
+				MALYSH_CLOUDKIT_CONTAINER = iCloud.dev.dimensi.malysh;
+				MALYSH_WIDGET_URL_SCHEME = malysh;
 				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -958,6 +1039,78 @@
 				TEST_TARGET_NAME = Malysh;
 			};
 			name = Debug;
+		};
+		AA071A4E12F90CAD306DFD47 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				APS_ENVIRONMENT = development;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CLOUDKIT_ENVIRONMENT = Development;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = YBBAN7R28K;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MALYSH_APP_GROUP = group.dev.dimensi.malysh.dev;
+				MALYSH_CLOUDKIT_CONTAINER = iCloud.dev.dimensi.malysh.dev;
+				MALYSH_WIDGET_URL_SCHEME = "malysh-dev";
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Dev;
 		};
 		B904E101B8091D3D125F4F84 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -1027,6 +1180,43 @@
 			};
 			name = Debug;
 		};
+		C95A554253DBDB2C9C7C09C1 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Resources/MalyshWidgets.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = "Derived/InfoPlists/MalyshWidgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Малыш Dev · виджеты";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dimensi.malysh.dev.widgets;
+				PRODUCT_NAME = MalyshWidgets;
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited) MALYSH_WIDGET_EXTENSION",
+					DEBUG,
+				);
+				SWIFT_COMPILATION_MODE = singlefile;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Dev;
+		};
 		DAADDDF5F10B9B5FBE0E7D5A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1093,6 +1283,40 @@
 			};
 			name = Debug;
 		};
+		EB14E0D9E49B37F2F75C9E25 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = "Derived/InfoPlists/MalyshTests-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-L$(DT_TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = dev.dimensi.malysh.tests;
+				PRODUCT_NAME = MalyshTests;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = (
+					"$(inherited)",
+					DEBUG,
+				);
+				SWIFT_COMPILATION_MODE = singlefile;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Malysh.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Malysh";
+				TEST_TARGET_NAME = Malysh;
+			};
+			name = Dev;
+		};
 		EF1AB53AD958A277F0B95EC3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1133,6 +1357,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				24CC1871AF7F20142A745F42 /* Debug */,
+				81091E2C98C7B976066C2F99 /* Dev */,
 				25E86E934861DBB02CF28B1F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1142,6 +1367,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E93B8B29026F05C62530936E /* Debug */,
+				C95A554253DBDB2C9C7C09C1 /* Dev */,
 				EF1AB53AD958A277F0B95EC3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1151,6 +1377,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1F411EE3AFA562620649FB4 /* Debug */,
+				EB14E0D9E49B37F2F75C9E25 /* Dev */,
 				DAADDDF5F10B9B5FBE0E7D5A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1160,6 +1387,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				485ECE69102E62DE880EBBFC /* Debug */,
+				AA071A4E12F90CAD306DFD47 /* Dev */,
 				98568A763CA1B3612CD3A7D3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1169,6 +1397,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				C8402081374641F12B486F2A /* Debug */,
+				6081DA2F0AEDA2CACEEB5D73 /* Dev */,
 				B904E101B8091D3D125F4F84 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;

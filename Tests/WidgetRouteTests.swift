@@ -15,17 +15,27 @@ final class WidgetRouteTests: XCTestCase {
     }
 
     func testRejectsForeignAndMalformedLinks() throws {
-        for value in ["https://widget/today", "malysh://other/today", "malysh://widget/delete",
-                      "malysh://widget/today/", "malysh://widget/today?baby=invalid",
-                      "malysh://widget/today?unexpected=1", "malysh://widget/today?baby=&baby=",
-                      "malysh://widget/today#anything", "malysh://user@widget/today",
-                      "malysh://widget/activity", "malysh://widget/activity?baby=invalid&event=invalid",
-                      "malysh://widget/activity?baby=\(UUID())",
-                      "malysh://widget/activity?event=\(UUID())",
-                      "malysh://widget/activity?baby=\(UUID())&event=\(UUID())&event=\(UUID())",
-                      "malysh://widget/activity?baby=\(UUID())&baby=\(UUID())&event=\(UUID())",
-                      "malysh://widget/today?event=\(UUID())"]
-        {
+        let scheme = AppConfiguration.widgetURLScheme
+        let otherScheme = scheme == "malysh" ? "malysh-dev" : "malysh"
+        for value in [
+            "https://widget/today",
+            "\(otherScheme)://widget/today",
+            "\(scheme)://other/today",
+            "\(scheme)://widget/delete",
+            "\(scheme)://widget/today/",
+            "\(scheme)://widget/today?baby=invalid",
+            "\(scheme)://widget/today?unexpected=1",
+            "\(scheme)://widget/today?baby=&baby=",
+            "\(scheme)://widget/today#anything",
+            "\(scheme)://user@widget/today",
+            "\(scheme)://widget/activity",
+            "\(scheme)://widget/activity?baby=invalid&event=invalid",
+            "\(scheme)://widget/activity?baby=\(UUID())",
+            "\(scheme)://widget/activity?event=\(UUID())",
+            "\(scheme)://widget/activity?baby=\(UUID())&event=\(UUID())&event=\(UUID())",
+            "\(scheme)://widget/activity?baby=\(UUID())&baby=\(UUID())&event=\(UUID())",
+            "\(scheme)://widget/today?event=\(UUID())",
+        ] {
             XCTAssertNil(try WidgetRoute(url: XCTUnwrap(URL(string: value))), value)
         }
     }

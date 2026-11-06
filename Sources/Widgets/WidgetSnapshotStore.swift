@@ -1,7 +1,7 @@
 import Foundation
 
 struct WidgetSnapshotStore: Sendable {
-    static let appGroupIdentifier = "group.dev.dimensi.malysh"
+    static let appGroupIdentifier = AppConfiguration.appGroup
     static let widgetKind = "MalyshDiary"
     private let directory: URL?
     private var fileURL: URL? {
