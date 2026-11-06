@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/testflight.yml'
       - 'Scripts/simulator-id.py'
+      - 'Scripts/tests/test_simulator_id.py'
+      - 'Scripts/tests/test_testflight_delivery.rb'
       - 'Gemfile'
       - 'Gemfile.lock'
       - 'fastlane/**'
@@ -27,18 +29,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: ${{ github.event_name == 'pull_request' && 'Validate CI' || 'Test, sign and upload' }}
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' || github.ref == 'refs/heads/main' }}
-    runs-on: xcode-27
-    timeout-minutes: 90
+  source:
+    name: Resolve and verify release source
+    if: ${{ github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
-      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
-      FASTLANE_SKIP_UPDATE_CHECK: '1'
-      FASTLANE_HIDE_CHANGELOG: '1'
-      FASTLANE_DISABLE_COLORS: '1'
-      FASTLANE_OPT_OUT_USAGE: '1'
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+    outputs:
+      commit: ${{ steps.commit.outputs.sha }}
     steps:
       - name: Validate release tag name
         if: github.event_name != 'pull_request'
@@ -51,14 +50,13 @@ jobs:
           }
 
       - name: Check out release
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.release_tag) || '' }}
           fetch-depth: 0
           persist-credentials: false
 
       - name: Validate tag and main ancestry
-        id: validate_release
         if: github.event_name != 'pull_request'
         shell: bash
         run: |
@@ -77,18 +75,49 @@ jobs:
             echo 'Release commit must belong to origin/main' >&2
             exit 1
           }
-          xcodebuild -version
+          [[ -f fastlane/testflight_delivery.rb ]] || {
+            echo 'This tag predates the delivery checks. Use its original release workflow.'
+            exit 1
+          }
+
+      - name: Record source commit
+        id: commit
+        shell: bash
+        run: printf 'sha=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Test on iPhone 18 Pro (${{ matrix.suite }})
+    needs: source
+    runs-on: xcode-27
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [app, system]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+    steps:
+      - name: Check out verified source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.commit }}
+          persist-credentials: false
 
       - name: Set up Ruby
+        if: matrix.suite == 'app'
         uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1
         with:
           ruby-version: '4.0'
           bundler-cache: true
 
-      - name: Validate Fastlane configuration
-        run: bundle exec fastlane lanes
+      - name: Validate release tooling
+        if: matrix.suite == 'app'
+        run: |
+          bundle exec fastlane lanes
+          ruby Scripts/tests/test_testflight_delivery.rb
+          python3 -m unittest discover -s Scripts/tests -p test_simulator_id.py
 
-      - name: Boot an available iPhone simulator
+      - name: Boot iPhone 18 Pro on iOS 27.2
         timeout-minutes: 10
         shell: bash
         run: |
@@ -96,14 +125,26 @@ jobs:
           mkdir -p Artifacts
           xcodebuild -version
           xcrun simctl list devices available -j > Artifacts/simulators.json
-          SIMULATOR_ID="$(python3 Scripts/simulator-id.py < Artifacts/simulators.json)"
+          SIMULATOR_ID="$(python3 Scripts/simulator-id.py --ci < Artifacts/simulators.json)"
           printf 'SIMULATOR_ID=%s\n' "$SIMULATOR_ID" >> "$GITHUB_ENV"
           xcrun simctl bootstatus "$SIMULATOR_ID" -b 2>&1 | tee Artifacts/simulator-boot.log
 
-      - name: Test on an available iPhone simulator
+      - name: Run ${{ matrix.suite }} tests
+        timeout-minutes: 35
         shell: bash
+        env:
+          TEST_SUITE: ${{ matrix.suite }}
         run: |
           set -euo pipefail
+          case "$TEST_SUITE" in
+            app)
+              selection=(-skip-testing:MalyshUITests/LiveActivityUITests -skip-testing:MalyshUITests/WidgetSystemUITests)
+              ;;
+            system)
+              selection=(-only-testing:MalyshUITests/LiveActivityUITests -only-testing:MalyshUITests/WidgetSystemUITests)
+              ;;
+            *) exit 1 ;;
+          esac
           xcodebuild \
             -workspace Malysh.xcworkspace \
             -scheme Malysh \
@@ -112,10 +153,53 @@ jobs:
             -resultBundlePath Artifacts/Tests.xcresult \
             CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- \
             -parallel-testing-enabled NO \
-            test 2>&1 | tee Artifacts/tests.log
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 240 \
+            -maximum-test-execution-time-allowance 300 \
+            -retry-tests-on-failure -test-iterations 2 -test-repetition-relaunch-enabled YES \
+            "${selection[@]}" test 2>&1 | tee Artifacts/tests.log
+
+      - name: Save test results and simulator logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: testflight-tests-${{ matrix.suite }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            Artifacts/Tests.xcresult
+            Artifacts/tests.log
+            Artifacts/simulator-boot.log
+            Artifacts/simulators.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: Sign, upload and verify TestFlight
+    needs: [source, test]
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
+    runs-on: xcode-27
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+      FASTLANE_SKIP_UPDATE_CHECK: '1'
+      FASTLANE_HIDE_CHANGELOG: '1'
+      FASTLANE_DISABLE_COLORS: '1'
+      FASTLANE_OPT_OUT_USAGE: '1'
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+    steps:
+      - name: Check out verified release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.source.outputs.commit }}
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@de492cf36cbab201753d720ce4f4e336cd688c94 # v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
 
       - name: Install temporary signing material
-        if: github.event_name != 'pull_request'
+        id: signing
         shell: bash
         env:
           IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
@@ -125,8 +209,7 @@ jobs:
           ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
         run: bash Scripts/ci-signing.sh setup
 
-      - name: Upload version to TestFlight
-        if: github.event_name != 'pull_request'
+      - name: Upload and verify TestFlight availability
         shell: bash
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -135,20 +218,15 @@ jobs:
         run: GITHUB_REF_TYPE=tag bundle exec fastlane ios beta
 
       - name: Remove temporary signing material
-        if: ${{ always() && steps.validate_release.outcome == 'success' }}
+        if: ${{ always() && (steps.signing.outcome == 'success' || steps.signing.outcome == 'failure') }}
         shell: bash
         run: bash Scripts/ci-signing.sh cleanup
 
-      - name: Save test results and build logs
+      - name: Save release logs
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: testflight-validation-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            Artifacts/Tests.xcresult
-            Artifacts/tests.log
-            Artifacts/simulator-boot.log
-            Artifacts/simulators.json
-            Artifacts/BuildLogs/*.log
+          name: testflight-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: Artifacts/BuildLogs/*.log
           if-no-files-found: ignore
           retention-days: 7

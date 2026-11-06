@@ -1,4 +1,5 @@
 require "shellwords"
+require_relative "testflight_delivery"
 
 def required_environment(name)
   value = ENV.fetch(name, "")
@@ -16,7 +17,7 @@ end
 default_platform(:ios)
 
 platform :ios do
-  desc "Build a signed version-tag release and upload to TestFlight without distribution"
+  desc "Deliver a signed version-tag release and confirm internal TestFlight availability"
   lane :beta do
     version = release_version
     api_key = app_store_connect_api_key(
@@ -25,14 +26,28 @@ platform :ios do
       key_filepath: required_environment("ASC_KEY_PATH"),
       in_house: false
     )
-    latest = latest_testflight_build_number(
-      api_key: api_key,
-      app_identifier: "dev.dimensi.malysh",
-      version: version,
-      initial_build_number: 0
-    )
-    UI.user_error!("Existing TestFlight build number must be an integer") unless latest.to_s.match?(/\A[0-9]+\z/)
-    build_number = latest.to_i + 1
+    app = Spaceship::ConnectAPI::App.find(TestFlightDelivery::APP_IDENTIFIER)
+    UI.user_error!("Malysh was not found in App Store Connect") unless app
+    group = TestFlightDelivery.internal_group(app.id)
+    existing = TestFlightDelivery.find_build(app.id, version)
+    build_number = existing&.version || "1"
+    if existing
+      UI.message("Build #{version} (#{build_number}) is already registered with Apple. Checking availability.")
+    else
+      upload_release(api_key: api_key, version: version, build_number: build_number)
+    end
+    TestFlightDelivery.wait(app.id, group, version, build_number) do |status|
+      UI.message("TestFlight #{version} (#{build_number}): #{status}")
+    end
+    UI.success("TestFlight #{version} (#{build_number}) is available to #{TestFlightDelivery::GROUP_NAME}")
+  rescue TestFlightDelivery::Error => error
+    UI.user_error!(error.message)
+  end
+
+  private_lane :upload_release do |options|
+    api_key = options.fetch(:api_key)
+    version = options.fetch(:version)
+    build_number = options.fetch(:build_number)
     profile = required_environment("PROFILE_UUID")
     widget_profile = required_environment("WIDGET_PROFILE_UUID")
     keychain = required_environment("CI_KEYCHAIN_PATH")
@@ -72,7 +87,7 @@ platform :ios do
     )
     app_info = File.expand_path("../Artifacts/TestFlight/Malysh.xcarchive/Products/Applications/Malysh.app/Info.plist", FastlaneCore::FastlaneFolder.path)
     { "CFBundleShortVersionString" => version, "CFBundleVersion" => build_number.to_s,
-      "MinimumOSVersion" => "27.0",
+      "MinimumOSVersion" => TestFlightDelivery::MINIMUM_IOS,
       "ITSAppUsesNonExemptEncryption" => "false" }.each do |key, expected|
       actual = sh("/usr/libexec/PlistBuddy", "-c", "Print :#{key}", app_info, log: false).strip
       UI.user_error!("Archived #{key} does not match the intended release") unless actual == expected
@@ -81,18 +96,22 @@ platform :ios do
     UI.user_error!("Archived widget extension is missing") unless File.file?(widget_info)
     { "CFBundleIdentifier" => "dev.dimensi.malysh.widgets",
       "CFBundleShortVersionString" => version, "CFBundleVersion" => build_number.to_s,
-      "MinimumOSVersion" => "27.0" }.each do |key, expected|
+      "MinimumOSVersion" => TestFlightDelivery::MINIMUM_IOS }.each do |key, expected|
       actual = sh("/usr/libexec/PlistBuddy", "-c", "Print :#{key}", widget_info, log: false).strip
       UI.user_error!("Archived widget #{key} does not match the intended release") unless actual == expected
     end
-    upload_to_testflight(
-      api_key: api_key,
-      ipa: ipa,
-      app_identifier: "dev.dimensi.malysh",
-      skip_waiting_for_build_processing: true,
-      skip_submission: true,
-      distribute_external: false,
-      notify_external_testers: false
-    )
+    begin
+      upload_to_testflight(
+        api_key: api_key,
+        ipa: ipa,
+        app_identifier: TestFlightDelivery::APP_IDENTIFIER,
+        skip_waiting_for_build_processing: true,
+        skip_submission: true,
+        distribute_external: false,
+        notify_external_testers: false
+      )
+    rescue FastlaneCore::Interface::FastlaneError
+      UI.important("Uploader reported an error. Checking App Store Connect without sending another build.")
+    end
   end
 end
