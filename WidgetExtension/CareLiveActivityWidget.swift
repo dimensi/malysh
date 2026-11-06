@@ -20,6 +20,7 @@ struct MalyshWidgetBundle: WidgetBundle {
         WetDiaperControl()
         SleepCareControl()
         CareLiveActivityWidget()
+        FeedingReminderLiveActivityWidget()
     }
 }
 
@@ -29,16 +30,16 @@ struct CareLiveActivityWidget: Widget {
             CareActivityLockScreen(attributes: context.attributes, state: context.state)
                 .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
                                        eventID: context.attributes.eventID).url)
-                .activityBackgroundTint(context.state.surfaceColor)
+                .activityBackgroundTint(context.state.appearance.surfaceColor)
                 .activitySystemActionForegroundColor(.primary)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     CareActivityIslandHeaderCell {
-                        CareActivityIslandHeading(state: context.state)
+                        CareActivityIslandHeading(title: context.state.title, appearance: context.state.appearance)
                     }
                 }
-                .contentMargins(.leading, 26)
+                .contentMargins(.leading, CareActivityAppearance.islandHeaderInset)
                 DynamicIslandExpandedRegion(.trailing) {
                     CareActivityIslandHeaderCell {
                         CareActivityTimer(start: context.state.start, end: context.state.end, alignment: .trailing)
@@ -48,24 +49,20 @@ struct CareLiveActivityWidget: Widget {
                             .padding(.trailing, 11)
                     }
                 }
-                .contentMargins(.trailing, 26)
+                .contentMargins(.trailing, CareActivityAppearance.islandHeaderInset)
                 DynamicIslandExpandedRegion(.bottom) {
                     CareActivityIslandActions(attributes: context.attributes, state: context.state)
                 }
             } compactLeading: {
-                Image(systemName: context.state.symbol)
-                    .foregroundStyle(context.state.islandAccent)
-                    .accessibilityLabel(context.state.title)
+                CareActivityIslandIcon(title: context.state.title, appearance: context.state.appearance)
             } compactTrailing: {
                 CompactCareActivityTimer(state: context.state)
             } minimal: {
-                Image(systemName: context.state.symbol)
-                    .foregroundStyle(context.state.islandAccent)
-                    .accessibilityLabel(context.state.title)
+                CareActivityIslandIcon(title: context.state.title, appearance: context.state.appearance)
             }
             .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
                                    eventID: context.attributes.eventID).url)
-            .contentMargins(.horizontal, 16, for: .expanded)
+            .contentMargins(.horizontal, CareActivityAppearance.islandExpandedInset, for: .expanded)
         }
     }
 }

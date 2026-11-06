@@ -4,14 +4,15 @@ import SwiftUI
 import WidgetKit
 
 struct CareActivityIslandHeading: View {
-    let state: CareActivityAttributes.ContentState
+    let title: String
+    let appearance: CareActivityAppearance
 
     var body: some View {
         Label {
-            Text(state.title)
+            Text(title)
         } icon: {
-            Image(systemName: state.symbol)
-                .foregroundStyle(state.islandAccent)
+            Image(systemName: appearance.symbol)
+                .foregroundStyle(appearance.islandAccent)
         }
         .font(.subheadline.weight(.semibold))
         .foregroundStyle(.white)
@@ -86,43 +87,31 @@ struct CareActivityIslandActions: View {
 struct CareActivityLockScreen: View {
     let attributes: CareActivityAttributes
     let state: CareActivityAttributes.ContentState
-    @Environment(\.dynamicTypeSize) private var typeSize
-
     var body: some View {
         Group {
             if state.end != nil {
                 finishedContent
-            } else if typeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 8) {
-                    activityInformation
-                    CareActivityControls(attributes: attributes, state: state, island: false)
-                }
             } else {
-                HStack(alignment: .center, spacing: 12) {
+                CareActivityLockScreenRow {
                     activityInformation
-                    Spacer(minLength: 0)
+                } actions: {
                     CareActivityControls(attributes: attributes, state: state, island: false)
                 }
             }
         }
-        .foregroundStyle(.primary)
-        .padding(16)
+        .modifier(CareActivityLockScreenInsets())
     }
 
     private var activityInformation: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Label(state.title, systemImage: state.symbol)
-                .font(.headline)
+        CareActivityInformation(title: state.title, appearance: state.appearance) {
             CareActivityTimer(start: state.start)
-                .font(.title.weight(.semibold))
+        } subtitle: {
             if state.kind == .breast {
                 Text(state.side.map { "\(state.babyName) · \($0.label) грудь" } ?? state.babyName)
                     .font(.caption.weight(.medium))
-                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("\(state.babyName) · Идёт сон")
                     .font(.caption)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -139,6 +128,64 @@ struct CareActivityLockScreen: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct CareActivityLockScreenInsets: ViewModifier {
+    func body(content: Content) -> some View {
+        content.foregroundStyle(.primary).padding(16)
+    }
+}
+
+struct CareActivityLockScreenRow<Information: View, Actions: View>: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
+    var allowsStackingForWidth = false
+    @ViewBuilder let information: () -> Information
+    @ViewBuilder let actions: () -> Actions
+
+    var body: some View {
+        if typeSize.isAccessibilitySize {
+            stacked
+        } else if allowsStackingForWidth {
+            ViewThatFits(in: .horizontal) {
+                horizontal.fixedSize(horizontal: true, vertical: false)
+                stacked
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            horizontal
+        }
+    }
+
+    private var horizontal: some View {
+        HStack(alignment: .center, spacing: 12) {
+            information()
+            Spacer(minLength: 0)
+            actions()
+        }
+    }
+
+    private var stacked: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            information()
+            actions()
+        }
+    }
+}
+
+struct CareActivityInformation<Metric: View, Subtitle: View>: View {
+    let title: String
+    let appearance: CareActivityAppearance
+    @ViewBuilder let metric: () -> Metric
+    @ViewBuilder let subtitle: () -> Subtitle
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label(title, systemImage: appearance.symbol)
+                .font(.headline)
+            metric().font(.title.weight(.semibold))
+            subtitle().fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
@@ -193,70 +240,119 @@ struct CareActivityControls: View {
     var body: some View {
         Group {
             if island, state.kind == .breast, typeSize.isAccessibilitySize || stackIslandButtons {
-                VStack(spacing: 0) { islandButtons }
+                VStack(spacing: 0) { buttons }
             } else if island {
-                HStack(spacing: 8) { islandButtons }
+                HStack(spacing: 8) { buttons }
             } else {
-                VStack(alignment: typeSize.isAccessibilitySize ? .leading : .trailing, spacing: 6) { lockScreenButtons }
+                VStack(alignment: typeSize.isAccessibilitySize ? .leading : .trailing, spacing: 6) { buttons }
             }
         }
         .font(.caption.weight(.semibold))
     }
 
-    @ViewBuilder private var islandButtons: some View {
+    @ViewBuilder private var buttons: some View {
         if state.kind == .breast, let side = state.side {
-            Button(intent: SwitchCareSideIntent(
-                eventID: attributes.eventID.uuidString, babyID: attributes.babyID.uuidString,
-                side: side == .left ? "right" : "left"
-            )) {
-                islandLabel("Сменить", symbol: "arrow.left.arrow.right", prominent: false)
+            CareActivityIntentButton(
+                intent: SwitchCareSideIntent(
+                    eventID: attributes.eventID.uuidString, babyID: attributes.babyID.uuidString,
+                    side: side == .left ? "right" : "left"
+                ),
+                title: "Сменить", symbol: "arrow.left.arrow.right", appearance: state.appearance,
+                island: island, prominent: false
+            )
+            .accessibilityLabel(side == .left ? "Переключить на правую грудь" : "Переключить на левую грудь")
+        }
+        CareActivityIntentButton(
+            intent: FinishCareActivityIntent(
+                eventID: attributes.eventID.uuidString,
+                babyID: attributes.babyID.uuidString
+            ),
+            title: "Завершить", symbol: "stop.fill", appearance: state.appearance,
+            island: island, prominent: true
+        )
+        .accessibilityLabel(state.kind == .breast ? "Завершить кормление" : "Завершить сон")
+    }
+}
+
+struct CareActivityIntentButton<Action: AppIntent>: View {
+    let intent: Action
+    let title: LocalizedStringKey
+    var symbol: String?
+    let appearance: CareActivityAppearance
+    let island: Bool
+    let prominent: Bool
+
+    var body: some View {
+        if island {
+            Button(intent: intent) {
+                label
+                    .font(appearance == .sleep ? .subheadline.weight(.semibold) : .caption.weight(.semibold))
+                    .foregroundStyle(prominent ? Color.black : Color.white)
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: appearance == .sleep ? .infinity : nil, minHeight: 38)
+                    .background(prominent ? appearance.islandAccent : Color.white.opacity(0.18), in: Capsule())
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(side == .left ? "Переключить на правую грудь" : "Переключить на левую грудь")
+        } else if prominent {
+            Button(intent: intent) { lockScreenLabel }
+                .buttonStyle(.borderedProminent)
+                .tint(appearance.islandAccent)
+                .foregroundStyle(.black)
+        } else {
+            Button(intent: intent) { lockScreenLabel }
+                .buttonStyle(.bordered)
+                .tint(.primary)
         }
-        Button(intent: FinishCareActivityIntent(
-            eventID: attributes.eventID.uuidString, babyID: attributes.babyID.uuidString
-        )) {
-            islandLabel("Завершить", symbol: "stop.fill", prominent: true)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(state.kind == .breast ? "Завершить кормление" : "Завершить сон")
     }
 
-    private func islandLabel(_ title: String, symbol: String, prominent: Bool) -> some View {
-        Label(title, systemImage: symbol)
-            .font(state.kind == .sleep ? .subheadline.weight(.semibold) : .caption.weight(.semibold))
-            .foregroundStyle(prominent ? Color.black : Color.white)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: state.kind == .sleep ? .infinity : nil, minHeight: 38)
-            .background(prominent ? state.islandAccent : Color.white.opacity(0.18), in: Capsule())
-            .frame(minWidth: 44, minHeight: 44)
-            .contentShape(Rectangle())
+    private var lockScreenLabel: some View {
+        label.frame(minWidth: 44, minHeight: 44)
     }
 
-    @ViewBuilder private var lockScreenButtons: some View {
-        if state.kind == .breast, let side = state.side {
-            Button(intent: SwitchCareSideIntent(
-                eventID: attributes.eventID.uuidString, babyID: attributes.babyID.uuidString,
-                side: side == .left ? "right" : "left"
-            )) {
-                Label("Сменить", systemImage: "arrow.left.arrow.right")
-                    .frame(minWidth: 44, minHeight: 44)
-            }
-            .buttonStyle(.bordered)
-            .tint(.primary)
-            .accessibilityLabel(side == .left ? "Переключить на правую грудь" : "Переключить на левую грудь")
+    @ViewBuilder private var label: some View {
+        if let symbol {
+            Label(title, systemImage: symbol)
+        } else {
+            Text(title)
         }
-        Button(intent: FinishCareActivityIntent(
-            eventID: attributes.eventID.uuidString, babyID: attributes.babyID.uuidString
-        )) {
-            Label("Завершить", systemImage: "stop.fill")
-                .frame(minWidth: 44, minHeight: 44)
-        }
-        .buttonStyle(.borderedProminent)
-        .tint(state.islandAccent)
-        .foregroundStyle(.black)
-        .accessibilityLabel(state.kind == .breast ? "Завершить кормление" : "Завершить сон")
+    }
+}
+
+enum CareActivityAppearance {
+    case feeding, sleep
+
+    static let islandHeaderInset: CGFloat = 26
+    static let islandExpandedInset: CGFloat = 16
+
+    var symbol: String {
+        self == .feeding ? "drop.fill" : "moon.zzz.fill"
+    }
+
+    var surfaceColor: Color {
+        Color(assetName)
+    }
+
+    var islandAccent: Color {
+        // The Island is always black. Use the light asset variant for legible contrast.
+        let color = UIColor(named: assetName) ?? .label
+        return Color(uiColor: color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)))
+    }
+
+    private var assetName: String {
+        self == .feeding ? "ActivityFeeding" : "Sleep"
+    }
+}
+
+struct CareActivityIslandIcon: View {
+    let title: String
+    let appearance: CareActivityAppearance
+
+    var body: some View {
+        Image(systemName: appearance.symbol)
+            .foregroundStyle(appearance.islandAccent)
+            .accessibilityLabel(title)
     }
 }
 
@@ -265,17 +361,11 @@ extension CareActivityAttributes.ContentState {
         kind == .breast ? "Кормление" : "Сон"
     }
 
+    var appearance: CareActivityAppearance {
+        kind == .breast ? .feeding : .sleep
+    }
+
     var symbol: String {
-        kind == .breast ? "drop.fill" : "moon.zzz.fill"
-    }
-
-    var surfaceColor: Color {
-        Color(kind == .breast ? "ActivityFeeding" : "Sleep")
-    }
-
-    var islandAccent: Color {
-        // The Island is always black. Use the light asset variant for legible contrast.
-        let color = UIColor(named: kind == .breast ? "ActivityFeeding" : "Sleep") ?? .label
-        return Color(uiColor: color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)))
+        appearance.symbol
     }
 }

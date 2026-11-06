@@ -24,6 +24,7 @@ final class AppStore {
     }
 
     let persistence: Persistence
+    let feedingReminders: FeedingReminderService
     private let activityCoordinator: (any CareActivityCoordinating)?
     private let widgetSnapshotStore: WidgetSnapshotStore
     private let reloadsWidgetTimelines: Bool
@@ -234,7 +235,8 @@ final class AppStore {
 
     init(persistence injectedPersistence: Persistence? = nil,
          activityCoordinator: (any CareActivityCoordinating)? = nil,
-         widgetSnapshotStore: WidgetSnapshotStore? = nil)
+         widgetSnapshotStore: WidgetSnapshotStore? = nil,
+         feedingReminders: FeedingReminderService? = nil)
     {
         self.activityCoordinator = activityCoordinator
         let arguments = ProcessInfo.processInfo.arguments
@@ -248,6 +250,9 @@ final class AppStore {
         #endif
         selectionPreferenceKey = testing ? "debug.selectedBabyUITesting" : "selectedBaby"
         storesPreferences = injectedPersistence == nil && !testing
+        self.feedingReminders = feedingReminders ?? Self.makeFeedingReminders(
+            usesAppPreferences: storesPreferences, testing: testing, arguments: arguments
+        )
         let publishesWidgets = injectedPersistence == nil && (!testing || widgetTesting)
         reloadsWidgetTimelines = publishesWidgets
         self.widgetSnapshotStore = widgetSnapshotStore ?? (publishesWidgets
@@ -260,7 +265,7 @@ final class AppStore {
                 directory: FileManager.default.temporaryDirectory
                     .appendingPathComponent("PhotoWorkflowTests-" + UUID().uuidString)
             )
-            observeWidgetCalendarChanges()
+            observeCalendarChanges()
             return
         }
         var directory: URL?
@@ -283,7 +288,37 @@ final class AppStore {
         if storesPreferences {
             restoreLaunchPreferences(savedInvitation)
         }
-        observeWidgetCalendarChanges()
+        observeCalendarChanges()
+    }
+
+    private static func makeFeedingReminders(usesAppPreferences: Bool, testing: Bool,
+                                             arguments: [String]) -> FeedingReminderService
+    {
+        if usesAppPreferences {
+            return FeedingReminderService()
+        }
+        let suite = testing ? "dev.dimensi.malysh.feeding-reminders.ui-testing" :
+            "dev.dimensi.malysh.feeding-reminders.injected-persistence"
+        let defaults = UserDefaults(suiteName: suite)!
+        if testing, arguments.contains("--reset-data") {
+            defaults.removePersistentDomain(forName: suite)
+        }
+        #if DEBUG
+            let authorization: FeedingReminderAuthorization = if testing,
+                                                                 arguments.contains("--feeding-reminders-authorized")
+            {
+                .allowed
+            } else if testing, arguments.contains("--feeding-reminders-denied") {
+                .denied
+            } else {
+                .unavailable
+            }
+        #else
+            let authorization = FeedingReminderAuthorization.unavailable
+        #endif
+        return FeedingReminderService(defaults: defaults, scheduler: IsolatedFeedingReminderScheduler(
+            authorization: authorization, liveActivitiesEnabled: authorization == .denied
+        ))
     }
 
     #if DEBUG
@@ -316,7 +351,7 @@ final class AppStore {
             .flatMap(UUID.init(uuidString:))
     }
 
-    private func observeWidgetCalendarChanges() {
+    private func observeCalendarChanges() {
         NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)
             .merge(with: NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange))
             .merge(with: NotificationCenter.default.publisher(for: .NSCalendarDayChanged))
@@ -327,6 +362,9 @@ final class AppStore {
                 Task { @MainActor [weak self] in
                     guard let self, ready else { return }
                     refreshWidgetSnapshot()
+                    if !diaryRemovalInProgress {
+                        feedingReminders.update(babyID: selectedID, events: events, babyName: baby?.name)
+                    }
                 }
             }.store(in: &widgetRefreshObservers)
     }
@@ -456,6 +494,7 @@ final class AppStore {
             hasOpenedDiary = true
         }
         refreshWidgetSnapshot()
+        feedingReminders.update(babyID: selectedID, events: events, babyName: baby?.name)
     }
 
     func createFirstDiary(name: String, birthDate: Date?) throws {
@@ -940,13 +979,17 @@ final class AppStore {
 
     /// Read the requested diary again: widget selection and cached event state are not authority.
     func recordWidgetAction(_ action: WidgetCareAction, babyID: UUID, commandID: UUID,
-                            at date: Date = Date()) throws
+                            at date: Date = Date(), reminderToken: String? = nil) throws
     {
         widgetSnapshotBatchDepth += 1
         defer { finishWidgetSnapshotBatch() }
         guard ready, !diaryRemovalInProgress else { throw ActivityActionFailure.unavailable }
         try reload()
         guard try persistence.babyObject(id: babyID) != nil else { throw ActivityActionFailure.unavailable }
+        if let reminderToken {
+            guard selectedID == babyID, feedingReminders.deliveryChannel == .liveActivity,
+                  feedingReminders.canOpen(token: reminderToken, babyID: babyID) else { return }
+        }
         let latest = try persistence.events(babyID: babyID)
         let receiptKey = "widgetCommands.\(babyID.uuidString)"
         let receipts = UserDefaults.standard.stringArray(forKey: receiptKey) ?? []
@@ -1135,4 +1178,59 @@ final class AppStore {
         }
         invitation = value
     }
+}
+
+/// Keeps injected stores and UI fixtures independent of the app's notification center.
+@MainActor
+final class IsolatedFeedingReminderScheduler: FeedingReminderScheduling {
+    private let permission: FeedingReminderAuthorization
+    let liveActivitiesEnabled: Bool
+    private(set) var pending: FeedingReminderRequest?
+    private(set) var activityRequest: FeedingReminderRequest?
+    private var activityShown = false
+
+    init(authorization: FeedingReminderAuthorization, liveActivitiesEnabled: Bool = false) {
+        permission = authorization
+        self.liveActivitiesEnabled = liveActivitiesEnabled
+    }
+
+    func liveActivities() -> [FeedingReminderLiveActivity] {
+        guard let request = activityRequest else { return [] }
+        return [.init(id: request.token, token: request.token, state: activityShown ? .shown : .pending)]
+    }
+
+    func scheduleLiveActivity(_ request: FeedingReminderRequest) throws {
+        activityRequest = request
+        activityShown = false
+    }
+
+    func endLiveActivities(except activityID: String?) async {
+        if activityRequest?.token != activityID {
+            activityRequest = nil
+            activityShown = false
+        }
+    }
+
+    func showScheduledActivity() {
+        activityShown = true
+    }
+
+    func authorization() async -> FeedingReminderAuthorization {
+        permission
+    }
+
+    func requestAuthorization() async throws {}
+    func notificationState() async -> FeedingReminderNotificationState {
+        .init(pendingToken: pending?.token)
+    }
+
+    func schedule(_ request: FeedingReminderRequest) async throws {
+        pending = request
+    }
+
+    func removePending() {
+        pending = nil
+    }
+
+    func removeDelivered() {}
 }

@@ -216,6 +216,119 @@ final class MalyshUITests: XCTestCase {
         XCTAssertFalse(event.exists)
     }
 
+    func testFeedingReminderSettingsPersistAndShowNextReminder() {
+        let fixture = ["--feeding-reminders-authorized", "--light-mode"]
+        let app = launch(appearance: fixture)
+        tap(app, id: "settings.open")
+
+        let toggle = app.switches["feeding-reminder.enabled"]
+        revealReminderRow(toggle, in: app)
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertEqual(toggle.value as? String, "0")
+        let control = toggle.switches.firstMatch
+        if control.exists {
+            control.tap()
+        } else {
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        }
+        XCTAssertEqual(toggle.value as? String, "1")
+        let status = app.staticTexts["feeding-reminder.status"]
+        revealReminderRow(status, in: app)
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        let firstFeeding = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@", "Напоминание появится после первого кормления."),
+            object: status
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [firstFeeding], timeout: 5), .completed)
+
+        let interval = app.descendants(matching: .any).matching(identifier: "feeding-reminder.interval").firstMatch
+        XCTAssertTrue(interval.waitForExistence(timeout: 5))
+        interval.tap()
+        let custom = app.buttons["Свой интервал"].firstMatch
+        XCTAssertTrue(custom.waitForExistence(timeout: 5))
+        custom.tap()
+        let minutes = app.descendants(matching: .any).matching(identifier: "feeding-reminder.minutes").firstMatch
+        revealReminderRow(minutes, in: app)
+        XCTAssertTrue(minutes.waitForExistence(timeout: 5))
+        minutes.tap()
+        let five = app.buttons["5"].firstMatch
+        XCTAssertTrue(five.waitForExistence(timeout: 5))
+        five.tap()
+        XCTAssertEqual(minutes.value as? String, "5")
+        capture(app, name: "Напоминания — свой интервал")
+
+        app.terminate()
+        let restored = launch(reset: false, appearance: fixture)
+        tap(restored, id: "action.feed")
+        tap(restored, id: "feed.bottle", label: "Бутылочка")
+        tap(restored, id: "editor.save")
+        XCTAssertTrue(button(restored, prefix: "event.").waitForExistence(timeout: 5))
+        tap(restored, id: "settings.open")
+        revealReminderRow(toggle, in: restored)
+
+        XCTAssertEqual(toggle.value as? String, "1")
+        XCTAssertTrue(interval.waitForExistence(timeout: 5))
+        revealReminderRow(minutes, in: restored)
+        XCTAssertEqual(minutes.value as? String, "5")
+        interval.tap()
+        let preset = restored.buttons["4 часа"].firstMatch
+        XCTAssertTrue(preset.waitForExistence(timeout: 5))
+        preset.tap()
+        XCTAssertEqual(interval.value as? String, "4 часа")
+        XCTAssertFalse(minutes.exists)
+        revealReminderRow(status, in: restored)
+        let scheduled = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label BEGINSWITH %@", "Следующее напоминание"),
+            object: status
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [scheduled], timeout: 5), .completed)
+        capture(restored, name: "Напоминания — запланировано")
+    }
+
+    func testFeedingReminderSettingsOfferSystemSettingsWhenDenied() {
+        let app = launch(appearance: ["--feeding-reminders-denied", "--dark-mode", "--large-text"])
+        tap(app, id: "action.feed")
+        tap(app, id: "feed.bottle", label: "Бутылочка")
+        tap(app, id: "editor.save")
+        XCTAssertTrue(button(app, prefix: "event.").waitForExistence(timeout: 5))
+        tap(app, id: "settings.open")
+
+        let toggle = app.switches["feeding-reminder.enabled"]
+        revealReminderRow(toggle, in: app)
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        let control = toggle.switches.firstMatch
+        if control.exists {
+            control.tap()
+        } else {
+            toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        }
+
+        let settings = app.buttons["feeding-reminder.notification-settings"]
+        revealReminderRow(settings, in: app)
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+        let channel = app.staticTexts["feeding-reminder.channel"]
+        revealReminderRow(channel, in: app)
+        let liveActivity = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@", "Напоминание появится на экране блокировки."),
+            object: channel
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [liveActivity], timeout: 5), .completed)
+        let permission = app.staticTexts["feeding-reminder.notification-status"]
+        revealReminderRow(permission, in: app)
+        XCTAssertTrue(permission.waitForExistence(timeout: 5))
+        XCTAssertEqual(permission.label, "Резервные уведомления выключены в настройках iPhone.")
+        capture(app, name: "Напоминания — уведомления запрещены")
+    }
+
+    private func revealReminderRow(_ element: XCUIElement, in app: XCUIApplication) {
+        for _ in 0 ..< 6 where !element.isHittable {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.82)).press(
+                forDuration: 0.05,
+                thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.56))
+            )
+        }
+    }
+
     func testCloudModeChangesInSettingsWithoutClosingDiary() {
         let app = launch(appearance: ["--dark-mode", "--large-text"])
         tap(app, id: "action.diaper")
