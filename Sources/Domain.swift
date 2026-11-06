@@ -152,6 +152,8 @@ public struct Baby: Identifiable, Codable, Sendable, Equatable {
     public var birthTime: CivilTime?
     var birthTimeZoneIdentifier: String?
     public var pinnedPhotoID: UUID?
+    /// Absent in legacy profiles, including the old automatically seeded diary.
+    var explicitlyCreated: Bool?
     /// Stored separately on BabyRecord so edits to the profile payload cannot reset it.
     public internal(set) var birthMeasurementsCompleted = false
 
@@ -175,7 +177,7 @@ public struct Baby: Identifiable, Codable, Sendable, Equatable {
     private enum CodingKeys: String,
         CodingKey
     { case id, name, birthDate, parentProfiles, birthDateConfirmed, birthDay, birthTime,
-           birthTimeZoneIdentifier, pinnedPhotoID
+           birthTimeZoneIdentifier, pinnedPhotoID, explicitlyCreated
     }
 
     public init(from decoder: Decoder) throws {
@@ -192,6 +194,7 @@ public struct Baby: Identifiable, Codable, Sendable, Equatable {
             String.self, forKey: .birthTimeZoneIdentifier
         )
         pinnedPhotoID = try values.decodeIfPresent(UUID.self, forKey: .pinnedPhotoID)
+        explicitlyCreated = try values.decodeIfPresent(Bool.self, forKey: .explicitlyCreated)
     }
 }
 

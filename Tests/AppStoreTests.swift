@@ -15,9 +15,69 @@ final class AppStoreTests: XCTestCase {
         try context.save()
     }
 
-    func testDiaryDeletionAndResetRemoveContentsAndCreateNewStarter() async throws {
+    func testFirstDiaryCreationIsExplicitAndKeepsItsIdentityAcrossRelaunch() async throws {
+        let today = Date()
+        for birthday in [nil, today] {
+            let persistence = Persistence(inMemory: true)
+            let store = AppStore(persistence: persistence)
+            XCTAssertEqual(store.launchState, .loading)
+            await store.load()
+            try store.reload()
+            XCTAssertEqual(store.launchState, .welcome)
+            XCTAssertTrue(try persistence.babies().isEmpty)
+            XCTAssertThrowsError(try store.createFirstDiary(name: "", birthDate: today.addingTimeInterval(172_800)))
+
+            try store.createFirstDiary(name: "  Малыш  ", birthDate: birthday)
+            let created = try XCTUnwrap(store.baby)
+            XCTAssertEqual(store.launchState, .diary)
+            XCTAssertEqual(created.name, "Малыш")
+            XCTAssertEqual(created.birthDateConfirmed, birthday != nil)
+            XCTAssertEqual(created.birthDay, birthday.map { CivilDay(date: $0) })
+            XCTAssertEqual(store.inviteSuggestionID, created.id)
+            XCTAssertTrue(store.measurements.isEmpty)
+
+            try store.createFirstDiary(name: "Повторное нажатие", birthDate: nil)
+            try insertSharedBaby(Baby(name: "Другой дневник"), persistence: persistence)
+            let reopened = AppStore(persistence: persistence)
+            await reopened.load()
+            XCTAssertEqual(reopened.launchState, .diary)
+            XCTAssertEqual(reopened.baby?.id, created.id)
+            XCTAssertTrue(reopened.visibleBabies.contains { $0.id == created.id })
+            XCTAssertTrue(reopened.redundantBabies.isEmpty)
+            XCTAssertEqual(try persistence.babies().count, 2)
+        }
+    }
+
+    func testDelayedSharedDiaryArrivalAndRelaunchDoNotSeedPrivateStore() async throws {
         let persistence = Persistence(inMemory: true)
         let store = AppStore(persistence: persistence)
+        await store.load()
+        try store.reload()
+        XCTAssertNil(store.baby)
+        XCTAssertThrowsError(try store.recordWidgetAction(.wetDiaper, babyID: UUID(), commandID: UUID()))
+        XCTAssertTrue(try persistence.babies().isEmpty)
+
+        // Simulate delayed rows in the shared Core Data store; no CloudKit call.
+        let shared = Baby(name: "Семейный малыш")
+        try insertSharedBaby(shared, persistence: persistence)
+        try store.reload()
+        XCTAssertEqual(store.launchState, .diary)
+        XCTAssertTrue(store.isSharedDiary)
+        XCTAssertEqual(store.baby?.id, shared.id)
+        XCTAssertEqual(try persistence.babies(), [shared])
+
+        let relaunched = AppStore(persistence: persistence)
+        await relaunched.load()
+        XCTAssertEqual(relaunched.launchState, .diary)
+        XCTAssertEqual(relaunched.baby?.id, shared.id)
+        XCTAssertEqual(try persistence.babies(), [shared])
+    }
+
+    func testDiaryDeletionAndResetRemoveContentsWithoutReseeding() async throws {
+        let persistence = Persistence(inMemory: true)
+        let store = AppStore(persistence: persistence)
+        try await persistence.load()
+        try persistence.saveBaby(Baby(name: "Малыш"))
         await store.load()
         let starter = try XCTUnwrap(store.baby)
         let named = Baby(name: "Тестовый")
@@ -38,9 +98,12 @@ final class AppStoreTests: XCTestCase {
         XCTAssertTrue(try persistence.measurements(babyID: named.id).isEmpty)
 
         try await store.removeDiaries(.all)
-        let replacement = try XCTUnwrap(store.baby)
-        XCTAssertNotEqual(replacement.id, starter.id)
-        XCTAssertEqual(try persistence.babies(), [replacement])
+        XCTAssertNil(store.baby)
+        XCTAssertTrue(try persistence.babies().isEmpty)
+        let relaunched = AppStore(persistence: persistence)
+        await relaunched.load()
+        XCTAssertEqual(relaunched.launchState, .welcome)
+        XCTAssertTrue(try persistence.babies().isEmpty)
         XCTAssertTrue(try persistence.events(babyID: starter.id).isEmpty)
         XCTAssertTrue(store.events.isEmpty)
     }
@@ -72,28 +135,32 @@ final class AppStoreTests: XCTestCase {
         defer { UserDefaults.standard.set(previous, forKey: "selectedBaby") }
         let persistence = Persistence(inMemory: true)
         let store = AppStore(persistence: persistence)
+        try await persistence.load()
+        try persistence.saveBaby(Baby(name: "Малыш"))
         await store.load()
         let local = try XCTUnwrap(store.baby)
         store.diaper(.mixed)
         let originalEvents = try persistence.events(babyID: local.id)
         XCTAssertEqual(originalEvents.count, 1)
+        let emptyLegacy = Baby(name: "Малыш")
+        try persistence.saveBaby(emptyLegacy)
         let namedLocal = Baby(name: "Личный малыш")
         try persistence.saveBaby(namedLocal)
         let shared = Baby(name: "Семейный малыш")
         try insertSharedBaby(shared, persistence: persistence)
         try store.reload()
         XCTAssertEqual(Set(store.visibleBabies.map(\.id)), [namedLocal.id, shared.id])
-        XCTAssertEqual(store.redundantBabies, [local])
+        XCTAssertEqual(Set(store.redundantBabies.map(\.id)), [local.id, emptyLegacy.id])
         XCTAssertEqual(try persistence.events(babyID: local.id), originalEvents)
         XCTAssertEqual(store.selectedID, shared.id)
         XCTAssertTrue(store.isSharedDiary)
         XCTAssertEqual(try persistence.events(babyID: local.id), originalEvents)
-        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [local.id, namedLocal.id, shared.id])
+        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [local.id, emptyLegacy.id, namedLocal.id, shared.id])
 
         let relaunched = AppStore(persistence: persistence)
         await relaunched.load()
         XCTAssertEqual(relaunched.selectedID, shared.id)
-        XCTAssertEqual(relaunched.redundantBabies, [local])
+        XCTAssertEqual(Set(relaunched.redundantBabies.map(\.id)), [local.id, emptyLegacy.id])
         XCTAssertEqual(relaunched.visibleBabies.count, 2)
         relaunched.select(namedLocal.id)
         XCTAssertEqual(relaunched.selectedID, namedLocal.id)
@@ -103,14 +170,16 @@ final class AppStoreTests: XCTestCase {
         try persistence.container.viewContext.save()
         try relaunched.reload()
         XCTAssertTrue(relaunched.redundantBabies.isEmpty)
-        XCTAssertEqual(Set(relaunched.visibleBabies.map(\.id)), [local.id, namedLocal.id])
+        XCTAssertEqual(Set(relaunched.visibleBabies.map(\.id)), [local.id, emptyLegacy.id, namedLocal.id])
         XCTAssertEqual(try persistence.events(babyID: local.id), originalEvents)
-        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [local.id, namedLocal.id])
+        XCTAssertEqual(try Set(persistence.babies().map(\.id)), [local.id, emptyLegacy.id, namedLocal.id])
     }
 
     func testConfirmedRedundantDiaryRemovalDeletesOnlyPrivateStarterAndItsEvents() async throws {
         let persistence = Persistence(inMemory: true)
         let store = AppStore(persistence: persistence)
+        try await persistence.load()
+        try persistence.saveBaby(Baby(name: "Малыш"))
         await store.load()
         let redundant = try XCTUnwrap(store.baby)
         store.diaper(.mixed)
@@ -145,6 +214,8 @@ final class AppStoreTests: XCTestCase {
         for customization in Customization.allCases {
             let persistence = Persistence(inMemory: true)
             let store = AppStore(persistence: persistence)
+            try await persistence.load()
+            try persistence.saveBaby(Baby(name: "Малыш"))
             await store.load()
             var starter = try XCTUnwrap(store.baby)
             switch customization {
@@ -174,6 +245,7 @@ final class AppStoreTests: XCTestCase {
             let persistence = Persistence(inMemory: true)
             let store = AppStore(persistence: persistence)
             await store.load()
+            try store.createFirstDiary(name: "Малыш", birthDate: nil)
             let original = try XCTUnwrap(store.baby)
             let birthDate = Date(timeIntervalSinceNow: -86400)
             let calendar = Calendar.current
@@ -211,6 +283,7 @@ final class AppStoreTests: XCTestCase {
         let persistence = Persistence(inMemory: true)
         let store = AppStore(persistence: persistence)
         await store.load()
+        try store.createFirstDiary(name: "Малыш", birthDate: nil)
         let original = try XCTUnwrap(store.baby)
         XCTAssertThrowsError(try store.updateChildProfile(
             babyID: original.id, name: "Новое имя", birthDate: original.birthDate,
@@ -242,6 +315,7 @@ final class AppStoreTests: XCTestCase {
         let persistence = Persistence(inMemory: true)
         let store = AppStore(persistence: persistence)
         await store.load()
+        try store.createFirstDiary(name: "Малыш", birthDate: nil)
         store.start(.sleep)
         let sleep = try XCTUnwrap(store.active.first)
         store.start(.sleep)

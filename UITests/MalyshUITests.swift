@@ -228,11 +228,63 @@ final class MalyshUITests: XCTestCase {
         tap(app, id: "diary.reset")
         XCTAssertTrue(alert.waitForExistence(timeout: 5))
         alert.buttons["diary.reset.confirm"].firstMatch.tap()
-        let resetComplete = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"),
-                                                      object: app.buttons["diary.reset"])
-        XCTAssertEqual(XCTWaiter.wait(for: [resetComplete], timeout: 5), .completed)
+        XCTAssertTrue(app.buttons["onboarding.create"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
+        app.terminate()
+        app.launchArguments = ["--ui-testing"]
+        app.launch()
+        XCTAssertTrue(app.buttons["onboarding.create"].waitForExistence(timeout: 10))
+        XCTAssertFalse(event.exists)
+    }
+
+    func testFirstLaunchCanReturnFromFamilyAndCreateBeforeBirthOffline() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--test-onboarding", "--reset-data", "--light-mode"]
+        app.launch()
+        XCTAssertTrue(app.buttons["onboarding.create"].waitForExistence(timeout: 10))
+        capture(app, name: "onboarding-welcome")
+        tap(app, id: "onboarding.join")
+        capture(app, name: "onboarding-family")
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["Ожидаем приглашение"].exists)
+        app.terminate()
+        app.launchArguments = ["--ui-testing", "--test-onboarding", "--light-mode", "--large-text"]
+        app.launch()
+        XCTAssertTrue(app.buttons["onboarding.create"].waitForExistence(timeout: 10))
+        capture(app, name: "onboarding-welcome-large-text")
+        tap(app, id: "onboarding.join")
+        tap(app, id: "onboarding.join.create")
+        XCTAssertFalse(app.datePickers["onboarding.birthday"].exists)
+        capture(app, name: "onboarding-create-before-birth")
+        tap(app, id: "onboarding.save")
+        XCTAssertTrue(app.buttons["action.feed"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Ведите дневник вместе"].exists)
+        tap(app, id: "onboarding.invite.later")
+        XCTAssertFalse(app.staticTexts["Ведите дневник вместе"].exists)
         app.terminate()
         _ = launch(reset: false)
-        XCTAssertFalse(event.exists)
+        XCTAssertFalse(app.buttons["onboarding.create"].exists)
+    }
+
+    func testFirstLaunchSavesConfirmedBirthdayAndOffersExistingProfile() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing", "--test-onboarding", "--reset-data", "--dark-mode"]
+        app.launch()
+        XCTAssertTrue(app.buttons["onboarding.create"].waitForExistence(timeout: 10))
+        capture(app, name: "onboarding-welcome-dark")
+        tap(app, id: "onboarding.create")
+        let born = app.switches["onboarding.born"]
+        XCTAssertTrue(born.waitForExistence(timeout: 5))
+        born.tap()
+        XCTAssertTrue(app.datePickers["onboarding.birthday"].waitForExistence(timeout: 5))
+        capture(app, name: "onboarding-create-birthday-dark")
+        tap(app, id: "onboarding.save")
+        XCTAssertTrue(app.buttons["child.profile.open"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Ведите дневник вместе"].exists)
+        tap(app, id: "onboarding.invite.later")
+        tap(app, id: "child.profile.open")
+        XCTAssertTrue(app.staticTexts["child.profile.age"].waitForExistence(timeout: 5))
+        tap(app, id: "child.profile.edit")
+        XCTAssertTrue(app.textFields["child.editor.birth.weight"].waitForExistence(timeout: 5))
     }
 }

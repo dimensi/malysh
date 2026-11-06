@@ -1,4 +1,5 @@
 import CloudKit
+import CoreData
 import Foundation
 
 enum CloudFailure {
@@ -68,6 +69,15 @@ enum CloudFailure {
 struct CloudSetupState {
     private var completed: Set<String> = []
     private var failures: [String: String] = [:]
+
+    mutating func record(_ event: NSPersistentCloudKitContainer.Event) {
+        if event.endDate == nil, event.error == nil {
+            begin(identifier: event.storeIdentifier)
+        } else {
+            let error = event.succeeded ? nil : event.error ?? CKError(.internalError)
+            record(identifier: event.storeIdentifier, error: error)
+        }
+    }
 
     mutating func begin(identifier: String) {
         completed.remove(identifier)
