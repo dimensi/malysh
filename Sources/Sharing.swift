@@ -3,7 +3,7 @@
 import SwiftUI
 import UIKit
 
-/// A single durable intent covers both the restart needed to enable iCloud and delayed import.
+/// A single durable intent covers enabling iCloud and waiting for the invited diary to import.
 struct PendingFamilyInvitation {
     static let preferenceKey = "onboarding.familyInvitation"
 
@@ -95,6 +95,11 @@ struct FamilySnapshot {
     let members: [FamilyMember]
 }
 
+@MainActor
+private enum SharingThumbnail {
+    static let data = UIImage(named: "SharingThumbnail")?.pngData()
+}
+
 extension Persistence {
     /// Reads Core Data's locally maintained share, including while offline.
     func familySnapshot(babyID: UUID) throws -> FamilySnapshot? {
@@ -143,8 +148,16 @@ extension Persistence {
     func share(babyID: UUID) async throws -> CKShare {
         guard cloudEnabled else { throw Failure.cloudDisabled }
         guard let baby = try babyObject(id: babyID) else { throw Failure.missingBaby }
+        guard let store = baby.objectID.persistentStore else { throw Failure.missingStore }
+        let thumbnailKey = CKShare.SystemFieldKey.thumbnailImageData
         if let existing = try container.fetchShares(matching: [baby.objectID])[baby.objectID] {
-            return existing
+            guard store == privateStore, existing[thumbnailKey] == nil,
+                  let data = SharingThumbnail.data, let updated = existing.copy() as? CKShare
+            else { return existing }
+            updated[thumbnailKey] = data as CKRecordValue
+            // Keep the existing share usable if CloudKit cannot save the cosmetic update.
+            let saved = try? await persist(share: updated, in: store)
+            return saved ?? existing
         }
         let share: CKShare = try await withCheckedThrowingContinuation { continuation in
             container.share([baby], to: nil) { _, share, _, error in
@@ -159,9 +172,10 @@ extension Persistence {
         }
         share.publicPermission = .none
         share[CKShare.SystemFieldKey.title] = "Малыш" as CKRecordValue
-        guard let store = baby.objectID.persistentStore else { throw Failure.missingStore }
-        try await persist(share: share, in: store)
-        return share
+        if let data = SharingThumbnail.data {
+            share[thumbnailKey] = data as CKRecordValue
+        }
+        return try await persist(share: share, in: store)
     }
 
     /// Acceptance registers the share locally before its diary records finish importing.
@@ -185,13 +199,13 @@ extension Persistence {
         }
     }
 
-    func persist(share: CKShare, in store: NSPersistentStore) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            container.persistUpdatedShare(share, in: store) { _, error in
+    private func persist(share: CKShare, in store: NSPersistentStore) async throws -> CKShare {
+        try await withCheckedThrowingContinuation { continuation in
+            container.persistUpdatedShare(share, in: store) { savedShare, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else {
-                    continuation.resume()
+                    continuation.resume(returning: savedShare ?? share)
                 }
             }
         }
@@ -244,6 +258,10 @@ struct ShareSheet: UIViewControllerRepresentable {
 
         func itemTitle(for _: UICloudSharingController) -> String? {
             "Дневник малыша"
+        }
+
+        func itemThumbnailData(for _: UICloudSharingController) -> Data? {
+            SharingThumbnail.data
         }
 
         func cloudSharingController(_: UICloudSharingController, failedToSaveShareWithError error: Error) {

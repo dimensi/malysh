@@ -7,116 +7,193 @@ import Foundation
 @MainActor
 final class Persistence {
     static let containerIdentifier = "iCloud.dev.dimensi.malysh"
-    let container: NSPersistentCloudKitContainer
+    var container: NSPersistentCloudKitContainer {
+        guard let activeContainer else { preconditionFailure("The persistence container is unavailable") }
+        return activeContainer
+    }
+
+    private var activeContainer: NSPersistentCloudKitContainer?
     private(set) var cloudEnabled: Bool
     private(set) var cloudStartupError: Error?
-    private let modelFound: Bool
+    private let model: NSManagedObjectModel?
+    private let directory: URL
+    private let inMemory: Bool
+    private let configureStoreDescription: ((NSPersistentStoreDescription) -> Void)?
     private let parentProfileCache: ParentProfileCache
     private let eventAuthorCache: EventAuthorCache
     private var accountChangeObserver: AnyCancellable?
-    private var loaded = false
+    private(set) var isLoaded = false
+    private(set) var generation = UUID()
+    private var attemptedLoad = false
 
     enum Failure: LocalizedError {
         case missingModel, notLoaded, missingBaby, missingStore, cloudDisabled, diaryChanged
+        case cloudRollbackFailed(switchError: Error, rollbackError: Error)
+
         var errorDescription: String? {
             switch self {
             case .missingModel: "Не найдена модель базы данных."
             case .notLoaded: "База данных ещё не открыта."
             case .missingBaby: "Профиль ребёнка не найден."
             case .missingStore: "Хранилище недоступно."
-            case .cloudDisabled: "Включите iCloud в настройках и перезапустите приложение."
+            case .cloudDisabled: "Включите iCloud в настройках."
+            case .cloudRollbackFailed:
+                "Не удалось открыть базу данных после переключения iCloud. Повторите попытку."
             case .diaryChanged: "Список дневников изменился. Проверьте его и повторите действие."
             }
         }
     }
 
-    init(directory: URL? = nil, inMemory: Bool = false, cloudEnabled: Bool = false) {
+    init(
+        directory: URL? = nil,
+        inMemory: Bool = false,
+        cloudEnabled: Bool = false,
+        configureStoreDescription: ((NSPersistentStoreDescription) -> Void)? = nil
+    ) {
         self.cloudEnabled = cloudEnabled && !inMemory
+        self.directory = directory ?? NSPersistentContainer.defaultDirectoryURL()
+        self.inMemory = inMemory
+        self.configureStoreDescription = configureStoreDescription
         let modelURL = Bundle.main.url(forResource: "Malysh", withExtension: "momd")
-        let model = modelURL.flatMap(NSManagedObjectModel.init(contentsOf:))
-        modelFound = model != nil
-        container = NSPersistentCloudKitContainer(name: "Malysh", managedObjectModel: model ?? NSManagedObjectModel())
-        let root = directory ?? NSPersistentContainer.defaultDirectoryURL()
-        parentProfileCache = ParentProfileCache(directory: root, inMemory: inMemory)
-        eventAuthorCache = EventAuthorCache(directory: root, inMemory: inMemory)
-        container.persistentStoreDescriptions = ["private", "shared"].map { name in
-            let description = NSPersistentStoreDescription(url: root.appendingPathComponent("Malysh-\(name).sqlite"))
-            description.type = inMemory ? NSInMemoryStoreType : NSSQLiteStoreType
-            description.shouldAddStoreAsynchronously = false
-            description.shouldMigrateStoreAutomatically = true
-            description.shouldInferMappingModelAutomatically = true
-            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-            if self.cloudEnabled {
-                let options = NSPersistentCloudKitContainerOptions(containerIdentifier: Self.containerIdentifier)
-                options.databaseScope = name == "private" ? .private : .shared
-                description.cloudKitContainerOptions = options
-            }
-            return description
+        model = modelURL.flatMap(NSManagedObjectModel.init(contentsOf:))
+        parentProfileCache = ParentProfileCache(directory: self.directory, inMemory: inMemory)
+        eventAuthorCache = EventAuthorCache(directory: self.directory, inMemory: inMemory)
+        if let model {
+            activeContainer = makeContainer(model: model, cloudEnabled: self.cloudEnabled, allowsMigration: true)
         }
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
-        container.viewContext.transactionAuthor = "Malysh"
         accountChangeObserver = NotificationCenter.default.publisher(for: .CKAccountChanged)
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in try? self?.clearEventAuthorCache() }
     }
 
-    func load() async throws {
-        if loaded {
-            return
-        }
-        guard modelFound else { throw Failure.missingModel }
-        for description in container.persistentStoreDescriptions where description.type == NSSQLiteStoreType {
-            if let directory = description.url?.deletingLastPathComponent() {
-                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    private func makeContainer(
+        model: NSManagedObjectModel,
+        cloudEnabled: Bool,
+        allowsMigration: Bool
+    ) -> NSPersistentCloudKitContainer {
+        let container = NSPersistentCloudKitContainer(name: "Malysh", managedObjectModel: model)
+        container.persistentStoreDescriptions = ["private", "shared"].map { name in
+            let description = NSPersistentStoreDescription(url: directory
+                .appendingPathComponent("Malysh-\(name).sqlite"))
+            description.type = inMemory ? NSInMemoryStoreType : NSSQLiteStoreType
+            description.shouldAddStoreAsynchronously = false
+            description.shouldMigrateStoreAutomatically = allowsMigration
+            description.shouldInferMappingModelAutomatically = allowsMigration
+            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+            if cloudEnabled {
+                let options = NSPersistentCloudKitContainerOptions(containerIdentifier: Self.containerIdentifier)
+                options.databaseScope = name == "private" ? .private : .shared
+                description.cloudKitContainerOptions = options
             }
+            configureStoreDescription?(description)
+            return description
         }
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        container.viewContext.transactionAuthor = "Malysh"
+        return container
+    }
+
+    func load() async throws {
+        guard !isLoaded else { return }
+        if !inMemory {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        }
+        if attemptedLoad {
+            try detachStores()
+        }
+        attemptedLoad = true
         do {
-            try loadStores()
+            try openStores(cloudEnabled: cloudEnabled, allowsMigration: true, reusePreparedContainer: true)
+            cloudStartupError = nil
         } catch {
             try detachStores()
             guard cloudEnabled else { throw error }
             cloudStartupError = error
-            cloudEnabled = false
             // Reopen the same files locally; retain CloudKit metadata for a later launch.
-            for description in container.persistentStoreDescriptions {
-                description.cloudKitContainerOptions = nil
-            }
             do {
-                try loadStores()
+                try openStores(cloudEnabled: false, allowsMigration: true)
             } catch {
                 try detachStores()
                 throw error
             }
         }
-        loaded = true
     }
 
-    private func loadStores() throws {
+    func switchCloud(to enabled: Bool, reopen: Bool = false) throws {
+        let enabled = enabled && !inMemory
+        let previousMode = cloudEnabled
+        if isLoaded {
+            guard enabled != previousMode || (reopen && !inMemory) else {
+                cloudStartupError = nil
+                return
+            }
+            if container.viewContext.hasChanges {
+                try container.viewContext.save()
+            }
+        }
+
+        do {
+            try detachStores()
+            try openStores(cloudEnabled: enabled, allowsMigration: false)
+            cloudStartupError = nil
+        } catch {
+            let switchError = error
+            do {
+                try detachStores()
+                try openStores(cloudEnabled: previousMode, allowsMigration: false)
+            } catch {
+                try? detachStores()
+                throw Failure.cloudRollbackFailed(switchError: switchError, rollbackError: error)
+            }
+            throw switchError
+        }
+    }
+
+    private func openStores(
+        cloudEnabled: Bool,
+        allowsMigration: Bool,
+        reusePreparedContainer: Bool = false
+    ) throws {
+        guard let model else { throw Failure.missingModel }
+        if activeContainer == nil || !reusePreparedContainer {
+            activeContainer = makeContainer(model: model, cloudEnabled: cloudEnabled, allowsMigration: allowsMigration)
+        }
         // Synchronous loading prevents callers from reading a partially loaded store pair.
         let result = StoreLoadResult()
         container.loadPersistentStores { _, error in result.record(error) }
         if let error = result.error {
             throw error
         }
+        guard container.persistentStoreCoordinator.persistentStores.count == 2 else { throw Failure.missingStore }
+        self.cloudEnabled = cloudEnabled
+        generation = UUID()
+        isLoaded = true
     }
 
     private func detachStores() throws {
-        container.viewContext.reset()
-        // Detaching a store does not delete its SQLite file or CloudKit records.
-        for store in container.persistentStoreCoordinator.persistentStores {
-            try container.persistentStoreCoordinator.remove(store)
+        isLoaded = false
+        try autoreleasepool {
+            guard let activeContainer else { return }
+            activeContainer.viewContext.reset()
+            // Detaching a store does not delete its SQLite file or CloudKit records.
+            for store in activeContainer.persistentStoreCoordinator.persistentStores {
+                try activeContainer.persistentStoreCoordinator.remove(store)
+            }
+            self.activeContainer = nil
         }
     }
 
     var privateStore: NSPersistentStore? {
-        container.persistentStoreCoordinator.persistentStores
+        guard isLoaded else { return nil }
+        return container.persistentStoreCoordinator.persistentStores
             .first { $0.url?.lastPathComponent == "Malysh-private.sqlite" }
     }
 
     var sharedStore: NSPersistentStore? {
-        container.persistentStoreCoordinator.persistentStores
+        guard isLoaded else { return nil }
+        return container.persistentStoreCoordinator.persistentStores
             .first { $0.url?.lastPathComponent == "Malysh-shared.sqlite" }
     }
 
@@ -461,7 +538,7 @@ final class Persistence {
     }
 
     private func objects(entity: String, predicate: NSPredicate?, sort: String? = nil) throws -> [NSManagedObject] {
-        guard loaded else { throw Failure.notLoaded }
+        guard isLoaded else { throw Failure.notLoaded }
         let request = NSFetchRequest<NSManagedObject>(entityName: entity)
         request.predicate = predicate
         if let sort {
@@ -485,7 +562,7 @@ final class Persistence {
     }
 
     private func transaction(_ body: () throws -> Void) throws {
-        guard loaded else { throw Failure.notLoaded }
+        guard isLoaded else { throw Failure.notLoaded }
         do {
             try body()
             if container.viewContext.hasChanges {

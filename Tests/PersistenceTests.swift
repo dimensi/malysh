@@ -4,6 +4,106 @@ import XCTest
 
 @MainActor
 final class PersistenceTests: XCTestCase {
+    func testCloudModeReopensBothSQLiteStoresAndSavesPendingChanges() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        addTeardownBlock { try FileManager.default.removeItem(at: directory) }
+        let privateBaby = Baby(name: "Личный")
+        let sharedBaby = Baby(name: "Семейный")
+        var configuredCloudStores: [String] = []
+        let persistence = Persistence(directory: directory) { description in
+            if let options = description.cloudKitContainerOptions, let name = description.url?.lastPathComponent {
+                XCTAssertEqual(options.databaseScope, name == "Malysh-private.sqlite" ? .private : .shared)
+                configuredCloudStores.append(name)
+                // Exercise the SQLite pair and scope configuration without requiring an Apple ID.
+                description.cloudKitContainerOptions = nil
+            }
+        }
+        try await persistence.load()
+        let privateID = try XCTUnwrap(persistence.privateStore?.identifier)
+        let sharedID = try XCTUnwrap(persistence.sharedStore?.identifier)
+        try persistence.saveBaby(privateBaby)
+        let context = persistence.container.viewContext
+        let sharedRecord = NSEntityDescription.insertNewObject(forEntityName: "BabyRecord", into: context)
+        try context.assign(sharedRecord, to: XCTUnwrap(persistence.sharedStore))
+        sharedRecord.setValue(sharedBaby.id, forKey: "id")
+        sharedRecord.setValue(sharedBaby.name, forKey: "name")
+        sharedRecord.setValue(sharedBaby.birthDate, forKey: "birthDate")
+        try sharedRecord.setValue(JSONEncoder().encode(sharedBaby), forKey: "payload")
+
+        for enabled in [true, false, true, false] {
+            try persistence.switchCloud(to: enabled)
+            XCTAssertTrue(persistence.isLoaded)
+            XCTAssertEqual(persistence.cloudEnabled, enabled)
+            XCTAssertEqual(persistence.privateStore?.identifier, privateID)
+            XCTAssertEqual(persistence.sharedStore?.identifier, sharedID)
+            XCTAssertEqual(try Set(persistence.babies().map(\.id)), [privateBaby.id, sharedBaby.id])
+            XCTAssertEqual(
+                try persistence.babyObject(id: sharedBaby.id)?.objectID.persistentStore,
+                persistence.sharedStore
+            )
+        }
+        XCTAssertEqual(configuredCloudStores.sorted(), [
+            "Malysh-private.sqlite", "Malysh-private.sqlite", "Malysh-shared.sqlite", "Malysh-shared.sqlite",
+        ])
+    }
+
+    func testFailedCloudOpenRollsBackToUsableLocalStores() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        addTeardownBlock { try FileManager.default.removeItem(at: directory) }
+        let persistence = Persistence(directory: directory) { description in
+            guard description.cloudKitContainerOptions != nil else { return }
+            description.cloudKitContainerOptions = nil
+            if description.url?.lastPathComponent == "Malysh-shared.sqlite" {
+                description.url = directory
+            }
+        }
+        try await persistence.load()
+        let baby = Baby(name: "До переключения")
+        try persistence.saveBaby(baby)
+
+        XCTAssertThrowsError(try persistence.switchCloud(to: true))
+        XCTAssertTrue(persistence.isLoaded)
+        XCTAssertFalse(persistence.cloudEnabled)
+        XCTAssertNotNil(persistence.sharedStore)
+        XCTAssertEqual(try persistence.babies(), [baby])
+        let event = CareEvent(babyID: baby.id, kind: .bottle, volumeML: 80)
+        try persistence.saveEvent(event)
+        XCTAssertEqual(try persistence.events(babyID: baby.id), [event])
+    }
+
+    func testCloudOpenAndRollbackFailureAllowRetry() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        addTeardownBlock { try FileManager.default.removeItem(at: directory) }
+        var failSharedStore = false
+        let persistence = Persistence(directory: directory) { description in
+            description.cloudKitContainerOptions = nil
+            if failSharedStore, description.url?.lastPathComponent == "Malysh-shared.sqlite" {
+                description.url = directory
+            }
+        }
+        try await persistence.load()
+        let baby = Baby(name: "До ошибки")
+        try persistence.saveBaby(baby)
+        failSharedStore = true
+
+        XCTAssertThrowsError(try persistence.switchCloud(to: true)) { error in
+            guard case Persistence.Failure.cloudRollbackFailed = error else {
+                return XCTFail("Expected a rollback failure, got \(error)")
+            }
+        }
+        XCTAssertFalse(persistence.isLoaded)
+        XCTAssertNil(persistence.privateStore)
+        XCTAssertNil(persistence.sharedStore)
+        XCTAssertThrowsError(try persistence.babies())
+
+        failSharedStore = false
+        try persistence.switchCloud(to: false)
+        XCTAssertTrue(persistence.isLoaded)
+        XCTAssertFalse(persistence.cloudEnabled)
+        XCTAssertNotNil(persistence.sharedStore)
+        XCTAssertEqual(try persistence.babies(), [baby])
+    }
+
     func testLightweightMigrationFromBaselineV2PreservesBabyAndEvent() async throws {
         try await verifyMigration(storeName: "private", modelName: "Malysh")
         try await verifyMigration(storeName: "shared", modelName: "Malysh")

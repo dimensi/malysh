@@ -16,6 +16,7 @@
 		09C5C8A5DC48FF563D2E37DA /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298DBC1D5993065C443496CB /* PersistenceTests.swift */; };
 		0BB408F1BF9B16E0F293D90F /* CloudFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FC9DCFAFEAB31295E2C73C9 /* CloudFailure.swift */; };
 		0FE6FE4CF9713709385F99DF /* Malysh.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 226833D8083308456F270E4A /* Malysh.xcdatamodeld */; };
+		1293DF30C38C77610F6F7B37 /* DiaryExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A98F1EEFC13E48B797D317 /* DiaryExportTests.swift */; };
 		228E388971D3954E88EC9311 /* TuistBundle+MalyshWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9E7AB507DAA687BD0BB74 /* TuistBundle+MalyshWidgets.swift */; };
 		2416CD96A4E21E4A0F36CA79 /* WidgetRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B5885ACCC409989C1F4056 /* WidgetRoute.swift */; };
 		33597B5E20B804B71A8FC5A9 /* WidgetRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B5885ACCC409989C1F4056 /* WidgetRoute.swift */; };
@@ -76,6 +77,7 @@
 		E6B758B21AA98F5BE0F410E5 /* PhotoGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0857B9537B060843E9A9C2FE /* PhotoGalleryView.swift */; };
 		E739AFB9E48CBE45809FF647 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEE7445CB125A24CB62679A8 /* DesignSystem.swift */; };
 		E7D8305AB0E7F78EA9DE5A7D /* Sharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10A8A91EE68D5D67909CCAA /* Sharing.swift */; };
+		EA862DF2E9F18A40E9F14575 /* DiaryExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48B7FB463E4728291A0FF22F /* DiaryExport.swift */; };
 		EFBF5AC48A18D9C974746757 /* EventAuthorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD34A9F6DBDFE454C66BE51B /* EventAuthorTests.swift */; };
 		EFD1383B5D7F307BB54F28E7 /* EventEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */; };
 		F9629CFC6378C7A36C5577C9 /* WidgetCareIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */; };
@@ -186,6 +188,7 @@
 		44DC826FECF34A61D2341DF2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		464A0EA584BC2C6471469377 /* MalyshUITests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "MalyshUITests-Info.plist"; sourceTree = "<group>"; };
 		476759839648658E6C4E8EDD /* CareLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareLiveActivityWidget.swift; sourceTree = "<group>"; };
+		48B7FB463E4728291A0FF22F /* DiaryExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryExport.swift; sourceTree = "<group>"; };
 		49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCareIntent.swift; sourceTree = "<group>"; };
 		4C1142AC4200083321BFC857 /* DesignComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignComponents.swift; sourceTree = "<group>"; };
 		4FC9DCFAFEAB31295E2C73C9 /* CloudFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudFailure.swift; sourceTree = "<group>"; };
@@ -200,6 +203,7 @@
 		6D59E1D6759F548114733AA4 /* CareActivityIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityIntents.swift; sourceTree = "<group>"; };
 		6F7D4F94DA23CE72902D9D94 /* LiveActivityUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityUITests.swift; sourceTree = "<group>"; };
 		712B3212847EDAC8E41B10CA /* TuistAssets+MalyshWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TuistAssets+MalyshWidgets.swift"; sourceTree = "<group>"; };
+		71A98F1EEFC13E48B797D317 /* DiaryExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryExportTests.swift; sourceTree = "<group>"; };
 		7506D390CDD3C7B5193526D3 /* MalyshV4.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MalyshV4.xcdatamodel; sourceTree = "<group>"; };
 		754529FCC0E07F606825A2B8 /* CareActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityAttributes.swift; sourceTree = "<group>"; };
 		7A5E3FA6E2E9607DF4BAA2FE /* CareActivityViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityViews.swift; sourceTree = "<group>"; };
@@ -343,6 +347,7 @@
 				BF17D40A4D30BF1FEA449A61 /* CareActivityCoordinatorTests.swift */,
 				AA89BE4CAC87CCF203A92881 /* ChildProfileTests.swift */,
 				894E384B7F7EBB9ADFCA1B45 /* CloudFailureTests.swift */,
+				71A98F1EEFC13E48B797D317 /* DiaryExportTests.swift */,
 				892C506F7C92B8100B9D1C01 /* DomainTests.swift */,
 				FD34A9F6DBDFE454C66BE51B /* EventAuthorTests.swift */,
 				F977BB4322C33F798653AE45 /* ParentProfileTests.swift */,
@@ -401,6 +406,7 @@
 				4210B00AFA4D4AF6758D41C2 /* ContentView.swift */,
 				4C1142AC4200083321BFC857 /* DesignComponents.swift */,
 				BEE7445CB125A24CB62679A8 /* DesignSystem.swift */,
+				48B7FB463E4728291A0FF22F /* DiaryExport.swift */,
 				9A4F9D817C68BDF127D819AC /* DiaryRootView.swift */,
 				DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */,
 				52397D5545338436E2A4363B /* EventAuthorCache.swift */,
@@ -640,6 +646,7 @@
 				968DC1846F5F47343910AE58 /* ContentView.swift in Sources */,
 				DDBD78423EF94B06F03FDB9A /* DesignComponents.swift in Sources */,
 				E739AFB9E48CBE45809FF647 /* DesignSystem.swift in Sources */,
+				EA862DF2E9F18A40E9F14575 /* DiaryExport.swift in Sources */,
 				5430FEAFA827202472F716CA /* DiaryRootView.swift in Sources */,
 				067E7D5BBDA60231BD35C71B /* Domain.swift in Sources */,
 				524A5D584CB7E44BBB006A03 /* EventAuthorCache.swift in Sources */,
@@ -678,6 +685,7 @@
 				007F81B047C9C43B5F7A8AAA /* CareActivityCoordinatorTests.swift in Sources */,
 				082C5BA9EF9254A995B8238E /* ChildProfileTests.swift in Sources */,
 				C298B7DA824AEAA6A7422608 /* CloudFailureTests.swift in Sources */,
+				1293DF30C38C77610F6F7B37 /* DiaryExportTests.swift in Sources */,
 				E26E0EFC8953691AD67A597E /* DomainTests.swift in Sources */,
 				EFBF5AC48A18D9C974746757 /* EventAuthorTests.swift in Sources */,
 				91133169ED9FCD9E0D6D7A75 /* ParentProfileTests.swift in Sources */,

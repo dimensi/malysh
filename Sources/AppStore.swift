@@ -46,7 +46,11 @@ final class AppStore {
     var syncStatus = "Записи сохраняются на этом iPhone"
     var cloudBusy = false
     private var acceptingInvitation = false
-    private var checkingCloudAccount = false
+    private var cloudAccountCheckID: UUID?
+    @ObservationIgnored private var cloudSwitchTask: Task<Void, Never>?
+    private(set) var cloudSwitchInProgress = false
+    private(set) var cloudSwitchFailure: String?
+    private var failedCloudTarget: Bool?
     private var cloudAccountFailure: String?
     private var cloudImport = CloudSetupState()
     private let storesPreferences: Bool
@@ -104,8 +108,11 @@ final class AppStore {
         if invitation != nil || invitationFailure != nil {
             return .joining
         }
-        if disablingCloud {
+        if cloudSwitchInProgress {
             return .restoring
+        }
+        if let cloudSwitchFailure {
+            return .restoreFailed(cloudSwitchFailure)
         }
         if !cloudRequested {
             return .welcome
@@ -118,12 +125,13 @@ final class AppStore {
 
     private var hasOpenedDiary = false
 
-    var needsCloudRestart: Bool {
-        cloudRequested != persistence.cloudEnabled && persistence.cloudStartupError == nil
+    var canChangeCloudMode: Bool {
+        ready && !cloudSwitchInProgress && !cloudBusy && !acceptingInvitation && !diaryRemovalInProgress
+            && pendingShare == nil
     }
 
-    var disablingCloud: Bool {
-        !cloudRequested && persistence.cloudEnabled
+    var canRetryCloud: Bool {
+        cloudSwitchFailure != nil || (cloudRequested && restorationFailure != nil)
     }
 
     private var restorationFailure: String? {
@@ -137,11 +145,14 @@ final class AppStore {
         if let invitationFailure {
             return invitationFailure
         }
+        if cloudSwitchInProgress || acceptingInvitation {
+            return nil
+        }
+        if let cloudSwitchFailure {
+            return cloudSwitchFailure
+        }
         if let cloudError = persistence.cloudStartupError {
             return CloudFailure.message(for: cloudError)
-        }
-        if needsCloudRestart || acceptingInvitation {
-            return nil
         }
         if let cloudAccountFailure {
             return cloudAccountFailure
@@ -152,13 +163,7 @@ final class AppStore {
     }
 
     var invitationNotice: String? {
-        if let familyConnectionFailure, invitation != nil || invitationFailure != nil {
-            return familyConnectionFailure
-        }
-        if invitation != nil, needsCloudRestart {
-            return "Закройте и снова откройте «Малыш». Приложение продолжит подключение к семейному дневнику."
-        }
-        return nil
+        invitation == nil ? invitationFailure : nil
     }
 
     var isConnectingFamily: Bool {
@@ -170,15 +175,22 @@ final class AppStore {
     }
 
     private var expectedCloudStores: Set<String> {
-        Set(persistence.container.persistentStoreCoordinator.persistentStores.map(\.identifier))
+        guard persistence.isLoaded else { return [] }
+        return Set(persistence.container.persistentStoreCoordinator.persistentStores.map(\.identifier))
+    }
+
+    var cloudMirroringEnabled: Bool {
+        ready && !cloudSwitchInProgress && persistence.cloudEnabled
     }
 
     var cloudSharingReady: Bool {
-        persistence.cloudEnabled && cloudAccountAvailable && cloudSetup.isReady(expected: expectedCloudStores)
+        cloudMirroringEnabled && cloudAccountAvailable && cloudSetup.isReady(expected: expectedCloudStores)
     }
 
     private func updateCloudStatus() {
-        if let error = persistence.cloudStartupError {
+        if let cloudSwitchFailure {
+            syncStatus = cloudSwitchFailure
+        } else if let error = persistence.cloudStartupError {
             syncStatus = CloudFailure.message(for: error)
         } else if !persistence.cloudEnabled {
             syncStatus = "Записи сохраняются на этом iPhone"
@@ -200,15 +212,18 @@ final class AppStore {
         if event.type == .setup {
             cloudSetup.record(event)
             updateCloudStatus()
+            if cloudSharingReady, invitation != nil {
+                Task { await resumeInvitation() }
+            }
             return
         }
         if event.type == .import {
             cloudImport.record(event)
         }
-        if let error = event.error {
+        if let error = event.error, cloudSwitchFailure == nil {
             syncStatus = CloudFailure.message(for: error)
         } else if event.endDate != nil, event.succeeded {
-            if cloudSharingReady {
+            if cloudSharingReady, cloudSwitchFailure == nil {
                 syncStatus = "Последняя синхронизация: \((event.endDate ?? Date()).formatted(date: .omitted, time: .shortened))"
             }
             if ready {
@@ -239,6 +254,7 @@ final class AppStore {
             ? WidgetSnapshotStore() : WidgetSnapshotStore(directory: nil))
         if let injectedPersistence {
             persistence = injectedPersistence
+            cloudRequested = injectedPersistence.cloudEnabled
             storedPhotoGallery = PhotoGalleryStore(
                 persistence: injectedPersistence,
                 directory: FileManager.default.temporaryDirectory
@@ -258,7 +274,11 @@ final class AppStore {
         let savedInvitation = testing ? nil : Self.savedInvitation()
         let requested = !testing &&
             (UserDefaults.standard.bool(forKey: "cloudEnabled") || (try? savedInvitation?.get()) != nil)
-        persistence = Persistence(directory: directory, cloudEnabled: requested)
+        persistence = Persistence(
+            directory: directory,
+            cloudEnabled: requested,
+            configureStoreDescription: testing ? { $0.cloudKitContainerOptions = nil } : nil
+        )
         cloudRequested = requested
         if storesPreferences {
             restoreLaunchPreferences(savedInvitation)
@@ -378,8 +398,9 @@ final class AppStore {
             selectedID = babies.first(where: { $0.id == saved })?.id
             try reload()
             ready = true
-            if let cloudError = persistence.cloudStartupError {
-                syncStatus = CloudFailure.message(for: cloudError)
+            updateCloudStatus()
+            if cloudRequested != persistence.cloudEnabled, persistence.cloudStartupError == nil {
+                scheduleCloudSwitch()
             } else if persistence.cloudEnabled, checkCloudAccount {
                 await checkAccount()
             }
@@ -472,11 +493,75 @@ final class AppStore {
 
     func requestCloud(_ enabled: Bool) {
         cloudRequested = enabled
-        if !enabled {
+        cloudSwitchFailure = nil
+        failedCloudTarget = nil
+        scheduleCloudSwitch()
+    }
+
+    private func scheduleCloudSwitch(reopen: Bool = false) {
+        guard ready, cloudSwitchTask == nil else { return }
+        if !reopen, cloudRequested == persistence.cloudEnabled, persistence.cloudStartupError == nil {
+            saveCloudPreference()
+            updateCloudStatus()
+            return
+        }
+        guard canChangeCloudMode else { return }
+        cloudSwitchFailure = nil
+        failedCloudTarget = nil
+        cloudSwitchInProgress = true
+        cloudSwitchTask = Task {
+            await photoGallery.withExclusiveAccess {
+                // Onboarding can choose local mode while a photo operation is finishing.
+                if reopen || cloudRequested != persistence.cloudEnabled || persistence.cloudStartupError != nil {
+                    applyCloudMode(cloudRequested, reopen: reopen)
+                } else {
+                    saveCloudPreference()
+                }
+            }
+            cloudSwitchInProgress = false
+            cloudSwitchTask = nil
+            updateCloudStatus()
+            if ready, persistence.cloudEnabled {
+                await checkAccount()
+            }
+        }
+    }
+
+    private func applyCloudMode(_ enabled: Bool, reopen: Bool) {
+        let previousGeneration = persistence.generation
+        do {
+            try persistence.switchCloud(to: enabled, reopen: reopen)
+            saveCloudPreference()
+        } catch {
+            failedCloudTarget = enabled
+            cloudRequested = persistence.cloudEnabled
+            let action = enabled ? "включить" : "отключить"
+            cloudSwitchFailure = persistence.isLoaded
+                ? "Не удалось \(action) iCloud. Повторите попытку."
+                : error.localizedDescription
+        }
+        if persistence.generation != previousGeneration || !persistence.isLoaded {
+            cloudSetup = CloudSetupState()
+            cloudImport = CloudSetupState()
+            cloudAccountCheckID = nil
+            cloudAccountAvailable = false
+            cloudAccountFailure = nil
+        }
+        if persistence.isLoaded {
+            perform { try reload() }
+        } else {
+            ready = false
+            loadFailed = true
+            errorMessage = cloudSwitchFailure
+        }
+    }
+
+    private func saveCloudPreference() {
+        if !cloudRequested {
             cancelInvitation()
         }
         if storesPreferences {
-            UserDefaults.standard.set(enabled, forKey: "cloudEnabled")
+            UserDefaults.standard.set(cloudRequested, forKey: "cloudEnabled")
         }
     }
 
@@ -676,7 +761,7 @@ final class AppStore {
     }
 
     func removeDiaries(_ removal: DiaryRemoval) async throws {
-        guard ready, !diaryRemovalInProgress, !cloudBusy, !acceptingInvitation,
+        guard canChangeCloudMode,
               persistence.cloudStartupError == nil, !persistence.cloudEnabled || cloudSharingReady
         else {
             throw Persistence.Failure.diaryChanged
@@ -685,6 +770,9 @@ final class AppStore {
         defer {
             diaryRemovalInProgress = false
             perform { try reload() }
+            if cloudRequested != persistence.cloudEnabled {
+                scheduleCloudSwitch()
+            }
         }
         switch removal {
         case let .one(id, invited):
@@ -708,7 +796,7 @@ final class AppStore {
     }
 
     private func importedDiaryForInvitation() throws -> UUID? {
-        guard let invitation, let sharedStore = persistence.sharedStore else { return nil }
+        guard persistence.cloudEnabled, let invitation, let sharedStore = persistence.sharedStore else { return nil }
         let acceptedShareID = invitation.metadata.share.recordID
         var candidates: [NSManagedObjectID: UUID] = [:]
         for baby in babies {
@@ -909,27 +997,60 @@ final class AppStore {
     }
 
     func checkAccount() async {
-        guard !checkingCloudAccount else { return }
-        checkingCloudAccount = true
-        defer { checkingCloudAccount = false }
-        do {
-            let status = try await CKContainer(identifier: Persistence.containerIdentifier).accountStatus()
+        guard persistence.isLoaded, persistence.cloudEnabled, !cloudSwitchInProgress,
+              cloudAccountCheckID == nil else { return }
+        let id = UUID()
+        cloudAccountCheckID = id
+        let result: Result<CKAccountStatus, Error>
+        #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--ui-testing") {
+                result = .success(.noAccount)
+            } else {
+                result = await fetchCloudAccountStatus()
+            }
+        #else
+            result = await fetchCloudAccountStatus()
+        #endif
+        guard cloudAccountCheckID == id else { return }
+        cloudAccountCheckID = nil
+        switch result {
+        case let .success(status):
             cloudAccountAvailable = status == .available
             cloudAccountFailure = cloudAccountAvailable ? nil : "Войдите в iCloud в настройках iPhone."
-        } catch {
+        case let .failure(error):
             cloudAccountAvailable = false
             cloudAccountFailure = CloudFailure.message(for: error)
         }
         updateCloudStatus()
+        await resumeInvitation()
+    }
+
+    private func fetchCloudAccountStatus() async -> Result<CKAccountStatus, Error> {
+        do {
+            let status = try await CKContainer(identifier: Persistence.containerIdentifier).accountStatus()
+            return .success(status)
+        } catch {
+            return .failure(error)
+        }
     }
 
     func retryRestoration() async {
-        await checkAccount()
-        perform { try reload() }
+        if let failedCloudTarget {
+            cloudRequested = failedCloudTarget
+            scheduleCloudSwitch(reopen: true)
+        } else if !persistence.cloudEnabled || cloudSetup.failure(expected: expectedCloudStores) != nil
+            || cloudImport.failure(expected: expectedCloudStores) != nil
+        {
+            cloudRequested = true
+            scheduleCloudSwitch(reopen: true)
+        } else {
+            await checkAccount()
+            perform { try reload() }
+        }
     }
 
     func invite() async {
-        guard !cloudBusy, !diaryRemovalInProgress else { return }
+        guard canChangeCloudMode else { return }
         guard cloudSharingReady else {
             errorMessage = syncStatus
             return
@@ -974,7 +1095,7 @@ final class AppStore {
 
     func resumeInvitation() async {
         guard ready, !diaryRemovalInProgress, !acceptingInvitation, let invitation,
-              persistence.cloudEnabled else { return }
+              cloudSharingReady else { return }
         acceptingInvitation = true
         invitationFailure = nil
         defer { acceptingInvitation = false }

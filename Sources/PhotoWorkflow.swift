@@ -370,6 +370,13 @@ final class PhotoGalleryStore {
         try persistence.saveBaby(baby); revision += 1
     }
 
+    /// Serialize work that needs an open store with the photo journal's writes.
+    func withExclusiveAccess<Value>(_ action: () async throws -> Value) async rethrows -> Value {
+        await acquire()
+        defer { release() }
+        return try await action()
+    }
+
     private func acquire() async {
         while isBusy {
             await withCheckedContinuation { idleWaiters.append($0) }

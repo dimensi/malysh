@@ -99,6 +99,11 @@ struct ContentView: View {
             }.tag(3)
         }
         .tint(AppDesign.Palette.accent)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if store.invitation != nil {
+                familyConnectionStatus
+            }
+        }
         .sheet(item: $editing, onDismiss: resumeWidgetRouteAfterSheet) { event in
             EventEditor(event: event,
                         creatorLabel: store.authorLabel(for: event.createdBy, babyID: event.babyID),
@@ -156,6 +161,29 @@ struct ContentView: View {
         ) {
             Button("Понятно") { store.errorMessage = nil }
         } message: { Text(store.errorMessage ?? "") }
+    }
+
+    private var familyConnectionStatus: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
+            if let failure = store.familyConnectionFailure {
+                Text(failure).font(.subheadline)
+                Button("Попробовать снова") {
+                    Task { await store.retryRestoration() }
+                }
+                Button("Отменить подключение", role: .cancel) {
+                    store.cancelInvitation()
+                }
+            } else if store.cloudSwitchInProgress {
+                ProgressView("Подключаем iCloud")
+            } else if store.isImportingFamily {
+                ProgressView("Синхронизируем семейный дневник")
+            } else {
+                ProgressView("Подключаем семейный дневник")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(AppDesign.Spacing.contentInset)
+        .background(.regularMaterial)
     }
 
     private var today: some View {

@@ -1,5 +1,6 @@
 import CloudKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 struct SettingsView: View {
@@ -9,9 +10,14 @@ struct SettingsView: View {
     }
 
     var inviteOnOpen = false
+    @State private var invitedOnOpen = false
     @State private var confirmsCleanup = false
     @State private var redundantEventCount = 0
     @State private var cleanupError: String?
+    @State private var exportDocument: DiaryExportDocument?
+    @State private var preparingExport = false
+    @State private var presentsExport = false
+    @State private var exportError: String?
 
     var body: some View {
         NavigationStack {
@@ -34,6 +40,20 @@ struct SettingsView: View {
                         DiaryManagementView(store: store)
                     }
                     .accessibilityIdentifier("diary.manage")
+                    Button {
+                        guard let diaryID = store.baby?.id else { return }
+                        exportDiary(id: diaryID)
+                    } label: {
+                        HStack {
+                            Label("Экспортировать дневник", systemImage: "square.and.arrow.up")
+                            Spacer()
+                            if preparingExport {
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .disabled(store.baby == nil || preparingExport || presentsExport || store.cloudSwitchInProgress)
+                    .accessibilityIdentifier("diary.export")
                 }
                 familySection
                 Section {
@@ -47,28 +67,60 @@ struct SettingsView: View {
                 }
                 Section {
                     if inviteOnOpen, !store.persistence.cloudEnabled {
-                        Text("Чтобы вести дневник вместе, включите iCloud и перезапустите приложение.")
+                        Text("Чтобы вести дневник вместе, включите iCloud.")
                     }
                     Toggle("Синхронизация через iCloud", isOn: Binding(
                         get: { cloudEnabled },
                         set: { store.requestCloud($0) }
                     ))
+                    .disabled(!store.canChangeCloudMode || preparingExport)
                     .accessibilityIdentifier("cloud-toggle")
-                    Text(store.syncStatus).font(.subheadline).foregroundStyle(.secondary)
-                    if cloudEnabled != store.persistence.cloudEnabled {
-                        Text("Перезапустите приложение, чтобы применить настройку iCloud.")
-                            .font(.subheadline).foregroundStyle(.secondary)
+                    if store.cloudSwitchInProgress {
+                        ProgressView(cloudEnabled ? "Подключаем iCloud" : "Отключаем iCloud")
+                    } else {
+                        Text(store.syncStatus).font(.subheadline).foregroundStyle(.secondary)
+                        if store.canRetryCloud {
+                            Button("Попробовать снова") {
+                                Task { await store.retryRestoration() }
+                            }
+                            .disabled(!store.canChangeCloudMode || preparingExport)
+                            .accessibilityIdentifier("cloud.retry")
+                        }
                     }
                 } header: { Text("iCloud") } footer: {
-                    Text(
-                        "Дневник хранится на этом iPhone. iCloud синхронизирует его между устройствами. "
-                            + "После изменения настройки перезапустите приложение."
-                    )
+                    Text("Дневник хранится на этом iPhone. iCloud синхронизирует его между устройствами.")
                 }
             }
             .navigationTitle("Настройки")
-            .task {
-                if inviteOnOpen, store.cloudSharingReady {
+            .fileExporter(
+                isPresented: $presentsExport,
+                document: exportDocument,
+                contentTypes: [.json],
+                defaultFilename: "Дневник Малыша.json"
+            ) { result in
+                exportDocument = nil
+                if case let .failure(error) = result {
+                    let underlyingError = error as NSError
+                    if underlyingError.domain != NSCocoaErrorDomain || underlyingError.code != NSUserCancelledError {
+                        exportError = "Не удалось сохранить файл. Попробуйте экспортировать дневник снова."
+                    }
+                }
+            } onCancellation: {
+                exportDocument = nil
+            }
+            .alert("Не удалось экспортировать дневник", isPresented: Binding(
+                get: { exportError != nil },
+                set: {
+                    if !$0 {
+                        exportError = nil
+                    }
+                }
+            )) {
+                Button("Понятно", role: .cancel) { exportError = nil }
+            } message: { Text(exportError ?? "") }
+            .task(id: store.cloudSharingReady) {
+                if inviteOnOpen, !invitedOnOpen, store.cloudSharingReady {
+                    invitedOnOpen = true
                     await store.invite()
                 }
             }
@@ -115,6 +167,21 @@ struct SettingsView: View {
                         store.errorMessage = CloudFailure.message(for: error)
                     }
                 }
+            }
+        }
+    }
+
+    private func exportDiary(id: UUID) {
+        preparingExport = true
+        Task {
+            defer { preparingExport = false }
+            do {
+                exportDocument = try await store.photoGallery.withExclusiveAccess {
+                    try await store.persistence.exportDiary(id: id)
+                }
+                presentsExport = true
+            } catch {
+                exportError = "Не удалось прочитать дневник. Проверьте, что он доступен, и попробуйте снова."
             }
         }
     }
@@ -172,7 +239,7 @@ struct SettingsView: View {
                 }
                 .frame(minHeight: AppDesign.Metrics.minimumTouch)
             }
-            .disabled(!store.cloudSharingReady || !cloudEnabled || store.cloudBusy || store.baby == nil)
+            .disabled(!store.cloudSharingReady || !cloudEnabled || !store.canChangeCloudMode || store.baby == nil)
             .accessibilityIdentifier("invite-family")
             if !store.redundantBabies.isEmpty {
                 Button("Удалить лишний «Малыш»", role: .destructive) {
@@ -239,8 +306,8 @@ private struct DiaryManagementView: View {
     @State private var errorMessage: String?
 
     private var canRemove: Bool {
-        cloudEnabled == store.persistence.cloudEnabled && store.persistence.cloudStartupError == nil
-            && (!cloudEnabled || store.cloudSharingReady) && !store.cloudBusy
+        store.canChangeCloudMode && cloudEnabled == store.persistence.cloudEnabled
+            && store.persistence.cloudStartupError == nil && (!cloudEnabled || store.cloudSharingReady)
     }
 
     var body: some View {
@@ -269,10 +336,9 @@ private struct DiaryManagementView: View {
                     }
             } footer: {
                 if !canRemove {
-                    Text(cloudEnabled == store.persistence.cloudEnabled
-                        ? store.syncStatus : "Перезапустите приложение, чтобы применить настройку iCloud.")
+                    Text(store.syncStatus)
                 } else if !cloudEnabled {
-                    Text("Чтобы сбросить дневники в iCloud, включите синхронизацию и перезапустите приложение.")
+                    Text("Чтобы сбросить дневники в iCloud, включите синхронизацию и дождитесь её готовности.")
                 }
             }
         }
