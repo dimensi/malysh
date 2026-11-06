@@ -31,6 +31,7 @@ private struct WatchDiaryView: View {
         let eventID = UUID()
     }
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     let store: WatchStore
     @State private var path: [Page] = []
@@ -47,8 +48,7 @@ private struct WatchDiaryView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
                     if let diary = store.selectedDiary {
-                        diaryHeader(diary)
-                        feedingSummary(diary)
+                        diaryOverview(diary)
                         if !diary.canWrite {
                             Label("Только просмотр", systemImage: "lock")
                                 .font(AppDesign.Typography.note)
@@ -68,6 +68,7 @@ private struct WatchDiaryView: View {
                 .padding(.horizontal, AppDesign.Spacing.group)
                 .padding(.bottom, AppDesign.Spacing.group)
             }
+            .contentMargins(.top, 0, for: .scrollContent)
             .navigationDestination(for: Page.self, destination: destination)
         }
         .onOpenURL { url in
@@ -109,84 +110,102 @@ private struct WatchDiaryView: View {
         }
     }
 
-    private func diaryHeader(_ diary: WatchDiary) -> some View {
-        HStack(spacing: AppDesign.Spacing.group) {
-            Image("BrandMark")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 22, height: 22)
-                .clipShape(.circle)
-                .accessibilityHidden(true)
-            if store.diaries.count > 1 {
-                Button {
-                    showDiaries = true
-                } label: {
-                    Label {
-                        Text(diary.name)
-                            .privacySensitive()
-                            .redacted(reason: isLuminanceReduced ? .privacy : [])
-                    } icon: {
-                        Image(systemName: "chevron.down")
-                    }
-                    .font(AppDesign.Typography.itemTitle)
-                    .frame(minHeight: AppDesign.Metrics.minimumTouch, alignment: .leading)
+    @ViewBuilder
+    private func diaryOverview(_ diary: WatchDiary) -> some View {
+        if store.diaries.count > 1 {
+            Button {
+                showDiaries = true
+            } label: {
+                overviewContent(diary, showsPicker: true)
+                    .frame(minHeight: AppDesign.Metrics.minimumTouch)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .disabled(isLuminanceReduced)
+            .accessibilityIdentifier("watch.diary")
+            .accessibilityHint("Выбрать дневник")
+            .confirmationDialog("Дневник", isPresented: $showDiaries, titleVisibility: .visible) {
+                ForEach(store.diaries) { candidate in
+                    Button(candidate.name) { store.select(candidate.id) }
                 }
-                .buttonStyle(.plain)
-                .disabled(isLuminanceReduced)
-                .accessibilityIdentifier("watch.diary")
-                .accessibilityHint("Выбрать дневник")
-                .confirmationDialog("Дневник", isPresented: $showDiaries, titleVisibility: .visible) {
-                    ForEach(store.diaries) { candidate in
-                        Button(candidate.name) { store.select(candidate.id) }
-                    }
-                    Button("Отмена", role: .cancel) {}
-                }
-            } else {
+                Button("Отмена", role: .cancel) {}
+            }
+        } else {
+            overviewContent(diary, showsPicker: false)
+        }
+    }
+
+    private func overviewContent(_ diary: WatchDiary, showsPicker: Bool) -> some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+            HStack(spacing: AppDesign.Spacing.related) {
                 Text(diary.name)
-                    .privacySensitive()
-                    .redacted(reason: isLuminanceReduced ? .privacy : [])
                     .font(AppDesign.Typography.itemTitle)
                     .accessibilityAddTraits(.isHeader)
+                    .privacySensitive()
+                    .redacted(reason: isLuminanceReduced ? .privacy : [])
+                if showsPicker {
+                    Image(systemName: "chevron.down")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+            }
+            if let latest = diary.latestFeeding {
+                TimelineView(.everyMinute) { context in
+                    let now = context.date
+                    let elapsed = relativeFeedingTime(latest.feedingReferenceDate, now: now)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: AppDesign.Spacing.group) {
+                            feedingSummary(elapsed, event: latest, now: now)
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                        HStack(spacing: AppDesign.Spacing.group) {
+                            feedingSummary(elapsed, event: latest, now: now, compact: true)
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+                            feedingSummary(elapsed, event: latest, now: now)
+                        }
+                    }
+                }
+            } else {
+                Text("Кормлений пока нет")
+                    .font(AppDesign.Typography.note)
+                    .foregroundStyle(.secondary)
             }
         }
-        .padding(.top, AppDesign.Spacing.related)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
-    private func feedingSummary(_ diary: WatchDiary) -> some View {
-        if let latest = diary.latestFeeding {
-            TimelineView(.everyMinute) { context in
-                let now = context.date
-                let elapsed = relativeFeedingTime(latest.feedingReferenceDate, now: now)
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
-                    Text(elapsed)
-                        .font(.title3.bold())
-                        .monospacedDigit()
-                        .accessibilityLabel("Последнее кормление, \(elapsed)")
-                        .accessibilityIdentifier("watch.lastFeeding.elapsed")
-                    Text(feedingDetail(latest, now: now, abbreviated: true))
-                        .font(AppDesign.Typography.note)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel(feedingDetail(latest, now: now, abbreviated: false))
-                        .privacySensitive()
-                        .redacted(reason: isLuminanceReduced ? .privacy : [])
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityElement(children: .combine)
-            }
-        } else {
-            Text("Кормлений пока нет")
-                .font(AppDesign.Typography.detail)
-                .foregroundStyle(.secondary)
-        }
+    private func feedingSummary(_ elapsed: String, event: CareEvent, now: Date, compact: Bool = false) -> some View {
+        let detail = compact
+            ? (event.kind == .bottle ? "\(event.volumeML) мл" : event.kind.label)
+            : feedingDetail(event, now: now, abbreviated: true)
+        Text(elapsed)
+            .font(.caption.weight(.semibold))
+            .monospacedDigit()
+            .accessibilityLabel("Последнее кормление, \(elapsed)")
+            .accessibilityIdentifier("watch.lastFeeding.elapsed")
+        Text(detail)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .accessibilityLabel(feedingDetail(event, now: now, abbreviated: false))
+            .privacySensitive()
+            .redacted(reason: isLuminanceReduced ? .privacy : [])
     }
 
     private func actions(_ diary: WatchDiary) -> some View {
         let breast = diary.active(.breast)
         let sleep = diary.active(.sleep)
+        let secondaryLayout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: AppDesign.Spacing.related))
+            : AnyLayout(HStackLayout(spacing: AppDesign.Spacing.related))
         return VStack(spacing: AppDesign.Spacing.related) {
             WatchActionButton(
-                title: "Кормление", symbol: "heart.fill", tint: AppDesign.Palette.feeding, timer: breast
+                title: "Кормление", symbol: "heart.fill", tint: AppDesign.Palette.feeding,
+                prominent: true, timer: breast
             ) {
                 if let breast {
                     path = [.timer(diaryID: diary.id, eventID: breast.id)]
@@ -209,28 +228,30 @@ private struct WatchDiaryView: View {
                 Button("Отмена", role: .cancel) {}
             }
 
-            WatchActionButton(title: "Подгузник", symbol: "drop.fill", tint: AppDesign.Palette.diaper) {
-                diaperChoice = DiaperChoice(diaryID: diary.id)
-            }
-            .disabled(!diary.canWrite)
-            .accessibilityIdentifier("watch.diaper")
-            .confirmationDialog(
-                "Подгузник",
-                isPresented: choiceBinding($diaperChoice),
-                titleVisibility: .visible,
-                presenting: diaperChoice
-            ) { choice in
-                ForEach(DiaperType.allCases, id: \.self) { type in
-                    Button(type.label) { recordDiaper(type, choice: choice) }
+            secondaryLayout {
+                WatchActionButton(title: "Подгузник", symbol: "drop.fill", tint: AppDesign.Palette.diaper) {
+                    diaperChoice = DiaperChoice(diaryID: diary.id)
                 }
-                Button("Отмена", role: .cancel) {}
-            }
+                .disabled(!diary.canWrite)
+                .accessibilityIdentifier("watch.diaper")
+                .confirmationDialog(
+                    "Подгузник",
+                    isPresented: choiceBinding($diaperChoice),
+                    titleVisibility: .visible,
+                    presenting: diaperChoice
+                ) { choice in
+                    ForEach(DiaperType.allCases, id: \.self) { type in
+                        Button(type.label) { recordDiaper(type, choice: choice) }
+                    }
+                    Button("Отмена", role: .cancel) {}
+                }
 
-            WatchActionButton(title: "Сон", symbol: "moon.zzz.fill", tint: AppDesign.Palette.sleep, timer: sleep) {
-                openSleep(diaryID: diary.id)
+                WatchActionButton(title: "Сон", symbol: "moon.zzz.fill", tint: AppDesign.Palette.sleep, timer: sleep) {
+                    openSleep(diaryID: diary.id)
+                }
+                .disabled(!diary.canWrite && sleep == nil)
+                .accessibilityIdentifier("watch.sleep")
             }
-            .disabled(!diary.canWrite && sleep == nil)
-            .accessibilityIdentifier("watch.sleep")
         }
         .disabled(isLuminanceReduced)
     }
@@ -378,40 +399,90 @@ private func feedingDetail(_ event: CareEvent, now: Date, abbreviated: Bool) -> 
 }
 
 private struct WatchActionButton: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.isEnabled) private var isEnabled
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     let title: String
     let symbol: String
     let tint: Color
+    var prominent = false
     var timer: CareEvent?
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
-                HStack(spacing: AppDesign.Spacing.group) {
-                    Image(systemName: symbol)
-                        .foregroundStyle(tint)
-                        .environment(\.colorScheme, .light)
-                        .frame(minWidth: 22)
-                        .accessibilityHidden(true)
-                    Text(title)
-                        .font(AppDesign.Typography.itemTitle)
-                }
-                if let timer {
-                    HStack(spacing: AppDesign.Spacing.related) {
-                        Text(timer.kind == .sleep ? "Идёт сон" : timer.side.label)
-                            .privacySensitive(timer.kind == .breast)
-                            .redacted(reason: isLuminanceReduced ? .privacy : [])
-                        WatchElapsedText(start: timer.start, compact: true)
-                    }
-                    .font(AppDesign.Typography.note)
-                    .foregroundStyle(.secondary)
-                }
+        if prominent {
+            Button(action: action) {
+                prominentLabel
             }
-            .frame(maxWidth: .infinity, minHeight: AppDesign.Metrics.minimumTouch, alignment: .leading)
-            .accessibilityElement(children: .combine)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .tint(tint.opacity(0.9))
+            .foregroundStyle(AppDesign.Palette.onAccent)
+            .environment(\.colorScheme, .light)
+        } else {
+            Button(action: action) {
+                secondaryLabel
+                    .background {
+                        RoundedRectangle(cornerRadius: AppDesign.Radius.card)
+                            .fill(tint.opacity(0.20))
+                            .environment(\.colorScheme, .light)
+                    }
+                    .contentShape(.rect(cornerRadius: AppDesign.Radius.card))
+                    .opacity(isEnabled ? 1 : 0.55)
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.bordered)
+    }
+
+    private var prominentLabel: some View {
+        let stacked = timer != nil && dynamicTypeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(spacing: 2))
+            : AnyLayout(HStackLayout(spacing: AppDesign.Spacing.related))
+        return layout {
+            symbolImage
+            if let timer {
+                Text(timer.side.label)
+                    .accessibilityLabel(timer.side.label + " грудь")
+                    .privacySensitive()
+                    .redacted(reason: isLuminanceReduced ? .privacy : [])
+                WatchElapsedText(start: timer.start, compact: true)
+                    .font(.caption2)
+                    .opacity(0.82)
+            } else {
+                Text(title)
+            }
+        }
+        .font(AppDesign.Typography.itemTitle)
+        .frame(maxWidth: .infinity, minHeight: AppDesign.Metrics.minimumTouch)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var secondaryLabel: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(HStackLayout(spacing: AppDesign.Spacing.group))
+            : AnyLayout(VStackLayout(spacing: 2))
+        return layout {
+            symbolImage
+                .foregroundStyle(tint)
+                .environment(\.colorScheme, .light)
+            if let timer {
+                WatchElapsedText(start: timer.start, compact: true)
+                    .accessibilityLabel(Text("Сон, \(timer.start, style: .timer)"))
+            } else {
+                Text(title)
+                    .fontWidth(.condensed)
+            }
+        }
+        .font(.caption2.weight(.medium))
+        .frame(maxWidth: .infinity, minHeight: AppDesign.Metrics.minimumTouch)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var symbolImage: some View {
+        Image(systemName: symbol)
+            .font(.body.weight(.semibold))
+            .accessibilityHidden(true)
     }
 }
 
@@ -669,9 +740,9 @@ private struct WatchSyncStatus: View {
                     .accessibilityIdentifier("watch.sync.pending")
             }
             if store.hasSnapshot, store.isCompanionInstalled == false {
-                Label("Установите «Малыш» на iPhone для синхронизации", systemImage: "iphone.slash")
+                Label("Установите «Малыш» на iPhone", systemImage: "iphone.slash")
             } else if store.hasSnapshot, !store.isReachable {
-                Label("Нет связи с приложением на iPhone", systemImage: "iphone.slash")
+                Label("iPhone недоступен", systemImage: "iphone.slash")
             }
             if let date = store.snapshotDate, store.selectedDiary != nil {
                 TimelineView(.everyMinute) { context in
