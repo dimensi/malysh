@@ -97,7 +97,20 @@ struct FamilySnapshot {
 
 @MainActor
 private enum SharingThumbnail {
-    static let data = UIImage(named: "SharingThumbnail")?.pngData()
+    static let data: Data? = {
+        guard let image = UIImage(named: "SharingThumbnail") else { return nil }
+
+        let bounds = CGRect(origin: .zero, size: image.size)
+        let cornerRadius = min(bounds.width, bounds.height) * 0.22
+        let format = UIGraphicsImageRendererFormat()
+        format.opaque = false
+        format.scale = image.scale
+        format.preferredRange = .standard
+        return UIGraphicsImageRenderer(size: bounds.size, format: format).pngData { _ in
+            UIBezierPath(roundedRect: bounds, cornerRadius: cornerRadius).addClip()
+            image.draw(in: bounds)
+        }
+    }()
 }
 
 extension Persistence {
@@ -151,8 +164,8 @@ extension Persistence {
         guard let store = baby.objectID.persistentStore else { throw Failure.missingStore }
         let thumbnailKey = CKShare.SystemFieldKey.thumbnailImageData
         if let existing = try container.fetchShares(matching: [baby.objectID])[baby.objectID] {
-            guard store == privateStore, existing[thumbnailKey] == nil,
-                  let data = SharingThumbnail.data, let updated = existing.copy() as? CKShare
+            guard store == privateStore, let data = SharingThumbnail.data,
+                  existing[thumbnailKey] as? Data != data, let updated = existing.copy() as? CKShare
             else { return existing }
             updated[thumbnailKey] = data as CKRecordValue
             // Keep the existing share usable if CloudKit cannot save the cosmetic update.
