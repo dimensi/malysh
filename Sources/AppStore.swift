@@ -392,6 +392,10 @@ final class AppStore {
 
     func reload() throws {
         guard !diaryRemovalInProgress else { return }
+        // An unavailable store pair must not be mistaken for an empty diary.
+        guard persistence.privateStore != nil, persistence.sharedStore != nil else {
+            throw Persistence.Failure.missingStore
+        }
         photoGallery.revision += 1
         Task { await photoGallery.saveReceivedIfEnabled() }
         babies = try persistence.babies()
