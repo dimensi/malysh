@@ -19,6 +19,7 @@ final class EventAuthorTests: XCTestCase {
         let persistence = Persistence(inMemory: true)
         let store = AppStore(persistence: persistence)
         await store.load()
+        try store.createFirstDiary(name: "Малыш", birthDate: nil)
         let baby = try XCTUnwrap(store.baby)
         try store.saveFamilyProfile(babyID: baby.id, memberID: "owner", name: " Никита ", role: .father)
         let created = Date().addingTimeInterval(-3600)

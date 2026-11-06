@@ -45,12 +45,20 @@ final class AppStore {
     var errorMessage: String?
     var syncStatus = "Записи сохраняются на этом iPhone"
     var cloudBusy = false
-    private var acceptingShares = 0
+    private var acceptingInvitation = false
+    private var checkingCloudAccount = false
+    private var cloudAccountFailure: String?
+    private var cloudImport = CloudSetupState()
+    private let storesPreferences: Bool
+    private(set) var cloudRequested = false
+    private(set) var invitation: PendingFamilyInvitation?
+    private(set) var invitationFailure: String?
+    private(set) var joinedDiaryID: UUID?
+    private(set) var inviteSuggestionID: UUID?
     private(set) var diaryRemovalInProgress = false
     private var cloudSetup = CloudSetupState()
     private var cloudAccountAvailable = false
     var pendingShare: CKShare?
-    private var pendingAcceptedShareID: CKRecord.ID?
     #if DEBUG
         private var testingFamily: FamilySnapshot?
     #endif
@@ -82,6 +90,85 @@ final class AppStore {
         events.filter { $0.end == nil && ($0.kind == .breast || $0.kind == .sleep) }
     }
 
+    enum LaunchState: Equatable {
+        case loading, loadFailed, welcome, restoring, restoreFailed(String), joining, diary
+    }
+
+    var launchState: LaunchState {
+        if !ready {
+            return loadFailed ? .loadFailed : .loading
+        }
+        if baby != nil, invitation == nil || hasOpenedDiary {
+            return .diary
+        }
+        if invitation != nil || invitationFailure != nil {
+            return .joining
+        }
+        if disablingCloud {
+            return .restoring
+        }
+        if !cloudRequested {
+            return .welcome
+        }
+        if let restorationFailure {
+            return .restoreFailed(restorationFailure)
+        }
+        return cloudImport.isReady(expected: expectedCloudStores) && cloudSharingReady ? .welcome : .restoring
+    }
+
+    private var hasOpenedDiary = false
+
+    var needsCloudRestart: Bool {
+        cloudRequested != persistence.cloudEnabled && persistence.cloudStartupError == nil
+    }
+
+    var disablingCloud: Bool {
+        !cloudRequested && persistence.cloudEnabled
+    }
+
+    private var restorationFailure: String? {
+        persistence.cloudStartupError.map(CloudFailure.message(for:))
+            ?? cloudAccountFailure
+            ?? cloudSetup.failure(expected: expectedCloudStores)
+            ?? cloudImport.failure(expected: expectedCloudStores)
+    }
+
+    var familyConnectionFailure: String? {
+        if let invitationFailure {
+            return invitationFailure
+        }
+        if let cloudError = persistence.cloudStartupError {
+            return CloudFailure.message(for: cloudError)
+        }
+        if needsCloudRestart || acceptingInvitation {
+            return nil
+        }
+        if let cloudAccountFailure {
+            return cloudAccountFailure
+        }
+        guard let sharedStore = persistence.sharedStore else { return nil }
+        let shared: Set<String> = [sharedStore.identifier]
+        return cloudSetup.failure(expected: shared) ?? cloudImport.failure(expected: shared)
+    }
+
+    var invitationNotice: String? {
+        if let familyConnectionFailure, invitation != nil || invitationFailure != nil {
+            return familyConnectionFailure
+        }
+        if invitation != nil, needsCloudRestart {
+            return "Закройте и снова откройте «Малыш». Приложение продолжит подключение к семейному дневнику."
+        }
+        return nil
+    }
+
+    var isConnectingFamily: Bool {
+        acceptingInvitation
+    }
+
+    var isImportingFamily: Bool {
+        invitation?.accepted == true
+    }
+
     private var expectedCloudStores: Set<String> {
         Set(persistence.container.persistentStoreCoordinator.persistentStores.map(\.identifier))
     }
@@ -97,6 +184,8 @@ final class AppStore {
             syncStatus = "Записи сохраняются на этом iPhone"
         } else if let failure = cloudSetup.failure(expected: expectedCloudStores) {
             syncStatus = failure
+        } else if let cloudAccountFailure {
+            syncStatus = cloudAccountFailure
         } else if !cloudAccountAvailable {
             syncStatus = "Проверяем доступ к iCloud · записи доступны локально"
         } else if !cloudSharingReady {
@@ -106,28 +195,17 @@ final class AppStore {
         }
     }
 
-    func recordCloudSetup(identifier: String, error: Error?) {
-        cloudSetup.record(identifier: identifier, error: error)
-        updateCloudStatus()
-    }
-
     func handleCloudEvent(_ event: NSPersistentCloudKitContainer.Event) {
         guard persistence.cloudEnabled else { return }
         if event.type == .setup {
-            if let error = event.error {
-                recordCloudSetup(identifier: event.storeIdentifier, error: error)
-            } else if event.endDate != nil, event.succeeded {
-                recordCloudSetup(identifier: event.storeIdentifier, error: nil)
-            } else if event.endDate == nil {
-                cloudSetup.begin(identifier: event.storeIdentifier)
-                updateCloudStatus()
-            } else {
-                recordCloudSetup(
-                    identifier: event.storeIdentifier,
-                    error: NSError(domain: CKErrorDomain, code: CKError.internalError.rawValue)
-                )
-            }
-        } else if let error = event.error {
+            cloudSetup.record(event)
+            updateCloudStatus()
+            return
+        }
+        if event.type == .import {
+            cloudImport.record(event)
+        }
+        if let error = event.error {
             syncStatus = CloudFailure.message(for: error)
         } else if event.endDate != nil, event.succeeded {
             if cloudSharingReady {
@@ -148,24 +226,13 @@ final class AppStore {
         var testing = arguments.contains("--ui-testing")
         var widgetTesting = false
         #if DEBUG
-            // App intents can cold-launch without the UI runner's launch arguments.
-            // Retain only the explicit isolated widget-test session, never real data.
-            let widgetTestingKey = "debug.widgetTestingSession"
             if injectedPersistence == nil {
-                if arguments.contains("--end-widget-testing") || (testing && !arguments.contains("--widget-testing")) {
-                    UserDefaults.standard.removeObject(forKey: widgetTestingKey)
-                } else if testing && arguments.contains("--widget-testing") {
-                    UserDefaults.standard.set(true, forKey: widgetTestingKey)
-                }
-                widgetTesting = UserDefaults.standard.bool(forKey: widgetTestingKey)
-                UserDefaults(suiteName: WidgetSnapshotStore.appGroupIdentifier)?.set(
-                    widgetTesting,
-                    forKey: widgetTestingKey
-                )
+                widgetTesting = Self.configureWidgetTesting(arguments: arguments, testing: testing)
                 testing = testing || widgetTesting
             }
         #endif
         selectionPreferenceKey = testing ? "debug.selectedBabyUITesting" : "selectedBaby"
+        storesPreferences = injectedPersistence == nil && !testing
         let publishesWidgets = injectedPersistence == nil && (!testing || widgetTesting)
         reloadsWidgetTimelines = publishesWidgets
         self.widgetSnapshotStore = widgetSnapshotStore ?? (publishesWidgets
@@ -188,11 +255,45 @@ final class AppStore {
                 try? FileManager.default.removeItem(at: directory)
             }
         }
-        persistence = Persistence(
-            directory: directory,
-            cloudEnabled: !testing && UserDefaults.standard.bool(forKey: "cloudEnabled")
-        )
+        let savedInvitation = testing ? nil : Self.savedInvitation()
+        let requested = !testing &&
+            (UserDefaults.standard.bool(forKey: "cloudEnabled") || (try? savedInvitation?.get()) != nil)
+        persistence = Persistence(directory: directory, cloudEnabled: requested)
+        cloudRequested = requested
+        if storesPreferences {
+            restoreLaunchPreferences(savedInvitation)
+        }
         observeWidgetCalendarChanges()
+    }
+
+    #if DEBUG
+        private static func configureWidgetTesting(arguments: [String], testing: Bool) -> Bool {
+            // App intents can cold-launch without the UI runner's arguments. Retain only the isolated test session.
+            let key = "debug.widgetTestingSession"
+            if arguments.contains("--end-widget-testing") || (testing && !arguments.contains("--widget-testing")) {
+                UserDefaults.standard.removeObject(forKey: key)
+            } else if testing, arguments.contains("--widget-testing") {
+                UserDefaults.standard.set(true, forKey: key)
+            }
+            let enabled = UserDefaults.standard.bool(forKey: key)
+            UserDefaults(suiteName: WidgetSnapshotStore.appGroupIdentifier)?.set(enabled, forKey: key)
+            return enabled
+        }
+    #endif
+
+    private static func savedInvitation() -> Result<PendingFamilyInvitation, Error>? {
+        guard let data = UserDefaults.standard.data(forKey: PendingFamilyInvitation.preferenceKey) else { return nil }
+        return Result { try PendingFamilyInvitation(data: data) }
+    }
+
+    private func restoreLaunchPreferences(_ savedInvitation: Result<PendingFamilyInvitation, Error>?) {
+        switch savedInvitation {
+        case let .success(value): invitation = value
+        case .failure: invitationFailure = Self.invalidInvitationMessage
+        case nil: break
+        }
+        inviteSuggestionID = UserDefaults.standard.string(forKey: "onboarding.inviteSuggestion")
+            .flatMap(UUID.init(uuidString:))
     }
 
     private func observeWidgetCalendarChanges() {
@@ -242,6 +343,9 @@ final class AppStore {
         guard !ready, !loading else { return }
         loading = true
         defer { loading = false }
+        if loadFailed {
+            errorMessage = nil
+        }
         loadFailed = false
         #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--initialize-cloudkit-schema") {
@@ -258,19 +362,18 @@ final class AppStore {
         #endif
         do {
             try await persistence.load()
-            babies = try persistence.babies()
-            if babies.isEmpty {
-                let baby = Baby(name: "Малыш")
-                try persistence.saveBaby(baby)
-                babies = [baby]
-            }
             #if DEBUG
-                if ProcessInfo.processInfo.arguments.contains("--ui-testing"),
-                   ProcessInfo.processInfo.arguments.contains("--family-fixture")
-                {
-                    try prepareFamilyFixture()
+                let arguments = ProcessInfo.processInfo.arguments
+                if arguments.contains("--ui-testing"), !arguments.contains("--test-onboarding") {
+                    if arguments.contains("--reset-data"), try persistence.babies().isEmpty {
+                        try persistence.saveBaby(Baby(name: "Малыш"))
+                    }
+                    if arguments.contains("--family-fixture") {
+                        try prepareFamilyFixture()
+                    }
                 }
             #endif
+            babies = try persistence.babies()
             let saved = UserDefaults.standard.string(forKey: selectionPreferenceKey).flatMap(UUID.init(uuidString:))
             selectedID = babies.first(where: { $0.id == saved })?.id
             try reload()
@@ -289,27 +392,18 @@ final class AppStore {
 
     func reload() throws {
         guard !diaryRemovalInProgress else { return }
+        // An unavailable store pair must not be mistaken for an empty diary.
+        guard persistence.privateStore != nil, persistence.sharedStore != nil else {
+            throw Persistence.Failure.missingStore
+        }
         photoGallery.revision += 1
         Task { await photoGallery.saveReceivedIfEnabled() }
         babies = try persistence.babies()
-        if babies.isEmpty {
-            let starter = Baby(name: "Малыш")
-            try persistence.saveBaby(starter)
-            babies = [starter]
-        }
         try updateVisibleBabiesAndSelection()
-        let emptyRedundantIDs = try Set(redundantBabies
-            .filter {
-                try persistence.events(babyID: $0.id).isEmpty && persistence.measurements(babyID: $0.id)
-                    .isEmpty && persistence.photos(babyID: $0.id).isEmpty
-            }
-            .map(\.id))
-        if !emptyRedundantIDs.isEmpty {
-            try persistence.deleteBabyAndEvents(ids: emptyRedundantIDs)
-            babies = try persistence.babies()
-            try updateVisibleBabiesAndSelection()
+        let joinedID = try importedDiaryForInvitation()
+        if let joinedID {
+            selectedID = joinedID
         }
-        try selectAcceptedSharedBabyIfAvailable()
         events = try selectedID.map { try persistence.events(babyID: $0).sorted { $0.start > $1.start } } ?? []
         measurements = try selectedID.map { try persistence.measurements(babyID: $0) } ?? []
         family = selectedID.flatMap { try? persistence.familySnapshot(babyID: $0) }
@@ -332,7 +426,58 @@ final class AppStore {
             let allEvents = try babies.flatMap { try persistence.events(babyID: $0.id) }
             activityCoordinator.reconcile(events: allEvents, babies: babies, allowStart: allowsActivityStart())
         }
+        if let joinedID {
+            UserDefaults.standard.set(joinedID.uuidString, forKey: selectionPreferenceKey)
+            joinedDiaryID = joinedID
+            cancelInvitation()
+        }
+        if selectedID != nil, invitation == nil {
+            hasOpenedDiary = true
+        }
         refreshWidgetSnapshot()
+    }
+
+    func createFirstDiary(name: String, birthDate: Date?) throws {
+        guard launchState == .welcome, !diaryRemovalInProgress else { return }
+        // Re-read the store before writing in case a CloudKit import just committed.
+        guard try persistence.babies().isEmpty else {
+            try reload()
+            return
+        }
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let now = Date()
+        if let birthDate, Calendar.current.startOfDay(for: birthDate) > now {
+            throw ChildProfileError.futureBirthday
+        }
+        var diary = Baby(
+            name: name.isEmpty ? "Малыш" : name,
+            birthDate: birthDate.map { Calendar.current.startOfDay(for: $0) } ?? now,
+            birthDateConfirmed: birthDate != nil
+        )
+        diary.explicitlyCreated = true
+        try persistence.saveBaby(diary)
+        inviteSuggestionID = diary.id
+        if storesPreferences {
+            UserDefaults.standard.set(diary.id.uuidString, forKey: "onboarding.inviteSuggestion")
+        }
+        perform { try reload() }
+    }
+
+    func dismissInviteSuggestion() {
+        inviteSuggestionID = nil
+        if storesPreferences {
+            UserDefaults.standard.removeObject(forKey: "onboarding.inviteSuggestion")
+        }
+    }
+
+    func requestCloud(_ enabled: Bool) {
+        cloudRequested = enabled
+        if !enabled {
+            cancelInvitation()
+        }
+        if storesPreferences {
+            UserDefaults.standard.set(enabled, forKey: "cloudEnabled")
+        }
     }
 
     func updateChildProfile(
@@ -494,7 +639,6 @@ final class AppStore {
             if !hasMeasurements, !hasPhotos, Self.isPreSharedDefault(baby, isShared: sharedIDs.contains(baby.id),
                                                                      hasSharedDiary: !sharedIDs.isEmpty, family: family)
             {
-                // Include empty starters so reload can remove them automatically.
                 redundant.append(baby)
             } else {
                 visible.append(baby)
@@ -532,7 +676,7 @@ final class AppStore {
     }
 
     func removeDiaries(_ removal: DiaryRemoval) async throws {
-        guard ready, !diaryRemovalInProgress, !cloudBusy, acceptingShares == 0,
+        guard ready, !diaryRemovalInProgress, !cloudBusy, !acceptingInvitation,
               persistence.cloudStartupError == nil, !persistence.cloudEnabled || cloudSharingReady
         else {
             throw Persistence.Failure.diaryChanged
@@ -547,7 +691,7 @@ final class AppStore {
             try await persistence.removeDiary(id: id, invited: invited)
         case .all:
             try await persistence.resetDiaries()
-            pendingAcceptedShareID = nil
+            cancelInvitation()
         }
     }
 
@@ -555,28 +699,28 @@ final class AppStore {
                                    family: FamilySnapshot?) -> Bool
     {
         guard hasSharedDiary, !isShared, baby.name == "Малыш", !baby.birthDateConfirmed,
-              !baby.birthMeasurementsCompleted, baby.parentProfiles.isEmpty else { return false }
+              !baby.birthMeasurementsCompleted, baby.explicitlyCreated != true,
+              baby.parentProfiles.isEmpty else { return false }
         let hasAcceptedOtherParent = family?.members.contains {
             !$0.isOwner && !$0.isCurrentUser && $0.status == "В семье"
         } ?? false
         return !hasAcceptedOtherParent
     }
 
-    private func selectAcceptedSharedBabyIfAvailable() throws {
-        guard let acceptedShareID = pendingAcceptedShareID, let sharedStore = persistence.sharedStore else { return }
+    private func importedDiaryForInvitation() throws -> UUID? {
+        guard let invitation, let sharedStore = persistence.sharedStore else { return nil }
+        let acceptedShareID = invitation.metadata.share.recordID
         var candidates: [NSManagedObjectID: UUID] = [:]
         for baby in babies {
             if let object = try persistence.babyObject(id: baby.id), object.objectID.persistentStore == sharedStore {
                 candidates[object.objectID] = baby.id
             }
         }
-        guard !candidates.isEmpty else { return }
-        let shares = try persistence.container.fetchShares(matching: Array(candidates.keys))
-        guard let objectID = shares.first(where: { $0.value.recordID == acceptedShareID })?.key,
-              let babyID = candidates[objectID] else { return }
-        selectedID = babyID
-        UserDefaults.standard.set(babyID.uuidString, forKey: selectionPreferenceKey)
-        pendingAcceptedShareID = nil
+        guard !candidates.isEmpty,
+              let shares = try? persistence.container.fetchShares(matching: Array(candidates.keys)),
+              let objectID = shares.first(where: { $0.value.recordID == acceptedShareID })?.key,
+              let babyID = candidates[objectID] else { return nil }
+        return babyID
     }
 
     func select(_ id: UUID) {
@@ -593,7 +737,6 @@ final class AppStore {
         let previousEvents = events
         let previousMeasurements = measurements
         let previousFamily = family
-        let previousAcceptedShareID = pendingAcceptedShareID
         selectedID = id
         UserDefaults.standard.set(id.uuidString, forKey: selectionPreferenceKey)
         do {
@@ -607,7 +750,6 @@ final class AppStore {
             events = previousEvents
             measurements = previousMeasurements
             family = previousFamily
-            pendingAcceptedShareID = previousAcceptedShareID
             throw error
         }
     }
@@ -767,18 +909,23 @@ final class AppStore {
     }
 
     func checkAccount() async {
+        guard !checkingCloudAccount else { return }
+        checkingCloudAccount = true
+        defer { checkingCloudAccount = false }
         do {
             let status = try await CKContainer(identifier: Persistence.containerIdentifier).accountStatus()
             cloudAccountAvailable = status == .available
-            if cloudAccountAvailable {
-                updateCloudStatus()
-            } else {
-                syncStatus = "Войдите в iCloud в настройках iPhone. Записи доступны локально."
-            }
+            cloudAccountFailure = cloudAccountAvailable ? nil : "Войдите в iCloud в настройках iPhone."
         } catch {
             cloudAccountAvailable = false
-            syncStatus = CloudFailure.message(for: error)
+            cloudAccountFailure = CloudFailure.message(for: error)
         }
+        updateCloudStatus()
+    }
+
+    func retryRestoration() async {
+        await checkAccount()
+        perform { try reload() }
     }
 
     func invite() async {
@@ -792,31 +939,79 @@ final class AppStore {
         defer { cloudBusy = false }
         do {
             pendingShare = try await persistence.share(babyID: baby.id)
+            if inviteSuggestionID == baby.id {
+                dismissInviteSuggestion()
+            }
         } catch {
             errorMessage = CloudFailure.message(for: error)
         }
     }
 
-    func accept(_ metadata: CKShare.Metadata) async {
-        guard !diaryRemovalInProgress else {
+    private static let invalidInvitationMessage = "Не удалось открыть приглашение. Попросите другого родителя отправить его ещё раз."
+
+    func receiveInvitation(_ metadata: CKShare.Metadata) {
+        if acceptingInvitation, invitation?.metadata.share.recordID == metadata.share.recordID {
+            return
+        }
+        guard !diaryRemovalInProgress, !acceptingInvitation else {
             errorMessage = "Дождитесь завершения операции и откройте приглашение ещё раз."
             return
         }
-        acceptingShares += 1
-        defer { acceptingShares -= 1 }
-        do {
-            if !ready {
-                await load()
-            }
-            try await persistence.accept(metadata: metadata)
-        } catch {
-            pendingAcceptedShareID = nil
-            errorMessage = CloudFailure.message(for: error)
+        guard metadata.containerIdentifier == Persistence.containerIdentifier else {
+            invitationFailure = Self.invalidInvitationMessage
             return
         }
-        pendingAcceptedShareID = metadata.share.recordID
-        // Acceptance can complete before Core Data imports the shared objects.
-        // Keep the target through delayed imports and transient metadata lookup errors.
-        perform { try reload() }
+        do {
+            if invitation?.metadata.share.recordID != metadata.share.recordID {
+                try saveInvitation(PendingFamilyInvitation(metadata: metadata))
+            }
+            invitationFailure = nil
+            requestCloud(true)
+        } catch {
+            invitationFailure = Self.invalidInvitationMessage
+        }
+    }
+
+    func resumeInvitation() async {
+        guard ready, !diaryRemovalInProgress, !acceptingInvitation, let invitation,
+              persistence.cloudEnabled else { return }
+        acceptingInvitation = true
+        invitationFailure = nil
+        defer { acceptingInvitation = false }
+        do {
+            try reload()
+            guard self.invitation != nil, !invitation.accepted else { return }
+            if !persistence.containsShare(invitation.metadata.share.recordID) {
+                try await persistence.accept(metadata: invitation.metadata)
+            }
+            guard self.invitation?.metadata.share.recordID == invitation.metadata.share.recordID else { return }
+            var accepted = invitation
+            accepted.accepted = true
+            try saveInvitation(accepted)
+            // Acceptance can finish before the share and its diary are visible locally.
+            try reload()
+        } catch {
+            if self.invitation != nil {
+                invitationFailure = CloudFailure.message(for: error)
+            }
+        }
+    }
+
+    func cancelInvitation() {
+        invitation = nil
+        invitationFailure = nil
+        if storesPreferences {
+            UserDefaults.standard.removeObject(forKey: PendingFamilyInvitation.preferenceKey)
+        }
+    }
+
+    private func saveInvitation(_ value: PendingFamilyInvitation) throws {
+        if storesPreferences {
+            try UserDefaults.standard.set(
+                value.archive(),
+                forKey: PendingFamilyInvitation.preferenceKey
+            )
+        }
+        invitation = value
     }
 }

@@ -11,6 +11,7 @@ final class CareActivityActionTests: XCTestCase {
             coordinator: RecordingCareCoordinator()
         )
         await runtime.ensureReady()
+        try runtime.store.createFirstDiary(name: "Малыш", birthDate: nil)
         let babyID = try XCTUnwrap(runtime.store.baby?.id)
         try await CareActivityRuntime.$actionRuntime.withValue(runtime) {
             let start = SleepCareControlIntent(babyID: babyID, commandID: UUID(), eventID: nil)
@@ -33,6 +34,7 @@ final class CareActivityActionTests: XCTestCase {
         let persistence = Persistence(inMemory: true)
         let runtime = CareActivityRuntime(persistence: persistence, coordinator: RecordingCareCoordinator())
         await runtime.ensureReady()
+        try runtime.store.createFirstDiary(name: "Малыш", birthDate: nil)
         let babyID = try XCTUnwrap(runtime.store.baby?.id)
         let other = Baby(name: "Другой")
         try persistence.saveBaby(other)
@@ -103,6 +105,7 @@ final class CareActivityActionTests: XCTestCase {
     func testWidgetStartsRejectSecondActiveTimerAndWrongDiary() async throws {
         let store = AppStore(persistence: Persistence(inMemory: true))
         await store.load()
+        try store.createFirstDiary(name: "Малыш", birthDate: nil)
         let babyID = try XCTUnwrap(store.baby?.id)
         try store.recordWidgetAction(.startBreastRight, babyID: babyID, commandID: UUID())
         let staleStart = UUID()
@@ -121,6 +124,7 @@ final class CareActivityActionTests: XCTestCase {
     func testActionsUseLatestPersistedSideAndDuplicateRequestsAreIdempotent() async throws {
         let store = AppStore(persistence: Persistence(inMemory: true))
         await store.load()
+        try store.createFirstDiary(name: "Малыш", birthDate: nil)
         let babyID = try XCTUnwrap(store.baby?.id)
         let start = Date().addingTimeInterval(-120)
         let event = CareEvent(babyID: babyID, kind: .breast, start: start)
@@ -140,6 +144,7 @@ final class CareActivityActionTests: XCTestCase {
     func testDeletedAndWrongDiaryActionsCannotRecreateEvents() async throws {
         let store = AppStore(persistence: Persistence(inMemory: true))
         await store.load()
+        try store.createFirstDiary(name: "Малыш", birthDate: nil)
         store.start(.breast)
         let event = try XCTUnwrap(store.active.first)
         XCTAssertThrowsError(try store.finish(eventID: event.id, babyID: UUID()))
@@ -156,6 +161,7 @@ final class CareActivityActionTests: XCTestCase {
         var firstStore: AppStore? = AppStore(persistence: Persistence(directory: directory))
         await firstStore?.load()
         let initial = try XCTUnwrap(firstStore)
+        try initial.createFirstDiary(name: "Малыш", birthDate: nil)
         initial.start(.breast)
         initial.start(.sleep)
         let babyID = try XCTUnwrap(initial.baby?.id)

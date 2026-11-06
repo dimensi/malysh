@@ -3,6 +3,39 @@
 import SwiftUI
 import UIKit
 
+/// A single durable intent covers both the restart needed to enable iCloud and delayed import.
+struct PendingFamilyInvitation {
+    static let preferenceKey = "onboarding.familyInvitation"
+
+    let metadata: CKShare.Metadata
+    var accepted = false
+
+    private struct Archive: Codable {
+        let metadata: Data
+        let accepted: Bool
+    }
+
+    init(metadata: CKShare.Metadata) {
+        self.metadata = metadata
+    }
+
+    init(data: Data) throws {
+        let archive = try PropertyListDecoder().decode(Archive.self, from: data)
+        guard let metadata = try NSKeyedUnarchiver.unarchivedObject(
+            ofClass: CKShare.Metadata.self,
+            from: archive.metadata
+        )
+        else { throw CocoaError(.coderReadCorrupt) }
+        self.metadata = metadata
+        accepted = archive.accepted
+    }
+
+    func archive() throws -> Data {
+        let data = try NSKeyedArchiver.archivedData(withRootObject: metadata, requiringSecureCoding: true)
+        return try PropertyListEncoder().encode(Archive(metadata: data, accepted: accepted))
+    }
+}
+
 /// Presentation-only identities; never persist this snapshot or display its internal IDs.
 struct FamilyMember: Identifiable, Equatable {
     let id: String
@@ -129,6 +162,12 @@ extension Persistence {
         guard let store = baby.objectID.persistentStore else { throw Failure.missingStore }
         try await persist(share: share, in: store)
         return share
+    }
+
+    /// Acceptance registers the share locally before its diary records finish importing.
+    func containsShare(_ id: CKRecord.ID) -> Bool {
+        guard let sharedStore, let shares = try? container.fetchShares(in: sharedStore) else { return false }
+        return shares.contains { $0.recordID == id }
     }
 
     /// Call from the app/scene delegate after loading this persistence instance.

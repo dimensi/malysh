@@ -4,7 +4,11 @@ import SwiftUI
 @MainActor
 struct SettingsView: View {
     @Bindable var store: AppStore
-    @AppStorage("cloudEnabled") private var cloudEnabled = false
+    private var cloudEnabled: Bool {
+        store.cloudRequested
+    }
+
+    var inviteOnOpen = false
     @State private var confirmsCleanup = false
     @State private var redundantEventCount = 0
     @State private var cleanupError: String?
@@ -42,8 +46,14 @@ struct SettingsView: View {
                     Text("Снимки с камеры «Малыша» всегда сохраняются в «Фото».")
                 }
                 Section {
-                    Toggle("Синхронизация через iCloud", isOn: $cloudEnabled)
-                        .accessibilityIdentifier("cloud-toggle")
+                    if inviteOnOpen, !store.persistence.cloudEnabled {
+                        Text("Чтобы вести дневник вместе, включите iCloud и перезапустите приложение.")
+                    }
+                    Toggle("Синхронизация через iCloud", isOn: Binding(
+                        get: { cloudEnabled },
+                        set: { store.requestCloud($0) }
+                    ))
+                    .accessibilityIdentifier("cloud-toggle")
                     Text(store.syncStatus).font(.subheadline).foregroundStyle(.secondary)
                     if cloudEnabled != store.persistence.cloudEnabled {
                         Text("Перезапустите приложение, чтобы применить настройку iCloud.")
@@ -57,6 +67,11 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Настройки")
+            .task {
+                if inviteOnOpen, store.cloudSharingReady {
+                    await store.invite()
+                }
+            }
             .alert("Не удалось сохранить фотографии", isPresented: Binding(
                 get: { store.photoGallery.errorMessage != nil },
                 set: {
@@ -216,7 +231,10 @@ struct SettingsView: View {
 @MainActor
 private struct DiaryManagementView: View {
     let store: AppStore
-    @AppStorage("cloudEnabled") private var cloudEnabled = false
+    private var cloudEnabled: Bool {
+        store.cloudRequested
+    }
+
     @State private var confirmsReset = false
     @State private var errorMessage: String?
 
@@ -245,9 +263,9 @@ private struct DiaryManagementView: View {
                     } message: {
                         Text(cloudEnabled
                             ? "Ваши дневники и их содержимое будут удалены из iCloud для всех участников. "
-                            + "Вы выйдете из чужих дневников. Приложение создаст один пустой дневник."
+                            + "Вы выйдете из чужих дневников. После сброса откроется первоначальная настройка."
                             : "Дневники будут удалены с этого iPhone. Для сброса данных в iCloud сначала включите "
-                            + "синхронизацию. Приложение создаст один пустой дневник.")
+                            + "синхронизацию. После сброса откроется первоначальная настройка.")
                     }
             } footer: {
                 if !canRemove {

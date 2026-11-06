@@ -51,6 +51,7 @@ struct ContentView: View {
     @State private var showDiaper = false
     @State private var showWidgetSleep = false
     @State private var showSettings = false
+    @State private var inviteOnOpen = false
     @State private var childPath = NavigationPath()
     @State private var editingMeasurement: MeasurementPresentation?
     @State private var showPhotos = false
@@ -69,73 +70,61 @@ struct ContentView: View {
     @State private var handledTodayActivityScrollRequest = 0
 
     var body: some View {
-        Group {
-            if store.ready {
-                TabView(selection: $tab) {
-                    NavigationStack { today }
-                        .tabItem { Label("Сегодня", systemImage: "sun.max.fill") }.tag(0)
-                    NavigationStack {
-                        HistoryView(store: store, edit: edit,
-                                    activityTarget: activityTargetTab == 1 ? activityScrollTarget : nil,
-                                    activityScrollRequest: $activityScrollRequest)
-                    }
-                    .tabItem { Label("История", systemImage: "clock.fill") }.tag(1)
-                    NavigationStack { StatisticsView(store: store) }
-                        .tabItem { Label("Статистика", systemImage: "chart.bar.fill") }.tag(2)
-                    NavigationStack(path: $childPath) {
-                        ChildProfileView(
-                            store: store,
-                            editingMeasurement: $editingMeasurement,
-                            photoAddPresentationBusy: $profilePhotoAddBusy,
-                            albumPresentationBusy: $albumPresentationBusy,
-                            onAlbumDismiss: resumeWidgetRouteAfterSheet
-                        )
-                    }
-                    .tabItem {
-                        Label {
-                            Text("Малыш")
-                        } icon: {
-                            Image("BabyBear").renderingMode(.template)
-                        }
-                    }.tag(3)
-                }
-                .tint(AppDesign.Palette.accent)
-                .sheet(item: $editing, onDismiss: resumeWidgetRouteAfterSheet) { event in
-                    EventEditor(event: event,
-                                creatorLabel: store.authorLabel(for: event.createdBy, babyID: event.babyID),
-                                lastEditorLabel: event.lastEditedBy.map { store.authorLabel(
-                                    for: $0,
-                                    babyID: event.babyID
-                                ) },
-                                onSave: { try store.save($0) },
-                                onDelete: store.events
-                                    .contains(where: { $0.id == event.id }) ? { try store.delete(event) } : nil)
-                }
-                .sheet(item: $editingMeasurement, onDismiss: resumeWidgetRouteAfterSheet) { presentation in
-                    MeasurementEditor(store: store, measurement: presentation.measurement, isNew: presentation.isNew)
-                }
-                .sheet(isPresented: $showSettings, onDismiss: resumeWidgetRouteAfterSheet) {
-                    SettingsView(store: store)
-                }
-                .sheet(isPresented: $showPhotos, onDismiss: resumeWidgetRouteAfterSheet) {
-                    NavigationStack { PhotoGalleryView(
-                        store: store,
-                        isPresentedModally: true,
-                        isPresenting: .constant(false)
-                    ) }
-                }
-            } else {
-                VStack(spacing: 20) {
-                    Image(systemName: "moon.stars.fill").font(.largeTitle).foregroundStyle(AppDesign.Palette.accent)
-                    Text("Открываем дневник").font(.title2.bold())
-                    if !store.loadFailed {
-                        ProgressView()
-                    } else {
-                        Button("Попробовать снова") { Task { await store.load() } }.buttonStyle(.borderedProminent)
-                            .foregroundStyle(AppDesign.Palette.onAccent)
-                    }
-                }.padding()
+        TabView(selection: $tab) {
+            NavigationStack { today }
+                .tabItem { Label("Сегодня", systemImage: "sun.max.fill") }.tag(0)
+            NavigationStack {
+                HistoryView(store: store, edit: edit,
+                            activityTarget: activityTargetTab == 1 ? activityScrollTarget : nil,
+                            activityScrollRequest: $activityScrollRequest)
             }
+            .tabItem { Label("История", systemImage: "clock.fill") }.tag(1)
+            NavigationStack { StatisticsView(store: store) }
+                .tabItem { Label("Статистика", systemImage: "chart.bar.fill") }.tag(2)
+            NavigationStack(path: $childPath) {
+                ChildProfileView(
+                    store: store,
+                    editingMeasurement: $editingMeasurement,
+                    photoAddPresentationBusy: $profilePhotoAddBusy,
+                    albumPresentationBusy: $albumPresentationBusy,
+                    onAlbumDismiss: resumeWidgetRouteAfterSheet
+                )
+            }
+            .tabItem {
+                Label {
+                    Text("Малыш")
+                } icon: {
+                    Image("BabyBear").renderingMode(.template)
+                }
+            }.tag(3)
+        }
+        .tint(AppDesign.Palette.accent)
+        .sheet(item: $editing, onDismiss: resumeWidgetRouteAfterSheet) { event in
+            EventEditor(event: event,
+                        creatorLabel: store.authorLabel(for: event.createdBy, babyID: event.babyID),
+                        lastEditorLabel: event.lastEditedBy.map { store.authorLabel(
+                            for: $0,
+                            babyID: event.babyID
+                        ) },
+                        onSave: { try store.save($0) },
+                        onDelete: store.events
+                            .contains(where: { $0.id == event.id }) ? { try store.delete(event) } : nil)
+        }
+        .sheet(item: $editingMeasurement, onDismiss: resumeWidgetRouteAfterSheet) { presentation in
+            MeasurementEditor(store: store, measurement: presentation.measurement, isNew: presentation.isNew)
+        }
+        .sheet(isPresented: $showSettings, onDismiss: {
+            inviteOnOpen = false
+            resumeWidgetRouteAfterSheet()
+        }) {
+            SettingsView(store: store, inviteOnOpen: inviteOnOpen)
+        }
+        .sheet(isPresented: $showPhotos, onDismiss: resumeWidgetRouteAfterSheet) {
+            NavigationStack { PhotoGalleryView(
+                store: store,
+                isPresentedModally: true,
+                isPresenting: .constant(false)
+            ) }
         }
         .onChange(of: store.selectedID) {
             childPath = NavigationPath()
@@ -145,14 +134,18 @@ struct ContentView: View {
             profilePhotoAddBusy = false
             albumPresentationBusy = false
         }
-        .onAppear { receiveWidgetRoute() }
-        .onChange(of: widgetRouteInbox.pending) { receiveWidgetRoute() }
-        .onChange(of: store.ready) { _, ready in
-            if ready {
-                receiveWidgetRoute()
-                openPendingWidgetRoute()
+        .onChange(of: store.joinedDiaryID) { _, id in
+            if id != nil {
+                tab = 0
             }
         }
+        .onChange(of: store.invitationNotice, initial: true) { _, notice in
+            if let notice {
+                store.errorMessage = notice
+            }
+        }
+        .onAppear { receiveWidgetRoute() }
+        .onChange(of: widgetRouteInbox.pending) { receiveWidgetRoute() }
         .alert(
             "Не удалось выполнить действие",
             isPresented: Binding(get: { store.errorMessage != nil }, set: {
@@ -211,6 +204,9 @@ struct ContentView: View {
                             onDismiss: resumeWidgetRouteAfterSheet,
                             handlesServiceErrors: true
                         )
+                    }
+                    if let suggestionID = store.inviteSuggestionID, suggestionID == store.selectedID {
+                        inviteSuggestion
                     }
                     if store.active.isEmpty {
                         lastFeed
@@ -394,6 +390,34 @@ struct ContentView: View {
         }
         .foregroundStyle(AppDesign.Palette.primaryText)
         .diaryCard(color: AppDesign.Palette.feeding)
+    }
+
+    private var inviteSuggestion: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
+            Label("Ведите дневник вместе", systemImage: "person.2")
+                .font(.headline)
+            Text("Пригласите второго родителя, чтобы записи были доступны вам обоим")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppDesign.Spacing.row) { inviteSuggestionActions }
+                VStack(alignment: .leading) { inviteSuggestionActions }
+            }
+            .buttonStyle(.borderless)
+        }
+        .diaryCard(color: AppDesign.Palette.cardBackground)
+    }
+
+    @ViewBuilder
+    private var inviteSuggestionActions: some View {
+        Button("Пригласить") {
+            inviteOnOpen = true
+            showSettings = true
+        }
+        .frame(minHeight: AppDesign.Metrics.minimumTouch)
+        Button("Позже") { store.dismissInviteSuggestion() }
+            .frame(minHeight: AppDesign.Metrics.minimumTouch)
+            .accessibilityIdentifier("onboarding.invite.later")
     }
 
     private func openChildProfile() {

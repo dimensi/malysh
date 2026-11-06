@@ -13,8 +13,16 @@ struct MalyshApp: App {
     var body: some Scene {
         WindowGroup {
             configuredContent
-                .onAppear { delegate.store = store }
+                .task {
+                    await CareActivityRuntime.shared.ensureReady(checkCloudAccount: false)
+                    await store.resumeInvitation()
+                }
                 .task { await CareActivityRuntime.shared.ensureReady() }
+                .onChange(of: store.persistence.cloudEnabled, initial: true) { _, enabled in
+                    if enabled {
+                        UIApplication.shared.registerForRemoteNotifications()
+                    }
+                }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active, store.ready {
                         store.perform { try store.reload() }
@@ -36,11 +44,11 @@ struct MalyshApp: App {
 
     @ViewBuilder private var configuredContent: some View {
         if ProcessInfo.processInfo.arguments.contains("--large-text") {
-            ContentView(store: store)
+            DiaryRootView(store: store)
                 .dynamicTypeSize(.accessibility3)
                 .preferredColorScheme(testColorScheme)
         } else {
-            ContentView(store: store)
+            DiaryRootView(store: store)
                 .preferredColorScheme(testColorScheme)
         }
     }
@@ -48,27 +56,13 @@ struct MalyshApp: App {
 
 @MainActor
 final class AppDelegate: NSObject, UIApplicationDelegate {
-    var store: AppStore? {
-        didSet {
-            guard let store else { return }
-            let invitations = pendingInvitations
-            pendingInvitations.removeAll()
-            Task { @MainActor in
-                for metadata in invitations {
-                    await store.accept(metadata)
-                }
-            }
-            if store.persistence.cloudEnabled {
-                UIApplication.shared.registerForRemoteNotifications()
-            }
-        }
-    }
-
-    private var pendingInvitations: [CKShare.Metadata] = []
-
     func accept(_ metadata: CKShare.Metadata) {
-        guard let store else { pendingInvitations.append(metadata); return }
-        Task { @MainActor in await store.accept(metadata) }
+        let runtime = CareActivityRuntime.shared
+        runtime.store.receiveInvitation(metadata)
+        Task { @MainActor in
+            await runtime.ensureReady(checkCloudAccount: false)
+            await runtime.store.resumeInvitation()
+        }
     }
 
     func application(
