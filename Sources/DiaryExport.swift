@@ -32,7 +32,7 @@ private struct DiaryExport: Encodable {
         let birthTimeZone: String?
         let birthMeasurementsCompleted: Bool
 
-        init(_ baby: Baby, birthMeasurementsCompleted: Bool) {
+        init(_ baby: Baby) {
             id = baby.id
             name = baby.name
             if baby.birthDateConfirmed {
@@ -43,7 +43,7 @@ private struct DiaryExport: Encodable {
             }
             birthTime = baby.birthTime
             birthTimeZone = baby.birthTimeZoneIdentifier
-            self.birthMeasurementsCompleted = birthMeasurementsCompleted
+            birthMeasurementsCompleted = baby.birthMeasurementsCompleted
         }
     }
 
@@ -124,42 +124,10 @@ private struct DiaryExport: Encodable {
     let events: [Event]
     let measurements: [Measurement]
 
-    init(id: UUID, context: NSManagedObjectContext) throws {
-        let roots = NSFetchRequest<NSManagedObject>(entityName: "BabyRecord")
-        roots.predicate = NSPredicate(format: "id == %@", id as NSUUID)
-        roots.fetchLimit = 2
-        let matches = try context.fetch(roots)
-        guard !matches.isEmpty else { throw Persistence.Failure.missingBaby }
-        guard matches.count == 1, let root = matches.first, let store = root.objectID.persistentStore else {
-            throw Persistence.Failure.diaryChanged
-        }
-
-        let decoder = JSONDecoder()
-        let baby: Baby = try Self.decode(root, using: decoder)
-        guard baby.id == id else { throw CocoaError(.coderReadCorrupt) }
-        profile = Profile(
-            baby,
-            birthMeasurementsCompleted: root.value(forKey: "birthMeasurementsCompleted") as? Bool == true
-        )
-        let predicate = NSPredicate(format: "babyID == %@", id as NSUUID)
-
-        let eventRequest = NSFetchRequest<NSManagedObject>(entityName: "EventRecord")
-        eventRequest.predicate = predicate
-        eventRequest.affectedStores = [store]
-        let storedEvents: [CareEvent] = try context.fetch(eventRequest).map { try Self.decode($0, using: decoder) }
-        guard storedEvents.allSatisfy({ $0.babyID == id }) else { throw CocoaError(.coderReadCorrupt) }
-        events = storedEvents.sorted {
-            $0.start == $1.start ? $0.id.uuidString < $1.id.uuidString : $0.start < $1.start
-        }.map(Event.init)
-
-        let measurementRequest = NSFetchRequest<NSManagedObject>(entityName: "MeasurementRecord")
-        measurementRequest.predicate = predicate
-        measurementRequest.affectedStores = [store]
-        let storedMeasurements: [ChildMeasurement] = try context.fetch(measurementRequest).map {
-            try Self.decode($0, using: decoder)
-        }
-        guard storedMeasurements.allSatisfy({ $0.babyID == id }) else { throw CocoaError(.coderReadCorrupt) }
-        measurements = storedMeasurements.sorted(by: ChildMeasurement.newestFirst).map(Measurement.init)
+    init(snapshot: DiarySnapshot) {
+        profile = Profile(snapshot.baby)
+        events = snapshot.events.map(Event.init)
+        measurements = snapshot.measurements.map(Measurement.init)
     }
 
     func encoded() throws -> Data {
@@ -172,6 +140,50 @@ private struct DiaryExport: Encodable {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return try encoder.encode(self)
     }
+}
+
+struct DiarySnapshot: Sendable {
+    let baby: Baby
+    let events: [CareEvent]
+    let measurements: [ChildMeasurement]
+}
+
+private extension DiarySnapshot {
+    init(id: UUID, context: NSManagedObjectContext) throws {
+        let roots = NSFetchRequest<NSManagedObject>(entityName: "BabyRecord")
+        roots.predicate = NSPredicate(format: "id == %@", id as NSUUID)
+        roots.fetchLimit = 2
+        let matches = try context.fetch(roots)
+        guard !matches.isEmpty else { throw Persistence.Failure.missingBaby }
+        guard matches.count == 1, let root = matches.first, let store = root.objectID.persistentStore else {
+            throw Persistence.Failure.diaryChanged
+        }
+
+        let decoder = JSONDecoder()
+        var baby: Baby = try Self.decode(root, using: decoder)
+        guard baby.id == id else { throw CocoaError(.coderReadCorrupt) }
+        baby.birthMeasurementsCompleted = root.value(forKey: "birthMeasurementsCompleted") as? Bool == true
+        self.baby = baby
+        let predicate = NSPredicate(format: "babyID == %@", id as NSUUID)
+
+        let eventRequest = NSFetchRequest<NSManagedObject>(entityName: "EventRecord")
+        eventRequest.predicate = predicate
+        eventRequest.affectedStores = [store]
+        let storedEvents: [CareEvent] = try context.fetch(eventRequest).map { try Self.decode($0, using: decoder) }
+        guard storedEvents.allSatisfy({ $0.babyID == id }) else { throw CocoaError(.coderReadCorrupt) }
+        events = storedEvents.sorted {
+            $0.start == $1.start ? $0.id.uuidString < $1.id.uuidString : $0.start < $1.start
+        }
+
+        let measurementRequest = NSFetchRequest<NSManagedObject>(entityName: "MeasurementRecord")
+        measurementRequest.predicate = predicate
+        measurementRequest.affectedStores = [store]
+        let storedMeasurements: [ChildMeasurement] = try context.fetch(measurementRequest).map {
+            try Self.decode($0, using: decoder)
+        }
+        guard storedMeasurements.allSatisfy({ $0.babyID == id }) else { throw CocoaError(.coderReadCorrupt) }
+        measurements = storedMeasurements.sorted(by: ChildMeasurement.newestFirst)
+    }
 
     private static func decode<T: Decodable>(_ object: NSManagedObject, using decoder: JSONDecoder) throws -> T {
         guard let data = object.value(forKey: "payload") as? Data else { throw CocoaError(.coderReadCorrupt) }
@@ -180,14 +192,24 @@ private struct DiaryExport: Encodable {
 }
 
 extension Persistence {
+    func readDiarySnapshot(id: UUID) async throws -> DiarySnapshot {
+        try await withDiarySnapshot(id: id) { $0 }
+    }
+
     func exportDiary(id: UUID) async throws -> DiaryExportDocument {
+        let data = try await withDiarySnapshot(id: id) { try DiaryExport(snapshot: $0).encoded() }
+        return DiaryExportDocument(data: data)
+    }
+
+    private func withDiarySnapshot<Result: Sendable>(
+        id: UUID, transform: @escaping @Sendable (DiarySnapshot) throws -> Result
+    ) async throws -> Result {
         guard isLoaded else { throw Failure.notLoaded }
         let context = container.newBackgroundContext()
-        let data = try await context.perform {
+        return try await context.perform {
             // Pin all three fetches to the same committed SQLite snapshot.
             try context.setQueryGenerationFrom(.current)
-            return try DiaryExport(id: id, context: context).encoded()
+            return try transform(DiarySnapshot(id: id, context: context))
         }
-        return DiaryExportDocument(data: data)
     }
 }

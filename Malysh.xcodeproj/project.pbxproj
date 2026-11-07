@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		007F81B047C9C43B5F7A8AAA /* CareActivityCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF17D40A4D30BF1FEA449A61 /* CareActivityCoordinatorTests.swift */; };
 		00C4630DD6A8518B9C12EB4C /* WidgetSystemUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC935FA1D40894DB96CA64B5 /* WidgetSystemUITests.swift */; };
+		0383B4F0D3586F8C0C656C8C /* DiaryPDFReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 639368953D5424F6E1495276 /* DiaryPDFReport.swift */; };
 		063689AF04FAB5786C52D42C /* PhotoWorkflow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F5B5191B29307622AAA085 /* PhotoWorkflow.swift */; };
 		067E7D5BBDA60231BD35C71B /* Domain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */; };
 		070CCD2396B49D535859846A /* CareActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF439A3A8C09CF76764DDB0D /* CareActivityCoordinator.swift */; };
@@ -71,6 +72,7 @@
 		968DC1846F5F47343910AE58 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4210B00AFA4D4AF6758D41C2 /* ContentView.swift */; };
 		9761D7F5D866652F67387C29 /* TuistBundle+Malysh.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA01728ECAE9C538E98ADFE2 /* TuistBundle+Malysh.swift */; };
 		976CF09E6A2DFC1AF66EB399 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3EC1589C84F4006C41A0DDA4 /* Assets.xcassets */; };
+		9851435C8A96358145ACDC63 /* DiaryPDFRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E2A44719FA646047434379 /* DiaryPDFRenderer.swift */; };
 		98FDB863BFCAB59A62F2D46C /* FeedingReminderActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B8857822990B914F74E212F /* FeedingReminderActivityIntents.swift */; };
 		99D3859FD55730DBE6473A47 /* PhotoLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3516F171055E4B248A6F8FB1 /* PhotoLibraryService.swift */; };
 		9C5B4DDCA9CD36D5643DB61A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1C8F15FAB8ABEF7E07B2A0C7 /* PrivacyInfo.xcprivacy */; };
@@ -88,6 +90,7 @@
 		B2A7A83F97C181ECF436E190 /* WidgetRouteInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52776983C90FA0DFDE019FC6 /* WidgetRouteInbox.swift */; };
 		B4267217CE704E21907B5796 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7E65D32F2B4DE72FAC657C /* AppConfiguration.swift */; };
 		B7163E483965FD4D0588C9C2 /* MalyshApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 163EA23D70ABAF9E0B136375 /* MalyshApp.swift */; };
+		B90F68BF33B23B07E541FF68 /* DiaryPDFReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46BF2672D768DFC51FFAED97 /* DiaryPDFReportTests.swift */; };
 		BC0692F9092F09E7BDDCE267 /* PhotoGalleryUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A8E86027D81DA5E3D72D8A /* PhotoGalleryUITests.swift */; };
 		C0639524150BFE2085ED1352 /* WatchPhoneSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29AEBC8A23C0E5A6FCEE012E /* WatchPhoneSync.swift */; };
 		C298B7DA824AEAA6A7422608 /* CloudFailureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894E384B7F7EBB9ADFCA1B45 /* CloudFailureTests.swift */; };
@@ -118,7 +121,9 @@
 		EFBF5AC48A18D9C974746757 /* EventAuthorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD34A9F6DBDFE454C66BE51B /* EventAuthorTests.swift */; };
 		EFD1383B5D7F307BB54F28E7 /* EventEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */; };
 		F058520E59CF26DED7F38AB5 /* FeedingReminderActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01006C15AB5AE01F728C2871 /* FeedingReminderActivityAttributes.swift */; };
+		F5449D3DCC1DCDB643172A6D /* DiaryPDFReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867EBCE6DC4D4AEC28081A7C /* DiaryPDFReportView.swift */; };
 		F9629CFC6378C7A36C5577C9 /* WidgetCareIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */; };
+		F966660AC1C4C9080FEB32DB /* DiaryPDFRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48FF9AF9270D93CE317E9244 /* DiaryPDFRendererTests.swift */; };
 		FA549E306B4C98F66025D754 /* TuistAssets+Malysh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5777AC8BD2FBB805A3988C6A /* TuistAssets+Malysh.swift */; };
 		FA79D7A9C836A7944AF1FAC5 /* ProfileUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC02A65EE936D70B32516130 /* ProfileUITests.swift */; };
 		FAC3C3BCC32E4AE575BEDCAF /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7E65D32F2B4DE72FAC657C /* AppConfiguration.swift */; };
@@ -290,8 +295,10 @@
 		44026B67344D5F0A1525B89F /* MalyshWatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MalyshWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		44DC826FECF34A61D2341DF2 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		464A0EA584BC2C6471469377 /* MalyshUITests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "MalyshUITests-Info.plist"; sourceTree = "<group>"; };
+		46BF2672D768DFC51FFAED97 /* DiaryPDFReportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryPDFReportTests.swift; sourceTree = "<group>"; };
 		476759839648658E6C4E8EDD /* CareLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareLiveActivityWidget.swift; sourceTree = "<group>"; };
 		48B7FB463E4728291A0FF22F /* DiaryExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryExport.swift; sourceTree = "<group>"; };
+		48FF9AF9270D93CE317E9244 /* DiaryPDFRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryPDFRendererTests.swift; sourceTree = "<group>"; };
 		49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCareIntent.swift; sourceTree = "<group>"; };
 		494DAE40115510F4BD0FDF5F /* FeedingReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedingReminderService.swift; sourceTree = "<group>"; };
 		4C1142AC4200083321BFC857 /* DesignComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignComponents.swift; sourceTree = "<group>"; };
@@ -305,6 +312,7 @@
 		604CCA56F679D50A48F5E04A /* MalyshTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "MalyshTests-Info.plist"; sourceTree = "<group>"; };
 		620A148E1453B9B28F485BE8 /* MalyshWidgets-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "MalyshWidgets-Info.plist"; sourceTree = "<group>"; };
 		6222A90A7AF894F83D005C4F /* WatchLocalState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLocalState.swift; sourceTree = "<group>"; };
+		639368953D5424F6E1495276 /* DiaryPDFReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryPDFReport.swift; sourceTree = "<group>"; };
 		69A9E7AB507DAA687BD0BB74 /* TuistBundle+MalyshWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TuistBundle+MalyshWidgets.swift"; sourceTree = "<group>"; };
 		6D59E1D6759F548114733AA4 /* CareActivityIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityIntents.swift; sourceTree = "<group>"; };
 		6F7D4F94DA23CE72902D9D94 /* LiveActivityUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityUITests.swift; sourceTree = "<group>"; };
@@ -316,6 +324,7 @@
 		7A5E3FA6E2E9607DF4BAA2FE /* CareActivityViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityViews.swift; sourceTree = "<group>"; };
 		8189783BCF7A92166A15581D /* SchemaInitialization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaInitialization.swift; sourceTree = "<group>"; };
 		8221E9168F2FE8C1DC2F6FA7 /* MalyshUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MalyshUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		867EBCE6DC4D4AEC28081A7C /* DiaryPDFReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryPDFReportView.swift; sourceTree = "<group>"; };
 		892C506F7C92B8100B9D1C01 /* DomainTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainTests.swift; sourceTree = "<group>"; };
 		894E384B7F7EBB9ADFCA1B45 /* CloudFailureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudFailureTests.swift; sourceTree = "<group>"; };
 		8D7E65D32F2B4DE72FAC657C /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
@@ -352,6 +361,7 @@
 		ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		EDAFDE9084523C9BD97E636C /* TuistAssets+MalyshWatchWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TuistAssets+MalyshWatchWidgets.swift"; sourceTree = "<group>"; };
 		EED3BCB25AD453FD0D8FE150 /* CareActivityActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityActionTests.swift; sourceTree = "<group>"; };
+		F7E2A44719FA646047434379 /* DiaryPDFRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryPDFRenderer.swift; sourceTree = "<group>"; };
 		F977BB4322C33F798653AE45 /* ParentProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentProfileTests.swift; sourceTree = "<group>"; };
 		FA9534C35260971748388CB7 /* Malysh.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Malysh.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCDE9BFA45CFA05A1B7BA48F /* ChildProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildProfileView.swift; sourceTree = "<group>"; };
@@ -501,6 +511,8 @@
 				AA89BE4CAC87CCF203A92881 /* ChildProfileTests.swift */,
 				894E384B7F7EBB9ADFCA1B45 /* CloudFailureTests.swift */,
 				71A98F1EEFC13E48B797D317 /* DiaryExportTests.swift */,
+				48FF9AF9270D93CE317E9244 /* DiaryPDFRendererTests.swift */,
+				46BF2672D768DFC51FFAED97 /* DiaryPDFReportTests.swift */,
 				892C506F7C92B8100B9D1C01 /* DomainTests.swift */,
 				FD34A9F6DBDFE454C66BE51B /* EventAuthorTests.swift */,
 				DE40B113EE3AD2B436F3D23C /* FeedingReminderServiceTests.swift */,
@@ -571,6 +583,9 @@
 				4C1142AC4200083321BFC857 /* DesignComponents.swift */,
 				BEE7445CB125A24CB62679A8 /* DesignSystem.swift */,
 				48B7FB463E4728291A0FF22F /* DiaryExport.swift */,
+				F7E2A44719FA646047434379 /* DiaryPDFRenderer.swift */,
+				639368953D5424F6E1495276 /* DiaryPDFReport.swift */,
+				867EBCE6DC4D4AEC28081A7C /* DiaryPDFReportView.swift */,
 				9A4F9D817C68BDF127D819AC /* DiaryRootView.swift */,
 				DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */,
 				52397D5545338436E2A4363B /* EventAuthorCache.swift */,
@@ -900,6 +915,9 @@
 				DDBD78423EF94B06F03FDB9A /* DesignComponents.swift in Sources */,
 				E739AFB9E48CBE45809FF647 /* DesignSystem.swift in Sources */,
 				EA862DF2E9F18A40E9F14575 /* DiaryExport.swift in Sources */,
+				9851435C8A96358145ACDC63 /* DiaryPDFRenderer.swift in Sources */,
+				0383B4F0D3586F8C0C656C8C /* DiaryPDFReport.swift in Sources */,
+				F5449D3DCC1DCDB643172A6D /* DiaryPDFReportView.swift in Sources */,
 				5430FEAFA827202472F716CA /* DiaryRootView.swift in Sources */,
 				067E7D5BBDA60231BD35C71B /* Domain.swift in Sources */,
 				524A5D584CB7E44BBB006A03 /* EventAuthorCache.swift in Sources */,
@@ -962,6 +980,8 @@
 				082C5BA9EF9254A995B8238E /* ChildProfileTests.swift in Sources */,
 				C298B7DA824AEAA6A7422608 /* CloudFailureTests.swift in Sources */,
 				1293DF30C38C77610F6F7B37 /* DiaryExportTests.swift in Sources */,
+				F966660AC1C4C9080FEB32DB /* DiaryPDFRendererTests.swift in Sources */,
+				B90F68BF33B23B07E541FF68 /* DiaryPDFReportTests.swift in Sources */,
 				E26E0EFC8953691AD67A597E /* DomainTests.swift in Sources */,
 				EFBF5AC48A18D9C974746757 /* EventAuthorTests.swift in Sources */,
 				1FB104A19B8B190029825570 /* FeedingReminderServiceTests.swift in Sources */,
