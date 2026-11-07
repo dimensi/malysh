@@ -317,7 +317,10 @@ private struct FeedingReminderSettings: View {
             if reminders.enabled {
                 intervalPicker
                 if usesCustomInterval {
-                    customIntervalPickers
+                    FeedingReminderIntervalInput(
+                        intervalMinutes: reminders.intervalMinutes,
+                        apply: reminders.setIntervalMinutes
+                    )
                 }
                 if reminders.authorization == .denied {
                     Button("Открыть настройки уведомлений") {
@@ -362,36 +365,6 @@ private struct FeedingReminderSettings: View {
         .pickerStyle(.menu)
         .accessibilityValue(FeedingReminderService.intervalLabel(reminders.intervalMinutes))
         .accessibilityIdentifier("feeding-reminder.interval")
-    }
-
-    private var customIntervalPickers: some View {
-        let range = FeedingReminderService.customRange
-        let hours = reminders.intervalMinutes / 60
-        let minutes = reminders.intervalMinutes % 60
-        let maxHours = range.upperBound / 60
-        let minMinutes = max(0, range.lowerBound - hours * 60)
-        let maxMinutes = min(59, range.upperBound - hours * 60)
-        return Group {
-            Picker("Часы", selection: Binding(get: { hours }, set: { newHours in
-                let total = newHours * 60 + minutes
-                reminders.setIntervalMinutes(min(range.upperBound, max(range.lowerBound, total)))
-            })) {
-                ForEach(0 ... maxHours, id: \.self) { Text("\($0)").tag($0) }
-            }
-            .pickerStyle(.menu)
-            .accessibilityValue("\(hours)")
-            .accessibilityIdentifier("feeding-reminder.hours")
-
-            Picker("Минуты", selection: Binding(get: { minutes }, set: { newMinutes in
-                reminders.setIntervalMinutes(hours * 60 + newMinutes)
-            })) {
-                ForEach(Array(stride(from: minMinutes, through: maxMinutes, by: FeedingReminderService.customStep)),
-                        id: \.self) { Text("\($0)").tag($0) }
-            }
-            .pickerStyle(.menu)
-            .accessibilityValue("\(minutes)")
-            .accessibilityIdentifier("feeding-reminder.minutes")
-        }
     }
 
     private var statusText: String {
@@ -439,6 +412,65 @@ private struct FeedingReminderSettings: View {
         case .allowed:
             "Резервные уведомления разрешены."
         }
+    }
+}
+
+@MainActor
+private struct FeedingReminderIntervalInput: View {
+    private enum Field: Hashable { case hours, minutes }
+
+    let intervalMinutes: Int
+    let apply: (Int) -> Void
+    @State private var hours: String
+    @State private var minutes: String
+    @FocusState private var focusedField: Field?
+
+    init(intervalMinutes: Int, apply: @escaping (Int) -> Void) {
+        self.intervalMinutes = intervalMinutes
+        self.apply = apply
+        let hours = intervalMinutes / 60
+        let minutes = intervalMinutes % 60
+        _hours = State(initialValue: hours == 0 ? "" : String(hours))
+        _minutes = State(initialValue: minutes == 0 ? "" : String(minutes))
+    }
+
+    var body: some View {
+        let draft = draftInterval
+        LabeledContent("Часы") {
+            TextField("Часы", text: $hours, prompt: Text("0"))
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .focused($focusedField, equals: .hours)
+                .accessibilityIdentifier("feeding-reminder.hours")
+        }
+        LabeledContent("Минуты") {
+            TextField("Минуты", text: $minutes, prompt: Text("0"))
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .focused($focusedField, equals: .minutes)
+                .accessibilityIdentifier("feeding-reminder.minutes")
+        }
+        Button("Применить") {
+            guard let draft else { return }
+            apply(draft)
+            focusedField = nil
+        }
+        .disabled(draft == nil || draft == intervalMinutes)
+        .accessibilityIdentifier("feeding-reminder.apply-interval")
+        if draft == nil {
+            Text("От 15 минут до 24 часов с шагом 5 минут.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var draftInterval: Int? {
+        let maxHours = FeedingReminderService.customRange.upperBound / 60
+        guard let hours = Int(hours.isEmpty ? "0" : hours), (0 ... maxHours).contains(hours),
+              let minutes = Int(minutes.isEmpty ? "0" : minutes), (0 ... 59).contains(minutes)
+        else { return nil }
+        let total = hours * 60 + minutes
+        return FeedingReminderService.validInterval(total) ? total : nil
     }
 }
 

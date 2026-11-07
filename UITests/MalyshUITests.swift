@@ -247,14 +247,23 @@ final class MalyshUITests: XCTestCase {
         let custom = app.buttons["Свой интервал"].firstMatch
         XCTAssertTrue(custom.waitForExistence(timeout: 5))
         custom.tap()
-        let minutes = app.descendants(matching: .any).matching(identifier: "feeding-reminder.minutes").firstMatch
+        // FR: Invalid input must not replace the active interval.
+        XCTAssertEqual(app.textFields["feeding-reminder.hours"].value as? String, "3")
+        let minutes = app.textFields["feeding-reminder.minutes"]
         revealReminderRow(minutes, in: app)
         XCTAssertTrue(minutes.waitForExistence(timeout: 5))
         minutes.tap()
-        let five = app.buttons["5"].firstMatch
-        XCTAssertTrue(five.waitForExistence(timeout: 5))
-        five.tap()
+        let delete = XCUIKeyboardKey.delete.rawValue
+        minutes.typeText("7")
+        let apply = app.buttons["feeding-reminder.apply-interval"]
+        XCTAssertTrue(apply.waitForExistence(timeout: 5))
+        XCTAssertFalse(apply.isEnabled)
+        XCTAssertEqual(interval.value as? String, "3 часа")
+        minutes.typeText(delete + "5")
+        XCTAssertTrue(apply.isEnabled)
+        apply.tap()
         XCTAssertEqual(minutes.value as? String, "5")
+        XCTAssertEqual(interval.value as? String, "3 часа 5 минут")
         capture(app, name: "Напоминания — свой интервал")
 
         app.terminate()
