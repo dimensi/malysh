@@ -3,7 +3,7 @@ import SwiftUI
 
 struct ChildProfileView: View {
     private enum Destination: Hashable {
-        case edit, history(MeasurementType), photos
+        case edit, history(MeasurementType), photos, report(UUID, generation: UUID)
     }
 
     @Bindable var store: AppStore
@@ -25,6 +25,8 @@ struct ChildProfileView: View {
                     measurements(babyID: baby.id)
                     Divider()
                     album(babyID: baby.id)
+                    Divider()
+                    reportLink(babyID: baby.id)
                 }
                 .onGeometryChange(for: Bool.self) { geometry in
                     geometry.size.width >= 3 * 96 + 2 * AppDesign.Spacing.group
@@ -46,8 +48,36 @@ struct ChildProfileView: View {
                 MeasurementHistoryView(store: store, type: type, editing: $editingMeasurement)
             case .photos:
                 PhotoGalleryView(store: store, isPresenting: $albumPresentationBusy, onDismiss: onAlbumDismiss)
+            case let .report(id, generation):
+                DiaryPDFReportView(store: store, diaryID: id, generation: generation)
             }
         }
+    }
+
+    private func reportLink(babyID: UUID) -> some View {
+        NavigationLink(value: Destination.report(babyID, generation: store.persistence.generation)) {
+            HStack(spacing: AppDesign.Spacing.row) {
+                Image(systemName: "doc.text")
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+                    Text("Отчёт для педиатра").font(AppDesign.Typography.itemTitle)
+                    Text("Кормления, подгузники, сон и измерения в PDF")
+                        .font(AppDesign.Typography.detail)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.footnote).foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
+            .frame(minHeight: AppDesign.Metrics.minimumTouch)
+            .foregroundStyle(AppDesign.Palette.primaryText)
+            .diaryCard(color: AppDesign.Palette.cardBackground, inset: AppDesign.Spacing.row)
+            .contentShape(RoundedRectangle(cornerRadius: AppDesign.Radius.card))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("child.profile.report")
+        .disabled(store.cloudSwitchInProgress || store.diaryRemovalInProgress)
     }
 
     private func header(_ baby: Baby) -> some View {

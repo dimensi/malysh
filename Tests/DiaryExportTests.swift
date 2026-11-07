@@ -47,6 +47,20 @@ final class DiaryExportTests: XCTestCase {
             ))
         }
 
+        // A record with the same diary ID in the wrong store must be excluded before decoding.
+        let foreignRecord = NSEntityDescription.insertNewObject(forEntityName: "EventRecord", into: context)
+        try context.assign(foreignRecord, to: XCTUnwrap(persistence.privateStore))
+        foreignRecord.setValue(baby.id, forKey: "babyID")
+        try context.save()
+
+        let snapshot = try await persistence.readDiarySnapshot(id: baby.id)
+        XCTAssertEqual(snapshot.baby.id, baby.id)
+        XCTAssertTrue(snapshot.baby.birthMeasurementsCompleted)
+        XCTAssertEqual(snapshot.events.map(\.kind), EventKind.allCases)
+        XCTAssertTrue(snapshot.events.allSatisfy { $0.babyID == baby.id })
+        XCTAssertEqual(snapshot.measurements.count, MeasurementType.allCases.count)
+        XCTAssertTrue(snapshot.measurements.allSatisfy { $0.babyID == baby.id })
+
         let document = try await persistence.exportDiary(id: baby.id)
         let archive = try XCTUnwrap(JSONSerialization.jsonObject(with: document.data) as? [String: Any])
         XCTAssertEqual(archive["schemaVersion"] as? Int, 1)
@@ -112,8 +126,18 @@ final class DiaryExportTests: XCTestCase {
             XCTAssertEqual(error.code, .coderReadCorrupt)
         }
 
+        do {
+            _ = try await persistence.readDiarySnapshot(id: baby.id)
+            XCTFail("Corrupt data must fail the PDF snapshot.")
+        } catch let error as CocoaError {
+            XCTAssertEqual(error.code, .coderReadCorrupt)
+        }
+
         context.delete(record)
         try context.save()
+        let snapshot = try await persistence.readDiarySnapshot(id: baby.id)
+        XCTAssertTrue(snapshot.events.isEmpty)
+        XCTAssertTrue(snapshot.measurements.isEmpty)
         let emptyDiary = try await persistence.exportDiary(id: baby.id)
         let archive = try XCTUnwrap(JSONSerialization.jsonObject(with: emptyDiary.data) as? [String: Any])
         XCTAssertEqual((archive["events"] as? [Any])?.count, 0)
