@@ -89,7 +89,7 @@ struct CareActivityLockScreen: View {
     let state: CareActivityAttributes.ContentState
 
     var body: some View {
-        CareActivityLockScreenRow {
+        CareActivityLockScreenRow(stacksAtAccessibilitySize: state.kind == .breast) {
             HStack(spacing: AppDesign.Spacing.row) {
                 CareActivityBrandMark()
                 information
@@ -132,11 +132,12 @@ struct CareActivityLockScreen: View {
 
 struct CareActivityLockScreenRow<Information: View, Actions: View>: View {
     @Environment(\.dynamicTypeSize) private var typeSize
+    let stacksAtAccessibilitySize: Bool
     @ViewBuilder let information: () -> Information
     @ViewBuilder let actions: () -> Actions
 
     var body: some View {
-        if typeSize.isAccessibilitySize {
+        if typeSize >= .accessibility4 || (stacksAtAccessibilitySize && typeSize.isAccessibilitySize) {
             stacked
         } else {
             horizontal
