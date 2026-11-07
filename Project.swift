@@ -1,12 +1,23 @@
 import ProjectDescription
 
 let minimumIOS = "27.0"
+let minimumWatchOS = "26.0"
+
+let watchPlist: [String: Plist.Value] = [
+    "CFBundleDisplayName": "$(INFOPLIST_KEY_CFBundleDisplayName)",
+    "CFBundleDevelopmentRegion": "ru",
+    "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+    "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
+    "MalyshAppGroup": "$(MALYSH_APP_GROUP)",
+    "MalyshWidgetURLScheme": "$(MALYSH_WIDGET_URL_SCHEME)",
+]
+let watchResources: ResourceFileElements = ["Resources/Assets.xcassets", "Resources/PrivacyInfo.xcprivacy"]
 
 let settings: Settings = .settings(base: [
     "SWIFT_VERSION": "6.0", "SWIFT_STRICT_CONCURRENCY": "complete",
     "DEVELOPMENT_TEAM": "YBBAN7R28K", "CODE_SIGN_STYLE": "Automatic",
     "APS_ENVIRONMENT": "development",
-    "IPHONEOS_DEPLOYMENT_TARGET": .string(minimumIOS), "TARGETED_DEVICE_FAMILY": "1",
+    "IPHONEOS_DEPLOYMENT_TARGET": .string(minimumIOS),
     "MARKETING_VERSION": "1.0.0", "CURRENT_PROJECT_VERSION": "1",
     "MALYSH_APP_GROUP": "group.dev.dimensi.malysh",
     "MALYSH_CLOUDKIT_CONTAINER": "iCloud.dev.dimensi.malysh",
@@ -41,9 +52,12 @@ let project = Project(name: "Malysh", settings: settings, targets: [
                 "ITSAppUsesNonExemptEncryption": false,
                 "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"],
                 "UIApplicationSceneManifest": ["UIApplicationSupportsMultipleScenes": false],
-            ]), sources: ["Sources/**"], resources: ["Resources/Assets.xcassets", "Resources/PrivacyInfo.xcprivacy"],
+            ]), sources: ["Sources/**", "WatchShared/**"], resources: [
+                "Resources/Assets.xcassets",
+                "Resources/PrivacyInfo.xcprivacy",
+            ],
             entitlements: .file(path: "Resources/Malysh.entitlements"),
-            dependencies: [.target(name: "MalyshWidgets")],
+            dependencies: [.target(name: "MalyshWidgets"), .target(name: "MalyshWatch")],
             settings: .settings(base: [
                 "INFOPLIST_KEY_CFBundleDisplayName": "Малыш",
                 "PROVISIONING_PROFILE_SPECIFIER": "$(MALYSH_PROFILE_UUID)",
@@ -88,6 +102,60 @@ let project = Project(name: "Malysh", settings: settings, targets: [
                     "REGISTER_APP_GROUPS": "YES",
                 ]),
             ])),
+    .target(name: "MalyshWatch", destinations: [.appleWatch], product: .app,
+            bundleId: "dev.dimensi.malysh.watchkitapp", deploymentTargets: .watchOS(minimumWatchOS),
+            infoPlist: .extendingDefault(with: watchPlist.merging([
+                "WKApplication": true,
+                "WKRunsIndependentlyOfCompanionApp": true,
+                "WKCompanionAppBundleIdentifier": "$(MALYSH_WATCH_COMPANION)",
+                "WKSupportsLiveActivityLaunchAttributeTypes": [
+                    "CareActivityAttributes", "FeedingReminderActivityAttributes",
+                ],
+                "CFBundleURLTypes": [["CFBundleURLName": "$(PRODUCT_BUNDLE_IDENTIFIER).widgets",
+                                      "CFBundleURLSchemes": ["$(MALYSH_WIDGET_URL_SCHEME)"]]],
+                "ITSAppUsesNonExemptEncryption": false,
+            ]) { _, value in value }),
+            sources: ["WatchApp/**", "WatchShared/**", "Sources/AppConfiguration.swift",
+                      "Sources/Domain.swift", "Sources/DesignSystem.swift", "Sources/Widgets/WidgetRoute.swift"],
+            resources: watchResources, entitlements: .file(path: "Resources/MalyshWidgets.entitlements"),
+            dependencies: [.target(name: "MalyshWatchWidgets")],
+            settings: .settings(base: [
+                "SKIP_INSTALL": "YES",
+                "MALYSH_WATCH_COMPANION": "dev.dimensi.malysh",
+                "INFOPLIST_KEY_CFBundleDisplayName": "Малыш",
+                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+                "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
+                "PROVISIONING_PROFILE_SPECIFIER": "$(MALYSH_WATCH_PROFILE_UUID)",
+            ], configurations: [
+                .debug(name: "Dev", settings: [
+                    "PRODUCT_BUNDLE_IDENTIFIER": "dev.dimensi.malysh.dev.watchkitapp",
+                    "MALYSH_WATCH_COMPANION": "dev.dimensi.malysh.dev",
+                    "INFOPLIST_KEY_CFBundleDisplayName": "Малыш Dev",
+                    "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIconDev",
+                    "PROVISIONING_PROFILE_SPECIFIER": "",
+                    "REGISTER_APP_GROUPS": "YES",
+                ]),
+            ])),
+    .target(name: "MalyshWatchWidgets", destinations: [.appleWatch], product: .appExtension,
+            bundleId: "dev.dimensi.malysh.watchkitapp.widgets", deploymentTargets: .watchOS(minimumWatchOS),
+            infoPlist: .extendingDefault(with: watchPlist.merging([
+                "NSExtension": ["NSExtensionPointIdentifier": "com.apple.widgetkit-extension"],
+            ]) { _, value in value }),
+            sources: ["WatchWidgets/**", "WatchShared/**", "Sources/AppConfiguration.swift",
+                      "Sources/Domain.swift", "Sources/DesignSystem.swift", "Sources/Widgets/WidgetRoute.swift"],
+            resources: watchResources, entitlements: .file(path: "Resources/MalyshWidgets.entitlements"),
+            settings: .settings(base: [
+                "APPLICATION_EXTENSION_API_ONLY": "YES", "SKIP_INSTALL": "YES",
+                "INFOPLIST_KEY_CFBundleDisplayName": "Малыш · виджеты",
+                "PROVISIONING_PROFILE_SPECIFIER": "$(MALYSH_WATCH_WIDGET_PROFILE_UUID)",
+            ], configurations: [
+                .debug(name: "Dev", settings: [
+                    "PRODUCT_BUNDLE_IDENTIFIER": "dev.dimensi.malysh.dev.watchkitapp.widgets",
+                    "INFOPLIST_KEY_CFBundleDisplayName": "Малыш Dev · виджеты",
+                    "PROVISIONING_PROFILE_SPECIFIER": "",
+                    "REGISTER_APP_GROUPS": "YES",
+                ]),
+            ])),
     .target(name: "MalyshTests", destinations: [.iPhone], product: .unitTests,
             bundleId: "dev.dimensi.malysh.tests", deploymentTargets: .iOS(minimumIOS),
             infoPlist: .default, sources: ["Tests/**"],
@@ -97,4 +165,6 @@ let project = Project(name: "Malysh", settings: settings, targets: [
             infoPlist: .default, sources: ["UITests/**"], dependencies: [.target(name: "Malysh")]),
 ], schemes: [.scheme(name: "Malysh", shared: true, buildAction: .buildAction(targets: ["Malysh"]),
                      testAction: .targets(["MalyshTests", "MalyshUITests"], configuration: .debug),
+                     runAction: .runAction(configuration: "Dev")),
+             .scheme(name: "MalyshWatch", shared: true, buildAction: .buildAction(targets: ["MalyshWatch"]),
                      runAction: .runAction(configuration: "Dev"))])

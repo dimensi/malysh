@@ -38,7 +38,8 @@ cleanup() {
     python3 - "$signing_dir" "${HOME:?}" <<'PYPROFILECLEAN' || profile_status=$?
 import json, pathlib, re, sys
 root, home = map(pathlib.Path, sys.argv[1:])
-for state in [root / "installed-profile.json", root / "installed-widget-profile.json"]:
+for prefix in ("profile", "widget-profile", "watch-profile", "watch-widget-profile"):
+    state = root / f"installed-{prefix}.json"
     if not state.exists():
         continue
     info = json.loads(state.read_text())
@@ -68,7 +69,7 @@ PYPROFILECLEAN
 setup() {
     # Validate every required input before creating any filesystem entries.
     local variable
-    for variable in RUNNER_TEMP GITHUB_ENV GITHUB_RUN_ID GITHUB_RUN_ATTEMPT IOS_DISTRIBUTION_P12_BASE64 IOS_DISTRIBUTION_P12_PASSWORD IOS_PROVISIONING_PROFILE_BASE64 IOS_WIDGET_PROVISIONING_PROFILE_BASE64 ASC_PRIVATE_KEY_BASE64; do
+    for variable in RUNNER_TEMP GITHUB_ENV GITHUB_RUN_ID GITHUB_RUN_ATTEMPT IOS_DISTRIBUTION_P12_BASE64 IOS_DISTRIBUTION_P12_PASSWORD IOS_PROVISIONING_PROFILE_BASE64 IOS_WIDGET_PROVISIONING_PROFILE_BASE64 WATCHOS_PROVISIONING_PROFILE_BASE64 WATCHOS_WIDGET_PROVISIONING_PROFILE_BASE64 ASC_PRIVATE_KEY_BASE64; do
         [[ -n "${!variable:-}" ]] || fail "Missing required environment variable: $variable"
     done
     [[ "$GITHUB_ENV" == /* ]] || fail "GITHUB_ENV must be an absolute path."
@@ -84,6 +85,8 @@ for key, filename in [
     ("IOS_DISTRIBUTION_P12_BASE64", "distribution.p12"),
     ("IOS_PROVISIONING_PROFILE_BASE64", "profile.mobileprovision"),
     ("IOS_WIDGET_PROVISIONING_PROFILE_BASE64", "widget-profile.mobileprovision"),
+    ("WATCHOS_PROVISIONING_PROFILE_BASE64", "watch-profile.mobileprovision"),
+    ("WATCHOS_WIDGET_PROVISIONING_PROFILE_BASE64", "watch-widget-profile.mobileprovision"),
     ("ASC_PRIVATE_KEY_BASE64", "AuthKey.p8"),
 ]:
     try:
@@ -98,12 +101,19 @@ for key, filename in [
 if not (root / "AuthKey.p8").read_bytes().startswith(b"-----BEGIN PRIVATE KEY-----"):
     raise SystemExit("App Store Connect key must be a PEM private key.")
 PYDECODE
-    security cms -D -i "$signing_dir/profile.mobileprovision" > "$signing_dir/profile.plist"
-    security cms -D -i "$signing_dir/widget-profile.mobileprovision" > "$signing_dir/widget-profile.plist"
+    local profile
+    for profile in profile widget-profile watch-profile watch-widget-profile; do
+        security cms -D -i "$signing_dir/$profile.mobileprovision" > "$signing_dir/$profile.plist"
+    done
     python3 - "$signing_dir" <<'PYVALIDATE'
 import datetime, pathlib, plistlib, re, sys
 root = pathlib.Path(sys.argv[1])
-for prefix, bundle_id in [("profile", "dev.dimensi.malysh"), ("widget-profile", "dev.dimensi.malysh.widgets")]:
+for prefix, bundle_id in [
+    ("profile", "dev.dimensi.malysh"),
+    ("widget-profile", "dev.dimensi.malysh.widgets"),
+    ("watch-profile", "dev.dimensi.malysh.watchkitapp"),
+    ("watch-widget-profile", "dev.dimensi.malysh.watchkitapp.widgets"),
+]:
     try:
         profile = plistlib.loads((root / (prefix + ".plist")).read_bytes())
         entitlements = profile["Entitlements"]
@@ -156,7 +166,12 @@ PYKEYCHAINS
     python3 - "$signing_dir" "$HOME" <<'PYINSTALL'
 import json, pathlib, sys
 root, home = map(pathlib.Path, sys.argv[1:])
-for prefix, state_name in [("profile", "installed-profile.json"), ("widget-profile", "installed-widget-profile.json")]:
+for prefix, state_name in [
+    ("profile", "installed-profile.json"),
+    ("widget-profile", "installed-widget-profile.json"),
+    ("watch-profile", "installed-watch-profile.json"),
+    ("watch-widget-profile", "installed-watch-widget-profile.json"),
+]:
     uuid = (root / (prefix + "-uuid")).read_text()
     destination = home / "Library/Developer/Xcode/UserData/Provisioning Profiles" / (uuid + ".mobileprovision")
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -169,10 +184,11 @@ for prefix, state_name in [("profile", "installed-profile.json"), ("widget-profi
     destination.chmod(0o600)
 PYINSTALL
     # No other variables are exported into the workflow environment.
-    PROFILE_UUID="$(cat "$signing_dir/profile-uuid")" PROFILE_NAME="$(cat "$signing_dir/profile-name")" WIDGET_PROFILE_UUID="$(cat "$signing_dir/widget-profile-uuid")" CI_KEYCHAIN_PATH="$keychain_path" CI_KEYCHAIN_PASSWORD="$keychain_password" ASC_KEY_PATH="$signing_dir/AuthKey.p8" python3 <<'PYEXPORT'
+    PROFILE_UUID="$(cat "$signing_dir/profile-uuid")" PROFILE_NAME="$(cat "$signing_dir/profile-name")" WIDGET_PROFILE_UUID="$(cat "$signing_dir/widget-profile-uuid")" WATCH_PROFILE_UUID="$(cat "$signing_dir/watch-profile-uuid")" WATCH_WIDGET_PROFILE_UUID="$(cat "$signing_dir/watch-widget-profile-uuid")" \
+        CI_KEYCHAIN_PATH="$keychain_path" CI_KEYCHAIN_PASSWORD="$keychain_password" ASC_KEY_PATH="$signing_dir/AuthKey.p8" python3 <<'PYEXPORT'
 import os
 with open(os.environ["GITHUB_ENV"], "a") as output:
-    for key in ["PROFILE_UUID", "PROFILE_NAME", "WIDGET_PROFILE_UUID", "CI_KEYCHAIN_PATH", "CI_KEYCHAIN_PASSWORD", "ASC_KEY_PATH"]:
+    for key in ["PROFILE_UUID", "PROFILE_NAME", "WIDGET_PROFILE_UUID", "WATCH_PROFILE_UUID", "WATCH_WIDGET_PROFILE_UUID", "CI_KEYCHAIN_PATH", "CI_KEYCHAIN_PASSWORD", "ASC_KEY_PATH"]:
         value = os.environ[key]
         if "\n" in value or "\r" in value:
             raise SystemExit("Unsupported newline in signing environment value.")

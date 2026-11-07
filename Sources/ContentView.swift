@@ -403,7 +403,7 @@ struct ContentView: View {
                 Label("Последнее кормление", systemImage: "heart.fill").font(.headline)
                 TimelineView(.periodic(from: .now, by: 60)) { context in
                     Text(
-                        "\(durationText(context.date.timeIntervalSince(event.kind == .bottle ? event.start : (event.end ?? event.start)))) назад"
+                        "\(durationText(context.date.timeIntervalSince(event.feedingReferenceDate))) назад"
                     )
                     .font(.title.bold()).monospacedDigit()
                 }

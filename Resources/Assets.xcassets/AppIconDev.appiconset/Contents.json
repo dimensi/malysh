@@ -5,6 +5,12 @@
       "filename": "AppIcon.png",
       "platform": "ios",
       "size": "1024x1024"
+    },
+    {
+      "idiom": "universal",
+      "filename": "AppIcon.png",
+      "platform": "watchos",
+      "size": "1024x1024"
     }
   ],
   "info": {

@@ -57,6 +57,8 @@ struct MalyshApp: App {
 
 @MainActor
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    private var watchBridge: WatchPhoneBridge?
+
     func application(
         _: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil
@@ -64,6 +66,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         let center = UNUserNotificationCenter.current()
         center.delegate = self
         SystemFeedingReminderScheduler.registerCategories()
+        let arguments = ProcessInfo.processInfo.arguments
+        if !arguments.contains("--ui-testing"), !arguments.contains("--initialize-cloudkit-schema") {
+            watchBridge = WatchPhoneBridge(runtime: .shared)
+            watchBridge?.activate()
+        }
         return true
     }
 

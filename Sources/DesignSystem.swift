@@ -5,12 +5,18 @@ import SwiftUI
 enum AppDesign {
     enum Palette {
         static let accent = Color("AccentColor")
-        static let onAccent = Color("OnAccent")
+        #if os(watchOS)
+            static let onAccent = Color.black
+        #else
+            static let onAccent = Color("OnAccent")
+        #endif
         static let feeding = Color("Feeding")
         static let diaper = Color("Diaper")
         static let sleep = Color("Sleep")
-        static let groupedBackground = Color(uiColor: .systemGroupedBackground)
-        static let cardBackground = Color(uiColor: .secondarySystemGroupedBackground)
+        #if !os(watchOS)
+            static let groupedBackground = Color(uiColor: .systemGroupedBackground)
+            static let cardBackground = Color(uiColor: .secondarySystemGroupedBackground)
+        #endif
         static let primaryText = Color.primary
         static let secondaryText = Color.secondary
         static let error = Color.red

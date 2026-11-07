@@ -3,6 +3,9 @@ included:
   - Tests
   - UITests
   - WidgetExtension
+  - WatchApp
+  - WatchShared
+  - WatchWidgets
 disabled_rules:
   - trailing_comma
   - opening_brace

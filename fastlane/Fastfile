@@ -50,12 +50,16 @@ platform :ios do
     build_number = options.fetch(:build_number)
     profile = required_environment("PROFILE_UUID")
     widget_profile = required_environment("WIDGET_PROFILE_UUID")
+    watch_profile = required_environment("WATCH_PROFILE_UUID")
+    watch_widget_profile = required_environment("WATCH_WIDGET_PROFILE_UUID")
     keychain = required_environment("CI_KEYCHAIN_PATH")
     settings = {
       "CODE_SIGN_STYLE" => "Manual",
       "CODE_SIGN_IDENTITY" => "Apple Distribution",
       "MALYSH_PROFILE_UUID" => profile,
       "MALYSH_WIDGET_PROFILE_UUID" => widget_profile,
+      "MALYSH_WATCH_PROFILE_UUID" => watch_profile,
+      "MALYSH_WATCH_WIDGET_PROFILE_UUID" => watch_widget_profile,
       "DEVELOPMENT_TEAM" => "YBBAN7R28K",
       "MARKETING_VERSION" => version,
       "CURRENT_PROJECT_VERSION" => build_number.to_s,
@@ -80,7 +84,12 @@ platform :ios do
         teamID: "YBBAN7R28K",
         signingCertificate: "Apple Distribution",
         iCloudContainerEnvironment: "Production",
-        provisioningProfiles: { "dev.dimensi.malysh" => profile, "dev.dimensi.malysh.widgets" => widget_profile },
+        provisioningProfiles: {
+          "dev.dimensi.malysh" => profile,
+          "dev.dimensi.malysh.widgets" => widget_profile,
+          "dev.dimensi.malysh.watchkitapp" => watch_profile,
+          "dev.dimensi.malysh.watchkitapp.widgets" => watch_widget_profile
+        },
         manageAppVersionAndBuildNumber: false
       },
       xcargs: settings.map { |key, value| "#{key}=#{Shellwords.escape(value)}" }.join(" ")
@@ -100,6 +109,23 @@ platform :ios do
       actual = sh("/usr/libexec/PlistBuddy", "-c", "Print :#{key}", widget_info, log: false).strip
       UI.user_error!("Archived widget #{key} does not match the intended release") unless actual == expected
     end
+    watch_app = File.join(File.dirname(app_info), "Watch/MalyshWatch.app")
+    {
+      File.join(watch_app, "Info.plist") => "dev.dimensi.malysh.watchkitapp",
+      File.join(watch_app, "PlugIns/MalyshWatchWidgets.appex/Info.plist") => "dev.dimensi.malysh.watchkitapp.widgets"
+    }.each do |info, bundle_id|
+      UI.user_error!("Archived bundle is missing: #{bundle_id}") unless File.file?(info)
+      { "CFBundleIdentifier" => bundle_id,
+        "CFBundleShortVersionString" => version,
+        "CFBundleVersion" => build_number.to_s,
+        "MinimumOSVersion" => "26.0" }.each do |key, expected|
+        actual = sh("/usr/libexec/PlistBuddy", "-c", "Print :#{key}", info, log: false).strip
+        UI.user_error!("Archived #{bundle_id} #{key} does not match the intended release") unless actual == expected
+      end
+    end
+    companion = sh("/usr/libexec/PlistBuddy", "-c", "Print :WKCompanionAppBundleIdentifier",
+                   File.join(watch_app, "Info.plist"), log: false).strip
+    UI.user_error!("Archived watch app points to the wrong iPhone app") unless companion == TestFlightDelivery::APP_IDENTIFIER
     begin
       upload_to_testflight(
         api_key: api_key,
