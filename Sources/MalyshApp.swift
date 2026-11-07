@@ -63,6 +63,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         _: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        DiaryPDFFile.removeAbandonedFiles()
         let center = UNUserNotificationCenter.current()
         center.delegate = self
         SystemFeedingReminderScheduler.registerCategories()

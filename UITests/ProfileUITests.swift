@@ -29,6 +29,96 @@ final class ProfileUITests: XCTestCase {
         field.typeText(text)
     }
 
+    func testPediatricianPDFPreviewSettingsAndShare() {
+        let app = launch()
+        app.buttons["action.diaper"].tap()
+        let identifiedDiaper = app.buttons.matching(identifier: "diaper.wet").firstMatch
+        let wetDiaper = identifiedDiaper.exists ? identifiedDiaper : app.buttons["Мокрый"].firstMatch
+        XCTAssertTrue(wetDiaper.waitForExistence(timeout: 5))
+        wetDiaper.tap()
+
+        app.tabBars.buttons["Малыш"].tap()
+        let report = app.buttons["child.profile.report"]
+        reveal(report, in: app)
+        report.tap()
+
+        let settings = app.buttons["diary.pdf.settings"]
+        let share = app.buttons["diary.pdf.share"]
+        XCTAssertTrue(share.waitForExistence(timeout: 10))
+        XCTAssertTrue(settings.label.contains("7 дней"))
+        XCTAssertTrue(settings.label.contains("Краткий отчёт"))
+
+        settings.tap()
+        let format = app.descendants(matching: .any).matching(identifier: "diary.pdf.format").firstMatch
+        XCTAssertTrue(format.waitForExistence(timeout: 5))
+        format.tap()
+        let detailed = app.buttons["Подробный"].firstMatch
+        XCTAssertTrue(detailed.waitForExistence(timeout: 5))
+        detailed.tap()
+        let notes = app.switches["diary.pdf.notes"]
+        XCTAssertTrue(notes.waitForExistence(timeout: 5))
+        XCTAssertEqual(notes.value as? String, "0")
+        app.buttons["diary.pdf.settings.done"].tap()
+        XCTAssertTrue(share.waitForExistence(timeout: 10))
+        XCTAssertTrue(settings.label.contains("Подробный отчёт"))
+
+        share.tap()
+        XCTAssertTrue(app.otherElements["ActivityListView"].waitForExistence(timeout: 5)
+            || app.buttons["Copy"].exists || app.buttons["Скопировать"].exists)
+        let closeShare = app.buttons.matching(NSPredicate(
+            format: "identifier CONTAINS[c] %@ OR label IN %@",
+            "close",
+            ["Close", "Закрыть"]
+        )).firstMatch
+        XCTAssertTrue(closeShare.waitForExistence(timeout: 5), app.debugDescription)
+        closeShare.tap()
+        let available = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: settings)
+        XCTAssertEqual(XCTWaiter.wait(for: [available], timeout: 5), .completed)
+
+        settings.tap()
+        let period = app.descendants(matching: .any).matching(identifier: "diary.pdf.period").firstMatch
+        XCTAssertTrue(period.waitForExistence(timeout: 5))
+        period.tap()
+        let threeDays = app.buttons["3 дня"].firstMatch
+        XCTAssertTrue(threeDays.waitForExistence(timeout: 5))
+        threeDays.tap()
+        app.buttons["diary.pdf.settings.done"].tap()
+        XCTAssertTrue(share.waitForExistence(timeout: 10))
+        XCTAssertTrue(settings.label.contains("3 дня"))
+
+        share.tap()
+        let saveToFiles = app.descendants(matching: .any).matching(NSPredicate(
+            format: "label == %@ OR (label BEGINSWITH[c] %@ AND label CONTAINS[c] %@)",
+            "Save to Files",
+            "Сохранить в",
+            "Файл"
+        )).firstMatch
+        XCTAssertTrue(saveToFiles.waitForExistence(timeout: 10), app.debugDescription)
+        saveToFiles.tap()
+        let save = app.buttons.matching(NSPredicate(
+            format: "identifier == %@ OR label IN %@",
+            "DOCPicker.actionButton",
+            ["Save", "Сохранить"]
+        )).firstMatch
+        if !save.waitForExistence(timeout: 5) || !save.isEnabled {
+            let localStorage = app.descendants(matching: .any).matching(NSPredicate(
+                format: "label IN %@",
+                ["On My iPhone", "На iPhone", "На моём iPhone"]
+            )).firstMatch
+            XCTAssertTrue(localStorage.waitForExistence(timeout: 5), app.debugDescription)
+            localStorage.tap()
+        }
+        XCTAssertTrue(save.waitForExistence(timeout: 5) && save.isEnabled, app.debugDescription)
+        save.tap()
+        // A previous run can leave the exported PDF in the Files destination.
+        let replaceFile = app.buttons.matching(NSPredicate(format: "label IN %@", ["Replace", "Заменить"])).firstMatch
+        if replaceFile.waitForExistence(timeout: 3) {
+            replaceFile.tap()
+        }
+        let returned = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: share)
+        XCTAssertEqual(XCTWaiter.wait(for: [returned], timeout: 10), .completed, app.debugDescription)
+    }
+
     func testMeasurementAddEditAndImmediateDelete() {
         let app = launch(["--dark-mode", "--large-text"])
         app.tabBars.buttons["Малыш"].tap()
