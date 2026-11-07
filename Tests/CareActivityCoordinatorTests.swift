@@ -111,13 +111,14 @@ final class CareActivityCoordinatorTests: XCTestCase {
     func testFinishingDeletingAndLosingDiaryAccessEndActivities() async throws {
         let backend = Backend()
         let baby = Baby(name: "Малыш")
-        let start = Date().addingTimeInterval(-120)
+        let end = Date()
+        let start = end.addingTimeInterval(-90)
         let events = (0 ..< 3).map { _ in CareEvent(babyID: baby.id, kind: .sleep, start: start) }
         for (index, event) in events.enumerated() {
             backend.insert(event, baby: baby, id: "\(index)")
         }
         var finished = events[0]
-        finished.finish(at: start.addingTimeInterval(90))
+        finished.finish(at: end)
         let coordinator = CareActivityCoordinator(backend: backend)
         // One finished, one deleted, one still running.
         coordinator.reconcile(events: [finished, events[2]], babies: [baby], allowStart: false)
@@ -126,9 +127,9 @@ final class CareActivityCoordinatorTests: XCTestCase {
         XCTAssertEqual(backend.finishes.map(\.id), ["0"])
         let finalContent = try XCTUnwrap(backend.activities.first { $0.id == "0" }?.content)
         XCTAssertEqual(finalContent.start, start)
-        XCTAssertEqual(finalContent.end, start.addingTimeInterval(90))
+        XCTAssertEqual(finalContent.end, end)
         XCTAssertEqual(try XCTUnwrap(finalContent.end).timeIntervalSince(finalContent.start), 90)
-        XCTAssertEqual(backend.finishes.first?.dismissalDate, finished.end?.addingTimeInterval(15 * 60))
+        XCTAssertEqual(backend.finishes.first?.dismissalDate, end.addingTimeInterval(30))
         let finalData = try JSONEncoder().encode(finalContent)
         XCTAssertEqual(
             try JSONDecoder().decode(CareActivityAttributes.ContentState.self, from: finalData),
@@ -156,21 +157,24 @@ final class CareActivityCoordinatorTests: XCTestCase {
         XCTAssertFalse(backend.activities.contains { $0.attributes.eventID == finished.id })
 
         var oldFinished = finished
-        oldFinished.end = Date().addingTimeInterval(-16 * 60)
+        oldFinished.end = end.addingTimeInterval(-31)
         oldFinished.start = try XCTUnwrap(oldFinished.end).addingTimeInterval(-120)
         var oldContent = final.content
         oldContent.start = oldFinished.start
         oldContent.end = oldFinished.end
         backend.activities.append(.init(id: final.id, attributes: final.attributes,
                                         content: oldContent, status: .ended))
+        // A finish delivered late from another device also skips the summary.
+        backend.insert(events[0], baby: baby, id: "late")
         coordinator.reconcile(events: [oldFinished, events[2]], babies: [baby], allowStart: false)
         await coordinator.flush()
         XCTAssertEqual(backend.activities.map(\.id), ["2"])
+        XCTAssertEqual(backend.finishes.map(\.id), ["0"])
 
         coordinator.reconcile(events: [events[2]], babies: [], allowStart: true)
         await coordinator.flush()
         XCTAssertTrue(backend.activities.isEmpty)
-        XCTAssertEqual(Set(backend.endings), Set(["0", "1", "2", "duplicate"]))
+        XCTAssertEqual(Set(backend.endings), Set(["0", "1", "2", "duplicate", "late"]))
     }
 
     func testSnapshotArrivingDuringRequestRemovesObsoleteActivityBeforeFlushReturns() async throws {

@@ -35,6 +35,8 @@ final class CareActivityCoordinator: CareActivityCoordinating {
         let content: CareActivityAttributes.ContentState
     }
 
+    private static let finishedCardLifetime: TimeInterval = 30
+
     private let backend: any CareActivityBackend
     private var desired: [UUID: Desired] = [:]
     private var pendingFinalContent: [String: CareActivityAttributes.ContentState] = [:]
@@ -97,7 +99,7 @@ final class CareActivityCoordinator: CareActivityCoordinating {
                     && desired[$0.attributes.eventID]?.content.end != nil
             }), let target = desired[finished.attributes.eventID], let end = target.content.end {
                 attemptedFinishes.insert(finished.id)
-                let dismissalDate = end.addingTimeInterval(15 * 60)
+                let dismissalDate = end.addingTimeInterval(Self.finishedCardLifetime)
                 if dismissalDate > Date() {
                     pendingFinalContent[finished.id] = target.content
                     await backend.finish(id: finished.id, content: target.content, dismissalDate: dismissalDate)
@@ -143,7 +145,7 @@ final class CareActivityCoordinator: CareActivityCoordinating {
             guard let target = desired[eventID],
                   target.attributes.babyID == instance.attributes.babyID,
                   let end = target.content.end,
-                  end.addingTimeInterval(15 * 60) > Date(),
+                  end.addingTimeInterval(Self.finishedCardLifetime) > Date(),
                   !backend.dismissedEventIDs.contains(eventID),
                   kept.insert(eventID).inserted
             else { return instance }
