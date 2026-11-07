@@ -118,10 +118,13 @@ nav a:hover { text-decoration: underline; }
   isolation: isolate;
 }
 .showcase {
+  gap: .55rem;
   padding: clamp(1.4rem, 5vw, 3.5rem);
+  padding-bottom: clamp(1rem, 3vw, 2rem);
   border-radius: 50% 50% 1.1rem 1.1rem / 31% 31% 1.1rem 1.1rem;
   background: var(--orchid);
 }
+.showcase figcaption { color: var(--muted); font-size: .85rem; }
 .device {
   height: auto;
   border: .42rem solid var(--device-edge);
