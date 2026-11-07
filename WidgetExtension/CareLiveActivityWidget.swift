@@ -64,14 +64,28 @@ private struct CareActivityContent: View {
 
     @Environment(\.activityFamily) private var family
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+    @ScaledMetric(relativeTo: .headline) private var sleepArtworkSize = 24.0
 
     var body: some View {
         if family == .small {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Label(state.title, systemImage: state.appearance.symbol)
-                        .font(.headline)
-                        .lineLimit(1)
+                    Label {
+                        Text(state.title)
+                    } icon: {
+                        if state.kind == .sleep {
+                            Image("WidgetSleepArt")
+                                .renderingMode(.original)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: sleepArtworkSize, height: sleepArtworkSize)
+                                .accessibilityHidden(true)
+                        } else {
+                            Image(systemName: state.appearance.symbol)
+                        }
+                    }
+                    .font(.headline)
+                    .lineLimit(1)
                     Text(state.babyName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
