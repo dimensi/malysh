@@ -7,7 +7,7 @@ const escapeHTML = (value) =>
       ],
   );
 
-export function deviceMarkup(frame, source, label = "", content = "") {
+export function deviceMarkup(frame, source, label = "") {
   const screen = frame.screen;
   const radii = Array.isArray(screen.radius)
     ? screen.radius
@@ -17,7 +17,7 @@ export function deviceMarkup(frame, source, label = "", content = "") {
   const mask = frame.mask
     ? `mask-image:url('/${frame.mask}');mask-size:100% 100%;mask-repeat:no-repeat;`
     : "";
-  return `<div class="device-unit" style="--body-ratio:${frame.width / frame.height}"><div class="device" style="${style}"><div class="device-screen" style="${mask}">${content || `<img src="/${source}" alt="" draggable="false">`}</div><img class="device-body" src="/${frame.file}" alt="" draggable="false"></div>${label ? `<span class="device-label">${escapeHTML(label)}</span>` : ""}</div>`;
+  return `<div class="device-unit" style="--body-ratio:${frame.width / frame.height}"><div class="device" style="${style}"><div class="device-screen" style="${mask}"><img src="/${source}" alt="" draggable="false"></div><img class="device-body" src="/${frame.file}" alt="" draggable="false"></div>${label ? `<span class="device-label">${escapeHTML(label)}</span>` : ""}</div>`;
 }
 
 export function renderHTML(job, frames, font) {
@@ -27,19 +27,7 @@ export function renderHTML(job, frames, font) {
     ? `<div class="copy"><h1>${escapeHTML(job.title).replaceAll("\n", "<br>")}</h1>${job.description ? `<p>${escapeHTML(job.description)}</p>` : ""}${job.caption ? `<p class="caption">${escapeHTML(job.caption)}</p>` : ""}</div>`
     : "";
   let art;
-  if (job.layout === "activities") {
-    const composition = job.composition;
-    const nativeCards = composition.crops
-      .map((crop, index) => {
-        const { rect, position } = crop;
-        const style = `left:${position.left}%;top:${position.top}%;width:${position.width}%;aspect-ratio:${rect.width}/${rect.height};border-radius:${(crop.radius / rect.width) * 100}% / ${(crop.radius / rect.height) * 100}%;`;
-        const imageStyle = `width:${(composition.sourceSize[0] / rect.width) * 100}%;left:${(-rect.x / rect.width) * 100}%;top:${(-rect.y / rect.height) * 100}%;`;
-        return `<div class="native-crop" style="${style}"><img style="${imageStyle}" src="/${job.sources[index]}" alt="" draggable="false"></div>`;
-      })
-      .join("");
-    const content = `<div class="activity-showcase" style="background:${composition.background}">${nativeCards}</div>`;
-    art = deviceMarkup(frames.iphone, "", "", content);
-  } else if (job.layout === "family") {
+  if (job.layout === "family") {
     art = job.sources
       .map((source, index) =>
         device(

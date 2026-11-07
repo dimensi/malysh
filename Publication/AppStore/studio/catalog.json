@@ -20,7 +20,8 @@
     "watchFeeding": "raw/watch/02-watch-feeding.png",
     "watchSleep": "raw/watch/03-watch-sleep.png",
     "pdfPhone": "raw/15-pediatrician-pdf.png",
-    "pdf": "raw/15-pediatrician-report.png"
+    "pdf": "raw/15-pediatrician-report.png",
+    "liveActivities": "raw/16-live-activities-lock-screen.png"
   },
   "slides": [
     {
@@ -60,11 +61,10 @@
       "id": "05-timers",
       "title": "Важное всегда\nна виду",
       "description": "Кормление, сон и напоминания",
-      "layout": "activities",
+      "layout": "single",
       "tone": "night",
-      "screens": ["island", "lock", "reminder"],
-      "composition": "liveActivities",
-      "caption": "Варианты Live Activities"
+      "screens": ["liveActivities"],
+      "caption": "Примеры состояний Live Activities"
     },
     {
       "id": "07-widgets",
@@ -158,57 +158,5 @@
     "pdf-phone": "pdfPhone",
     "pdf": "pdf",
     "live-activities": "liveActivities"
-  },
-  "compositions": {
-    "liveActivities": {
-      "kind": "composition of native states",
-      "background": "#211a2b",
-      "note": "Варианты Live Activities",
-      "sourceSize": [1320, 2868],
-      "crops": [
-        {
-          "rect": {
-            "x": 41,
-            "y": 41,
-            "width": 1238,
-            "height": 266
-          },
-          "radius": 133,
-          "position": {
-            "left": 3.1,
-            "top": 1.43,
-            "width": 93.8
-          }
-        },
-        {
-          "rect": {
-            "x": 41,
-            "y": 2132,
-            "width": 1238,
-            "height": 329
-          },
-          "radius": 78,
-          "position": {
-            "left": 3.1,
-            "top": 32,
-            "width": 93.8
-          }
-        },
-        {
-          "rect": {
-            "x": 41,
-            "y": 1989,
-            "width": 1238,
-            "height": 472
-          },
-          "radius": 78,
-          "position": {
-            "left": 3.1,
-            "top": 57,
-            "width": 93.8
-          }
-        }
-      ]
-    }
   }
 }

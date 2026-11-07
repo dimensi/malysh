@@ -133,15 +133,13 @@ p {
   font-weight: 700;
 }
 
-.layout-single .art,
-.layout-activities .art {
+.layout-single .art {
   top: 21%;
   bottom: 2%;
   align-items: flex-start;
 }
 
-.layout-single .device-unit,
-.layout-activities .device-unit {
+.layout-single .device-unit {
   width: 91%;
 }
 
@@ -434,24 +432,6 @@ p {
     width: 100%;
     height: auto;
   }
-}
-
-.activity-showcase {
-  position: absolute;
-  inset: 0;
-  container-type: inline-size;
-}
-
-.native-crop {
-  position: absolute;
-  overflow: hidden;
-}
-
-.native-crop img {
-  position: absolute;
-  max-width: none;
-  height: auto;
-  object-fit: initial;
 }
 
 .caption {

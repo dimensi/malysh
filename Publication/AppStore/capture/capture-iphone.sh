@@ -64,7 +64,21 @@ source = source.replace(reminder_needle, """
             }
         #endif
 """ + reminder_needle)
+# Only this separate demonstration scene suppresses the app's automatic reconciliation.
+source = source.replace("self.activityCoordinator = activityCoordinator", """
+#if DEBUG && targetEnvironment(simulator)
+        self.activityCoordinator = ProcessInfo.processInfo.arguments.contains("--storefront-live-states") ? nil : activityCoordinator
+#else
+        self.activityCoordinator = activityCoordinator
+#endif
+""")
 store.write_text(source + (capture / "Fixture.swift").read_text())
+application = build / "Sources/MalyshApp.swift"
+application_source = application.read_text().replace("await store.resumeInvitation()", """await store.resumeInvitation()
+                    #if DEBUG && targetEnvironment(simulator)
+                    await StorefrontActivityScene.install(store: store)
+                    #endif""")
+application.write_text(application_source + (capture / "LiveActivityScene.swift").read_text())
 # Preserve the local widget App Group while removing all CloudKit and APS entitlement paths.
 entitlements = build / "Resources/Malysh.entitlements"
 existing = plistlib.loads(entitlements.read_bytes())
@@ -85,7 +99,8 @@ pdf_source = pdf_source.replace("try file.protectContents()", """try file.protec
 pdf.write_text(pdf_source)
 tests = build / "UITests/MalyshUITests.swift"
 tests.write_text(tests.read_text() + (capture / "Scenes.swift").read_text()
-                 + (capture / "features/FeatureScenes.swift").read_text())
+                 + (capture / "features/FeatureScenes.swift").read_text()
+                 + (capture / "LiveActivityScenes.swift").read_text())
 widget = build / "UITests/WidgetSystemUITests.swift"
 widget_source, trailing = widget.read_text().rsplit("}", 1)
 widget.write_text(widget_source + (capture / "WidgetScene.swift").read_text() + "}" + trailing)

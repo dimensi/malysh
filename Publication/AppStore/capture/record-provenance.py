@@ -47,6 +47,11 @@ for filename in args.files:
         item["dimensions"] = [width, height]
     if path.name == "15-pediatrician-report.png": item["method"] = "first page raster of native exported PDF, unmodified content"
     if path.suffix.lower() == ".pdf": item["method"] = "native app PDF export, copied unchanged from isolated Documents"
+    if path.name.startswith("16-live-activities-"):
+        item["fixture"] = "capture/LiveActivityScene.swift"
+        item["presentationMode"] = "native ActivityKit system layout, DEBUG presentation demonstration"
+        item["productionCaveat"] = "Regular app cancels its feeding reminder when breastfeeding starts; only this isolated capture fixture bypasses reconciliation."
+        if path.suffix.lower() == ".json": item["method"] = "native ActivityKit request outcomes and synthetic state evidence"
     data["sources"][relative] = item
 temporary = manifest.with_suffix(".json.tmp")
 temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")

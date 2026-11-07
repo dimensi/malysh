@@ -87,20 +87,7 @@ async function validateInput(job, frames, sourceHashes, provenance) {
         }
       }
     }
-    const crop = job.composition?.crops?.[sourceIndex];
-    if (
-      crop &&
-      (crop.rect.x < 0 ||
-        crop.rect.y < 0 ||
-        crop.rect.x + crop.rect.width > metadata.width ||
-        crop.rect.y + crop.rect.height > metadata.height ||
-        job.composition.sourceSize[0] !== metadata.width ||
-        job.composition.sourceSize[1] !== metadata.height)
-    ) {
-      throw new Error(
-        `${filename}: геометрия нативной карточки не соответствует снимку. Обновите crop в studio/catalog.json.`,
-      );
-    }
+
   }
   for (const key of jobFrames(job)) {
     const frame = frames[key];
@@ -134,6 +121,14 @@ async function renderOne(
   provenance,
   mockupSources,
 ) {
+  // A document's white margins are part of the page, not padding to trim.
+  // Render it at the source size so future page formats stay intact too.
+  if (job.layout === "document") {
+    const { width, height } = await sharp(
+      path.join(root, job.sources[0]),
+    ).metadata();
+    job = { ...job, width, height, transparent: false };
+  }
   const page = await browser.newPage({
     viewport: { width: job.width, height: job.height },
     deviceScaleFactor: 1,
@@ -262,15 +257,6 @@ async function renderOne(
       sha256: hash(image),
       release: catalog.release,
       commit: catalog.commit,
-      composition: job.composition
-        ? {
-            ...job.composition,
-            crops: job.composition.crops.map((crop, index) => ({
-              ...crop,
-              source: job.sources[index],
-            })),
-          }
-        : undefined,
       sources: job.sources.map((filename) => ({
         path: filename,
         ...(provenance.sources?.[filename] || {
@@ -289,9 +275,7 @@ async function renderOne(
         originalURL: mockupSources.devices?.[key]?.url,
         license: mockupSources.license,
         screen: frames[key].screen,
-        screenshotFit: job.composition
-          ? "native state crops, preserved aspect ratio"
-          : "contain",
+        screenshotFit: "contain",
       })),
     };
   } finally {

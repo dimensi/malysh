@@ -13,9 +13,6 @@ export function buildJobs(catalog, frames) {
         height,
         kind: "iphone",
         sources: sources(slide),
-        composition: slide.composition
-          ? catalog.compositions[slide.composition]
-          : undefined,
       });
   }
   for (const slide of catalog.watchSlides)
@@ -58,32 +55,17 @@ export function buildJobs(catalog, frames) {
       key === "pdf"
         ? 1697
         : Math.round((width * geometry.height) / geometry.width);
-    const composition =
-      key === "liveActivities"
-        ? catalog.compositions.liveActivities
-        : undefined;
     jobs.push({
       id,
       device: "site",
       width,
       height,
       kind: "site",
-      layout: composition
-        ? "activities"
-        : key === "pdf"
-          ? "document"
-          : "single",
+      layout: key === "pdf" ? "document" : "single",
       frame,
-      composition,
-      sources: composition
-        ? [
-            catalog.sources.island,
-            catalog.sources.lock,
-            catalog.sources.reminder,
-          ]
-        : [catalog.sources[key]],
+      sources: [catalog.sources[key]],
       extension: "webp",
-      transparent: true,
+      transparent: key !== "pdf",
     });
   }
   jobs.push({

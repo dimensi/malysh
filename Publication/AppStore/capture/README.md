@@ -80,3 +80,40 @@ rtk proxy python3 Publication/AppStore/capture/capture-duo-inner.py "$DUO_UDID"
 В текущем прогоне 7 ноября 2026 штатная кнопка **Open** успешно включила внутренний экран: он показал настоящий UI, в отличие от прежней попытки одного переключения питания.
 
 Точные результаты проверки текущего набора и идентификаторы симуляторов — в `provenance.json`. Необязательные наборы без настоящего источника остаются явно незавершёнными в генераторе. Изображения настоящего UI не ретушируются. Архивы ZIP не создаются.
+
+
+## Один настоящий системный кадр Live Activities
+
+Проверенное условие автоматического повтора — **чистый запуск выделенного симулятора**: выключите его по `CAPTURE_UDID`, если он ещё запущен, затем выполните `xcrun simctl boot` и `xcrun simctl bootstatus "$CAPTURE_UDID" -b`. Устройства пользователя не перезапускайте.
+
+```sh
+rtk proxy bash Publication/AppStore/capture/capture-iphone.sh "$CAPTURE_UDID" \
+  Publication/AppStore/raw MalyshUITests/StorefrontLiveActivityScenes/testNativeLockScreenStates
+```
+
+`LiveActivityScene.swift` существует только в временной DEBUG-сборке для симулятора. Флаг `--storefront-live-states` напрямую запрашивает настоящие `CareActivityAttributes` (кормление 12 минут, сон 43 минуты) и `FeedingReminderActivityAttributes` (3 часа). Штатное расширение рисует карточки, а SpringBoard выбирает раскладку и фон. Снимок `raw/16-live-activities-lock-screen.png` сохраняется целиком, без вырезания и перестановки частей.
+
+Это демонстрация системных состояний: обычное приложение отменяет напоминание при старте кормления. Только эта фикстура отключает автоматическое согласование активностей, чтобы проверить возможности нативной презентации. Не следует описывать кадр как обычный одновременный режим дневника. Результаты каждого системного запроса, включая возможный `targetMaximumExceeded`, сохраняются в `raw/16-live-activities-state.json` и учитываются при визуальной проверке. Код production-приложения и WidgetKit UI не меняются; CloudKit/APNs удалены из временных entitlements, личные Apple ID не используются.
+
+### Проверенный системный способ и предел автоматизации
+
+Готовый исходник от 8 ноября 2026 получен через прямой запуск изолированной сборки и штатное раскрытие группы в Device Hub. iOS 27.2 действительно отрисовала все три карточки одновременно. Автоматический XCTest-сценарий дополнительно проверяет `isHittable` контролов всех трёх карточек и не сохраняет неполный кадр. Проверка 8 ноября 2026 после перезапуска выделенного симулятора успешна: **1 сценарий, 0 ошибок**, автоматически раскрыты три настоящие карточки. Промоисточник при проверке не перезаписывался. На этой версии симулятора повторный XCTest-запуск после ручного взаимодействия иногда возвращал онбординг вместо подготовленного дневника; чистый перезапуск устранил сбой. У свёрнутой группы accessibility-позиция оказалась `y=0`, поэтому сценарий нажимает на наблюдаемое тело группы, не на кнопки действий. Если пойман повторный сбой старта, перезапустите только выделенный симулятор и повторите эту съёмку, либо используйте проверенный способ ниже.
+
+Если автоматическая съёмка остановилась, установленную временную сборку можно запустить прямо:
+
+```sh
+rtk proxy xcrun simctl launch --terminate-running-process "$CAPTURE_UDID" dev.dimensi.malysh \
+  --ui-testing --reset-data --storefront-fixture --storefront-live-states --light-mode \
+  -AppleLanguages '(ru)' -AppleLocale ru_RU
+```
+
+В Device Hub выберите **только выделенный** `Malysh – App Store Launch…`, дождитесь главного экрана Ванечки, затем **Controls → Lock**, **Home**. Нажмите на группу активностей, разрешите их показ, если iOS спросит, и убедитесь, что видны кормление, сон и напоминание. Ничего не вырезайте: сохраняется полный кадр.
+
+```sh
+rtk proxy xcrun simctl io "$CAPTURE_UDID" screenshot Publication/AppStore/raw/16-live-activities-lock-screen.png
+CAPTURE_DATA=$(rtk proxy xcrun simctl get_app_container "$CAPTURE_UDID" dev.dimensi.malysh data)
+rtk proxy cp "$CAPTURE_DATA/Documents/StorefrontLiveActivities.json" Publication/AppStore/raw/16-live-activities-state.json
+rtk proxy python3 Publication/AppStore/capture/record-provenance.py --repo "$PWD" --release v1.13.0 --udid "$CAPTURE_UDID" \
+  Publication/AppStore/raw/16-live-activities-lock-screen.png Publication/AppStore/raw/16-live-activities-state.json
+rtk proxy xcrun simctl shutdown "$CAPTURE_UDID"
+```

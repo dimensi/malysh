@@ -23,6 +23,12 @@ if any(pathlib.Path(file).name == "15-pediatrician-pdf.png" for file in files):
     shutil.copyfile(original, pdf)
     subprocess.run(["swift", str(capture / "raster-pdf.swift"), str(pdf), str(png)], check=True)
     files += [str(pdf.resolve()), str(png.resolve())]
+if any(pathlib.Path(file).name == "16-live-activities-lock-screen.png" for file in files):
+    container = pathlib.Path(subprocess.check_output(["xcrun", "simctl", "get_app_container", udid,
+                                                     "dev.dimensi.malysh", "data"], text=True).strip())
+    evidence = output / "16-live-activities-state.json"
+    shutil.copyfile(container / "Documents/StorefrontLiveActivities.json", evidence)
+    files.append(str(evidence.resolve()))
 if files:
     subprocess.run([sys.executable, str(capture / "record-provenance.py"), "--repo", repo,
                     "--release", release, "--udid", udid, *files], check=True)

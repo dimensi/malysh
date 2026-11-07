@@ -489,6 +489,40 @@
       "display": 3,
       "posture": "Open",
       "orientation": "landscape"
+    },
+    "raw/16-live-activities-lock-screen.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS-27-2",
+      "scene": "16-live-activities-lock-screen",
+      "sha256": "0dab30ae28e4d27d05de44a88782ba32bc5e6bca93c2d82c0f195e9bca45a225",
+      "exportedAt": "2026-11-07T21:15:11.064082+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/LiveActivityScene.swift",
+      "syntheticData": true,
+      "simulatorUDID": "EBE6EBD4-1147-4E1B-AB4B-94FE191929BF",
+      "dimensions": [
+        1320,
+        2868
+      ],
+      "presentationMode": "native ActivityKit system layout, DEBUG presentation demonstration",
+      "productionCaveat": "Regular app cancels its feeding reminder when breastfeeding starts; only this isolated capture fixture bypasses reconciliation."
+    },
+    "raw/16-live-activities-state.json": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS-27-2",
+      "scene": "16-live-activities-state",
+      "sha256": "0e62b426e7ce6a871d00358af09f641c64e0c5615f1d4b5233ad663d2e62519b",
+      "exportedAt": "2026-11-07T21:14:25.251606+00:00",
+      "method": "native ActivityKit request outcomes and synthetic state evidence",
+      "fixture": "capture/LiveActivityScene.swift",
+      "syntheticData": true,
+      "simulatorUDID": "EBE6EBD4-1147-4E1B-AB4B-94FE191929BF",
+      "presentationMode": "native ActivityKit system layout, DEBUG presentation demonstration",
+      "productionCaveat": "Regular app cancels its feeding reminder when breastfeeding starts; only this isolated capture fixture bypasses reconciliation."
     }
   },
   "release": "v1.13.0",
