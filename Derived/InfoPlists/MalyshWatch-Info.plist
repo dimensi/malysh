@@ -43,5 +43,7 @@
 	<string>$(MALYSH_WATCH_COMPANION)</string>
 	<key>WKRunsIndependentlyOfCompanionApp</key>
 	<true/>
+	<key>WKSupportsLiveActivityLaunchAttributeTypes</key>
+	<array/>
 </dict>
 </plist>
