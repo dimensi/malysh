@@ -1,0 +1,214 @@
+{
+  "release": "1.13.0",
+  "commit": "6001cb1",
+  "locale": "ru-RU",
+  "font": "assets/fonts/manrope.ttf",
+  "mockups": "assets/mockups.json",
+  "sources": {
+    "today": "raw/01-today.png",
+    "family": "raw/01-family-parent.png",
+    "history": "raw/04-history.png",
+    "statistics": "raw/05-statistics.png",
+    "measurements": "raw/06a-weight.png",
+    "feeding": "raw/02-feeding.png",
+    "island": "raw/12a-dynamic-island-expanded.png",
+    "lock": "raw/10-lock-screen.png",
+    "reminder": "raw/14-reminder-live.png",
+    "widgets": "raw/11-home-widget.png",
+    "gallery": "raw/08-gallery.png",
+    "watchDiary": "raw/watch/01-watch-diary.png",
+    "watchFeeding": "raw/watch/02-watch-feeding.png",
+    "watchSleep": "raw/watch/03-watch-sleep.png",
+    "pdfPhone": "raw/15-pediatrician-pdf.png",
+    "pdf": "raw/15-pediatrician-report.png"
+  },
+  "slides": [
+    {
+      "id": "01-together",
+      "title": "Один дневник\nдля двух родителей",
+      "description": "Кормления, сон и подгузники — вместе",
+      "layout": "family",
+      "tone": "lilac",
+      "screens": ["today", "family"],
+      "labels": ["Лена", "Миша"]
+    },
+    {
+      "id": "02-care",
+      "title": "Кормления, сон\nи подгузники",
+      "description": "Всё важное о малыше в одном месте",
+      "layout": "single",
+      "tone": "cream",
+      "screens": ["today"]
+    },
+    {
+      "id": "03-day",
+      "title": "Всё, что было\nза день",
+      "description": "История и понятные итоги",
+      "layout": "pair",
+      "tone": "blue",
+      "screens": ["history", "statistics"]
+    },
+    {
+      "id": "04-growth",
+      "title": "Как растёт\nмалыш",
+      "description": "Вес, рост и окружность головы",
+      "layout": "single",
+      "tone": "cream",
+      "screens": ["measurements"]
+    },
+    {
+      "id": "05-timers",
+      "title": "Важное всегда\nна виду",
+      "description": "Кормление, сон и напоминания",
+      "layout": "activities",
+      "tone": "night",
+      "screens": ["island", "lock", "reminder"],
+      "composition": "liveActivities",
+      "caption": "Варианты Live Activities"
+    },
+    {
+      "id": "07-widgets",
+      "title": "Дневник на\nглавном экране",
+      "description": "Кормления и сон одним взглядом",
+      "layout": "single",
+      "tone": "lilac",
+      "screens": ["widgets"]
+    },
+    {
+      "id": "08-watch",
+      "title": "Записи\nс запястья",
+      "description": "Кормления, сон и подгузники на Apple Watch",
+      "layout": "watch",
+      "tone": "night",
+      "screens": ["watchDiary"]
+    },
+    {
+      "id": "09-photos",
+      "title": "Фото первых\nмесяцев",
+      "description": "Сохраните маленькие большие моменты",
+      "layout": "single",
+      "tone": "peach",
+      "screens": ["gallery"]
+    },
+    {
+      "id": "10-report",
+      "title": "Отчёт\nдля педиатра",
+      "description": "Измерения и записи в одном PDF",
+      "layout": "report",
+      "tone": "blue",
+      "screens": ["pdfPhone", "pdf"]
+    }
+  ],
+  "watchSlides": [
+    {
+      "id": "01-diary",
+      "title": "Дневник\nна запястье",
+      "tone": "lilac",
+      "screens": ["watchDiary"]
+    },
+    {
+      "id": "02-feeding",
+      "title": "Кормление\nс часов",
+      "tone": "cream",
+      "screens": ["watchFeeding"]
+    },
+    {
+      "id": "03-sleep",
+      "title": "Время\nдля сна",
+      "tone": "night",
+      "screens": ["watchSleep"]
+    }
+  ],
+  "duoSlides": [
+    {
+      "id": "01-diary",
+      "title": "Всё важное\nо малыше",
+      "description": "Дневник на iPhone Duo",
+      "tone": "lilac",
+      "filename": "01-today.png"
+    },
+    {
+      "id": "02-history",
+      "title": "День\nза днём",
+      "description": "Кормления, сон и подгузники",
+      "tone": "cream",
+      "filename": "04-history.png"
+    },
+    {
+      "id": "03-statistics",
+      "title": "День\nв цифрах",
+      "description": "Итоги всегда под рукой",
+      "tone": "blue",
+      "filename": "05-statistics.png"
+    }
+  ],
+  "site": {
+    "mom-diary": "today",
+    "dad-history": "family",
+    "care": "today",
+    "statistics": "statistics",
+    "measurements": "measurements",
+    "island": "island",
+    "lock": "lock",
+    "reminder": "reminder",
+    "watch-diary": "watchDiary",
+    "watch-feeding": "watchFeeding",
+    "widgets": "widgets",
+    "gallery": "gallery",
+    "pdf-phone": "pdfPhone",
+    "pdf": "pdf",
+    "live-activities": "liveActivities"
+  },
+  "compositions": {
+    "liveActivities": {
+      "kind": "composition of native states",
+      "background": "#211a2b",
+      "note": "Варианты Live Activities",
+      "sourceSize": [1320, 2868],
+      "crops": [
+        {
+          "rect": {
+            "x": 41,
+            "y": 41,
+            "width": 1238,
+            "height": 266
+          },
+          "radius": 133,
+          "position": {
+            "left": 3.1,
+            "top": 1.43,
+            "width": 93.8
+          }
+        },
+        {
+          "rect": {
+            "x": 41,
+            "y": 2132,
+            "width": 1238,
+            "height": 329
+          },
+          "radius": 78,
+          "position": {
+            "left": 3.1,
+            "top": 32,
+            "width": 93.8
+          }
+        },
+        {
+          "rect": {
+            "x": 41,
+            "y": 1989,
+            "width": 1238,
+            "height": 472
+          },
+          "radius": 78,
+          "position": {
+            "left": 3.1,
+            "top": 57,
+            "width": 93.8
+          }
+        }
+      ]
+    }
+  }
+}

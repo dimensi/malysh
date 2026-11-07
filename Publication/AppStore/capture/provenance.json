@@ -1,0 +1,517 @@
+{
+  "sources": {
+    "raw/01-today.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "01-today",
+      "sha256": "891fe487255718f67745a498529787a2b3f3f2550179b414f19b310f743460e4",
+      "exportedAt": "2026-11-07T20:34:01.944190+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/01-family-parent.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "01-family-parent",
+      "sha256": "2b47d185c70f5f37d9b06b82edadbfceb899cb0498cff22d803e67167a460537",
+      "exportedAt": "2026-11-07T20:34:01.941295+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/04-history.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "04-history",
+      "sha256": "2b47d185c70f5f37d9b06b82edadbfceb899cb0498cff22d803e67167a460537",
+      "exportedAt": "2026-11-07T20:34:01.942888+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/05-statistics.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "05-statistics",
+      "sha256": "e0a7a966192f1fa16286dab92208246e970797622d4972275cafaf153df6debf",
+      "exportedAt": "2026-11-07T20:34:01.939959+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/06-profile.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "06-profile",
+      "sha256": "97caf53cbf005124e0fb83b6217295eb11eff0a8a2c828dc054dc5d61f9917db",
+      "exportedAt": "2026-11-07T20:34:01.937482+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/06a-weight.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "06a-weight",
+      "sha256": "7a5d47a9ae38ec3a10b09c4ba8527548e7bf71af16f1a0d8e73b89581d777c91",
+      "exportedAt": "2026-11-07T20:34:01.934958+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/08-gallery.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "08-gallery",
+      "sha256": "85b007b084224bc08d146c05629c5393b2bb4b32435b05bf1b766c12cf35cbeb",
+      "exportedAt": "2026-11-07T20:34:01.933712+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/07-family.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "07-family",
+      "sha256": "f4f956952f4ba8f7e46cdc557e253c8f9e08e7f1c6f484808d69ba64fa2706be",
+      "exportedAt": "2026-11-07T20:34:01.932080+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/02-feeding.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "02-feeding",
+      "sha256": "3fe9e8853878c0831c72ecec19e3f21b55ffb6b2b28bbd970e8572dd784e0e5b",
+      "exportedAt": "2026-11-07T20:34:01.950912+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/03-sleep.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "03-sleep",
+      "sha256": "5a35337a5fd3852d059da0b0c203a856dfc82453b8e303a2f7dff51b17c5f3a7",
+      "exportedAt": "2026-11-07T20:25:52.499727+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/09-onboarding.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "09-onboarding",
+      "sha256": "686bcc12de1daecf85bbc49c67b141136816aa683376e8309f59486ae26c2184",
+      "exportedAt": "2026-11-07T20:25:52.501061+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/10-lock-screen.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "10-lock-screen",
+      "sha256": "e28850f15710060dd5a12bfa04609701e481816a71cd175b233082200fcce0be",
+      "exportedAt": "2026-11-07T20:25:52.494880+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/12a-dynamic-island-expanded.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "12a-dynamic-island-expanded",
+      "sha256": "ea89474d24e51b80ad38d055c30db3c7f7eef847c68a6cb74bb22e31fedd1525",
+      "exportedAt": "2026-11-07T20:34:01.949351+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/13-feeding-reminder.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "13-feeding-reminder",
+      "sha256": "b922d709d0389c1c606abd563b45ea5f85997d37fefc7a656857347de216cf5c",
+      "exportedAt": "2026-11-07T20:34:01.930815+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/14-reminder-live.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "14-reminder-live",
+      "sha256": "891862c370d05de26a8fcb3003548b195bdcb6553d120ccb050ea50330a7a2be",
+      "exportedAt": "2026-11-07T20:34:01.929780+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/11-home-widget.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "11-home-widget",
+      "sha256": "0e6b560c749ca02ad8caa6ad8d212c81b5cc4c5e7f1fdc099a26b37909d188e4",
+      "exportedAt": "2026-11-07T20:36:14.282127+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/15-pediatrician-pdf.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "15-pediatrician-pdf",
+      "sha256": "e785a2a10f1a7f1df78c2dd6ff31ce1b99e2c6ad7d7bce83d0e8e638e59aca9e",
+      "exportedAt": "2026-11-07T20:34:01.954789+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1320,
+        2868
+      ]
+    },
+    "raw/15-pediatrician-report.pdf": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "15-pediatrician-report",
+      "sha256": "7f4b13cfc50f1cc4ac64bcb6a444cbaa6ff0bb2f853317b0de83ebfd1d8a5973",
+      "exportedAt": "2026-11-07T20:34:12.417005+00:00",
+      "method": "native v1.13.0 PDF export, copied unchanged from isolated Documents",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9"
+    },
+    "raw/15-pediatrician-report.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone 18 Pro Max",
+      "runtime": "iOS 27.2 (24B8117)",
+      "scene": "15-pediatrician-report",
+      "sha256": "757cb3dd56b4462f89ed2f82a9e8c1026b71a4e8b163c183d3d05413472cb82b",
+      "exportedAt": "2026-11-07T20:34:12.890064+00:00",
+      "method": "first page raster of native exported PDF, unmodified content",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
+      "dimensions": [
+        1191,
+        1684
+      ]
+    },
+    "raw/watch/01-watch-diary.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "Apple Watch Ultra 4 49mm",
+      "runtime": "watchOS-27-2",
+      "scene": "01-watch-diary",
+      "sha256": "57e2f0b0257ce0892cda977cdc7bcdf119ac552d848f00db05955499ccdbea12",
+      "exportedAt": "2026-11-07T20:37:10.495917+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/watch-fixture.py",
+      "syntheticData": true,
+      "simulatorUDID": "7D1D388B-DAA3-4B90-A340-86AF6070DC95",
+      "dimensions": [
+        422,
+        514
+      ]
+    },
+    "raw/watch/02-watch-feeding.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "Apple Watch Ultra 4 49mm",
+      "runtime": "watchOS-27-2",
+      "scene": "02-watch-feeding",
+      "sha256": "17b05c9fe51584ec0186fe6ae2d465ca90a6cb68191581065ff59beb8f0c9e7d",
+      "exportedAt": "2026-11-07T20:40:22.792659+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/watch-fixture.py",
+      "syntheticData": true,
+      "simulatorUDID": "7D1D388B-DAA3-4B90-A340-86AF6070DC95",
+      "dimensions": [
+        422,
+        514
+      ]
+    },
+    "raw/watch/03-watch-sleep.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "Apple Watch Ultra 4 49mm",
+      "runtime": "watchOS-27-2",
+      "scene": "03-watch-sleep",
+      "sha256": "b28653b256a20a1faac818e9823c999b00794d537f5436be32c16a852e6e9c70",
+      "exportedAt": "2026-11-07T20:38:14.187414+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/watch-fixture.py",
+      "syntheticData": true,
+      "simulatorUDID": "7D1D388B-DAA3-4B90-A340-86AF6070DC95",
+      "dimensions": [
+        422,
+        514
+      ]
+    },
+    "raw/duo-outer/05-statistics.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone Duo",
+      "runtime": "iOS-27-2-iPhone19-4",
+      "scene": "05-statistics",
+      "sha256": "b4eb886c5c32a26e71dec06e4e5be0eb38421672b072f8ebd0d88117c3b93d50",
+      "exportedAt": "2026-11-07T20:45:07.182234+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
+      "dimensions": [
+        1398,
+        2034
+      ],
+      "display": 1,
+      "posture": "Closed",
+      "orientation": "portrait"
+    },
+    "raw/duo-outer/04-history.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone Duo",
+      "runtime": "iOS-27-2-iPhone19-4",
+      "scene": "04-history",
+      "sha256": "34ee4f792f2a2970329acbfae9f1d06113675fa281274a67f0ef3d1a1584d3f8",
+      "exportedAt": "2026-11-07T20:45:07.182546+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
+      "dimensions": [
+        1398,
+        2034
+      ],
+      "display": 1,
+      "posture": "Closed",
+      "orientation": "portrait"
+    },
+    "raw/duo-outer/01-today.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone Duo",
+      "runtime": "iOS-27-2-iPhone19-4",
+      "scene": "01-today",
+      "sha256": "05c46ae766633c46698bdda0d809eae20e25e71c3657f4dd11bc57b6a861cbc5",
+      "exportedAt": "2026-11-07T20:45:07.182817+00:00",
+      "method": "native simulator screenshot",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
+      "dimensions": [
+        1398,
+        2034
+      ],
+      "display": 1,
+      "posture": "Closed",
+      "orientation": "portrait"
+    },
+    "raw/duo-inner/05-statistics.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone Duo",
+      "runtime": "iOS-27-2-iPhone19-4",
+      "scene": "05-statistics",
+      "sha256": "c6cce06e34f2b19879432aec07c89638a49768e5084f5eb7a037bd79af8759ca",
+      "exportedAt": "2026-11-07T20:49:47.847866+00:00",
+      "method": "native simctl screenshot of active display 3",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
+      "dimensions": [
+        2853,
+        2007
+      ],
+      "display": 3,
+      "posture": "Open",
+      "orientation": "landscape"
+    },
+    "raw/duo-inner/04-history.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone Duo",
+      "runtime": "iOS-27-2-iPhone19-4",
+      "scene": "04-history",
+      "sha256": "b061d5bf3244913298364276363c137caff6b70339d484102b750a10f9e80888",
+      "exportedAt": "2026-11-07T20:49:47.847542+00:00",
+      "method": "native simctl screenshot of active display 3",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
+      "dimensions": [
+        2853,
+        2007
+      ],
+      "display": 3,
+      "posture": "Open",
+      "orientation": "landscape"
+    },
+    "raw/duo-inner/01-today.png": {
+      "release": "v1.13.0",
+      "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+      "device": "iPhone Duo",
+      "runtime": "iOS-27-2-iPhone19-4",
+      "scene": "01-today",
+      "sha256": "22bc6e2505e26a13fd3d70a65e4c2937172c729568d5df5bd0fa33016f697dc5",
+      "exportedAt": "2026-11-07T20:49:47.847103+00:00",
+      "method": "native simctl screenshot of active display 3",
+      "fixture": "capture/Fixture.swift",
+      "syntheticData": true,
+      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
+      "dimensions": [
+        2853,
+        2007
+      ],
+      "display": 3,
+      "posture": "Open",
+      "orientation": "landscape"
+    }
+  },
+  "release": "v1.13.0",
+  "commit": "6001cb1bf6413e0ab7d9427ba4044ce96aaf73b5",
+  "fixtureDescription": {
+    "baby": "Ванечка, 107 дней; полностью синтетические данные",
+    "parents": [
+      "Лена — мама",
+      "Миша — папа"
+    ],
+    "storage": "DEBUG UI-testing local store; CloudKit and APNs entitlements removed in disposable build",
+    "familyDemonstration": "Shared diary UI with local shared store; no real iCloud sharing or Apple IDs",
+    "photos": "Four local toy illustrations generated by capture/album.py; no personal photography",
+    "watch": "Real watchOS UI displaying local WatchLocalState JSON; not a WatchConnectivity integration test"
+  },
+  "validation": {
+    "iphone": "Five final capture tests passed: diary, active feeding/Island, PDF, reminder, widget. Sources reviewed; duplicate native home widget removed through Device Hub and recaptured.",
+    "watch": "Three native watchOS snapshots reviewed with child name and system time visible.",
+    "duoOuter": "testDuoScreens passed, three native 1398×2034 screens reviewed.",
+    "duoInner": "testDuoScreens passed; explicit simctl display 3 captured three native 2853×2007 landscape screens. All reviewed, nonblack and dimensions validated. XCUIScreen.main uses powered-off display 1 and is deliberately bypassed by capture-duo-inner.py.",
+    "simulatorLifecycle": "One task-dedicated simulator at a time. Pro Max and Watch deleted before switching models. Final Duo retained shutdown for future work; personal and other worktree devices untouched."
+  },
+  "legacySources": {
+    "raw/iphone-medium": "Previous v1.12.0 capture, not used to represent the v1.13.0 set."
+  }
+}

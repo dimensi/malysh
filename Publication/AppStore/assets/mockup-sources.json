@@ -1,0 +1,98 @@
+{
+  "provider": "Plinth",
+  "license": "https://plinthmockups.com/terms",
+  "usage": "Completed mockups may be used commercially. Blank templates remain in the local ignored cache and must not be redistributed.",
+  "devices": {
+    "iphone": {
+      "model": "iPhone 18 Pro",
+      "url": "https://plinthmockups.com/m/iphone-11.5d8a8304e8.webp",
+      "source": "https://plinthmockups.com/?scene=iphone-11",
+      "screen": {
+        "x": 238.5,
+        "y": 153.5,
+        "width": 547,
+        "height": 1175,
+        "radius": 68.5
+      },
+      "island": {
+        "x": 432.9,
+        "y": 171.6,
+        "width": 158.2,
+        "height": 43.5,
+        "radius": 21.8
+      },
+      "sha256": "5d8a8304e876eb6f534cbf45a28820e4daf6d8c74066b8a5dfa58a45b0afd953"
+    },
+    "iphone-silver": {
+      "model": "iPhone 18 Pro Silver",
+      "url": "https://plinthmockups.com/m/iphone-11-silver.e2d5ed2206.webp",
+      "source": "https://plinthmockups.com/?scene=iphone-11-silver",
+      "screen": {
+        "x": 239.5,
+        "y": 153.7,
+        "width": 546.1,
+        "height": 1174.8,
+        "radius": 68
+      },
+      "island": {
+        "x": 433.3,
+        "y": 171.5,
+        "width": 157.8,
+        "height": 43.7,
+        "radius": 21.9
+      },
+      "sha256": "e2d5ed220678d632fb535f34407578e0d9406360cc2c0397d59d2fb5aed29cc3"
+    },
+    "watch": {
+      "model": "Apple Watch Ultra 4 Natural Titanium",
+      "url": "https://plinthmockups.com/m/watch-11-natural-titanium.68ac393613.webp",
+      "source": "https://plinthmockups.com/?scene=watch-11-natural-titanium",
+      "screen": {
+        "x": 282.5,
+        "y": 445.15,
+        "width": 460,
+        "height": 563.35,
+        "radius": 112
+      },
+      "sha256": "68ac39361326396615bc2d9a5a9d795b79b25388df94331228708c76aac1ad53"
+    },
+    "duo-outer": {
+      "model": "iPhone Duo Closed",
+      "url": "https://plinthmockups.com/m/duo-11.a58eb5ca74.webp",
+      "source": "https://plinthmockups.com/?scene=duo-11",
+      "screen": {
+        "x": 157,
+        "y": 294.33,
+        "width": 764.67,
+        "height": 1078,
+        "radius": [
+          29.59,
+          94.47,
+          96.74,
+          27.31
+        ]
+      },
+      "island": {
+        "x": 803.9,
+        "y": 346.3,
+        "width": 61.5,
+        "height": 61.8,
+        "radius": 30.9
+      },
+      "sha256": "a58eb5ca7472aaad6d4a28940219d138bd8629d31c4d514a16916e52d82e08ec"
+    },
+    "duo-inner": {
+      "model": "iPhone Duo Open",
+      "url": "https://plinthmockups.com/m/duo-21.a66221dfaf.webp",
+      "source": "https://plinthmockups.com/?scene=duo-21",
+      "screen": {
+        "x": 227.67,
+        "y": 155.67,
+        "width": 1139.33,
+        "height": 801.33,
+        "radius": 74
+      },
+      "sha256": "a66221dfaf4c4c5a78862fb9c544dcf92511ddf56cd0a67a2a4275b6823273e2"
+    }
+  }
+}

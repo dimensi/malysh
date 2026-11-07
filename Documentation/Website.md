@@ -25,3 +25,19 @@ rtk proxy npx --yes wrangler@4.158.0 pages deploy Website --project-name=malysh 
 ```
 
 К проекту добавлен поддомен `malysh.dimensi.dev`. В зоне `dimensi.dev` для него задан отдельный CNAME на `malysh.pages.dev`. Состояние и сертификат управляются в **Cloudflare Pages → malysh → Custom domains**.
+
+## Изображения и локальная галерея
+
+Повторно используемый генератор находится в [Publication/AppStore](../Publication/AppStore/README.md). Он использует реальные снимки из изолированного симулятора, сохранённые в `raw/`, и локально кэшированные готовые корпуса устройств. Веб-шрифт Manrope с кириллицей и лицензией OFL поставляется вместе с сайтом.
+
+После обновления исходных кадров:
+
+```sh
+npm --prefix Publication/AppStore run render -- --device site
+npm --prefix Publication/AppStore run site-assets
+npm --prefix Publication/AppStore run gallery
+```
+
+`site-assets` переносит только проверенные результаты в `Website/screens` и шрифт в `Website/fonts`. Эти готовые изображения входят в Git; CI сайта не скачивает сторонние мокапы и не требует Xcode или браузерного рендера. Публикация начинается только после изменения `main` или отдельной разрешённой разовой загрузки. Для GitHub Actions нужен отдельный секрет `CLOUDFLARE_API_TOKEN`; локальная авторизация его не заменяет.
+
+Галерея открывается локально и позволяет скачать каждое изображение отдельно. ZIP-архив не используется. Для обновления App Store Connect выберите файлы по устройству и размеру в галерее; сам генератор ничего туда не загружает.

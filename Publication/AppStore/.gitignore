@@ -1,0 +1,5 @@
+node_modules/
+output/
+.render-*/
+.render.lock
+.cache/
