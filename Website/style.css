@@ -1,10 +1,3 @@
-@font-face {
-  font-family: Manrope;
-  src: url("fonts/manrope.ttf") format("truetype");
-  font-weight: 200 800;
-  font-style: normal;
-  font-display: swap;
-}
 :root {
   color-scheme: light;
   --accent: #6b4794;

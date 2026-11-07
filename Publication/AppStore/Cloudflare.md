@@ -1,28 +1,29 @@
-# Подключение сайта к Cloudflare Pages через GitHub
+# Сборка сайта в Cloudflare Pages
 
-Проверено 8 ноября 2026: проект `malysh` обслуживает `malysh.pages.dev` и `malysh.dimensi.dev`, поле Git Provider — No. Это существующий Direct Upload проект; ручные обновления работают через уже авторизованный Wrangler.
+Проект `malysh` подключён к GitHub и обслуживает `malysh.dimensi.dev`. Отдельный GitHub Actions workflow для сайта не нужен: Cloudflare сам собирает изменения подключённой ветки.
 
-## Форма Connect to a repository
-
-Для Git integration отдельный GitHub Actions workflow и секрет Cloudflare в GitHub не нужны. Используйте:
+В Settings → Builds & deployments укажите:
 
 | Поле | Значение |
 | --- | --- |
-| Git account | `dimensi` |
-| Repository | `malysh` |
+| Repository | `dimensi/malysh` |
 | Framework preset | `None` |
-| Build command | `exit 0` |
-| Build output directory | `Website` |
-| Root directory | оставить пустым — корень репозитория |
-| Production branch после слияния PR #32 | `main` |
-| Ветка для предварительной проверки до слияния | `nnafranets/feature/app-store-launch` |
+| Root directory | `Website` |
+| Build command | `npm ci && npm run build` |
+| Build output directory | `dist` |
+| Environment variable | `NODE_VERSION=24.21.0` |
+| Production branch | `main` после слияния PR |
 
-`Website` содержит уже готовые HTML/CSS, шрифты и изображения; запускать генератор промо в Cloudflare не нужно. В `main` на момент проверки этой папки ещё нет. При выборе main до слияния PR сборка не найдёт каталог. Рабочая ветка подходит для проверки в новом Pages-проекте; основной домен переносится только после проверки успешного деплоя.
+До слияния проверяйте preview ветки `nnafranets/feature/app-store-launch`. Слияние выполняется отдельно владельцем. В Build watch paths можно включить `Website/*`, чтобы изменения приложения не пересобирали сайт.
 
-## Ограничение существующего проекта
+Локальная проверка:
 
-По действующей документации Cloudflare Direct Upload проект нельзя переключить на Git integration. Для этого нужен новый **Pages-проект в том же аккаунте и с тем же репозиторием**. Существующий `malysh` и действующий домен сохраняются до готовности замены. После успешной проверки нового проекта можно перенести `malysh.dimensi.dev` в его Custom domains и переключить production branch на main после разрешённого слияния.
+```sh
+npm --prefix Website ci
+npm --prefix Website run build
+npm --prefix Website run preview
+```
 
-До перехода действующий workflow `.github/workflows/website.yml` остаётся альтернативой для текущего проекта. Он требует `CLOUDFLARE_API_TOKEN` (Pages Edit) и `CLOUDFLARE_ACCOUNT_ID`. После подключения Git integration второй параллельный production-deploy workflow следует отключить, чтобы не поддерживать два конкурирующих способа публикации. Этот документ не выполняет перенос домена и не сливает PR.
+Vite+ собирает три страницы (`/`, `/support`, `/privacy`) и добавляет хеши CSS и изображениям. Публичный адрес `/screens/social-cover.webp` сохранён для Open Graph. Manrope загружается через Google Fonts. Публикуется только `Website/dist`; папка `Publication`, исходники и зависимости на сайт не попадают. Генератор промоматериалов в Cloudflare не запускается.
 
-Источники: [Direct Upload — ограничение переключения](https://developers.cloudflare.com/pages/get-started/direct-upload/), [Git integration](https://developers.cloudflare.com/pages/configuration/git-integration/), [Static HTML](https://developers.cloudflare.com/pages/framework-guides/deploy-anything/).
+Источники: [Cloudflare Git integration](https://developers.cloudflare.com/pages/configuration/git-integration/), [настройки сборки](https://developers.cloudflare.com/pages/configuration/build-configuration/), [Vite+](https://viteplus.dev/).

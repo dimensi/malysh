@@ -34,22 +34,18 @@ try {
     files.push({ entry, bytes });
   }
   await fs.mkdir(path.join(website, "screens"), { recursive: true });
-  await fs.mkdir(path.join(website, "fonts"), { recursive: true });
+  await fs.mkdir(path.join(website, "public/screens"), { recursive: true });
   for (const { entry, bytes } of files)
     await fs.writeFile(
-      path.join(website, "screens", path.basename(entry.path)),
+      path.join(
+        website,
+        path.basename(entry.path) === "social-cover.webp" ? "public/screens" : "screens",
+        path.basename(entry.path),
+      ),
       bytes,
     );
-  await fs.copyFile(
-    path.join(root, catalog.font),
-    path.join(website, "fonts/manrope.ttf"),
-  );
-  await fs.copyFile(
-    path.join(root, "assets/fonts/OFL.txt"),
-    path.join(website, "fonts/OFL-Manrope.txt"),
-  );
   console.log(
-    `Скопировано ${files.length} изображений в ${website}/screens. Публикация выполняется отдельно.`,
+    `Скопировано ${files.length} изображений в ${website}. Публикация выполняется отдельно.`,
   );
 } catch (error) {
   console.error(error.message);

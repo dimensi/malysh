@@ -11,7 +11,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -28,7 +27,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -45,7 +43,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -62,7 +59,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -79,7 +75,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -96,7 +91,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -113,7 +107,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -130,7 +123,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -147,7 +139,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -164,7 +155,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -181,7 +171,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -198,7 +187,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -215,7 +203,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -232,7 +219,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -249,7 +235,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -266,7 +251,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -283,7 +267,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1320,
         2868
@@ -299,8 +282,7 @@
       "exportedAt": "2026-11-07T20:34:12.417005+00:00",
       "method": "native v1.13.0 PDF export, copied unchanged from isolated Documents",
       "fixture": "capture/Fixture.swift",
-      "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9"
+      "syntheticData": true
     },
     "raw/15-pediatrician-report.png": {
       "release": "v1.13.0",
@@ -313,7 +295,6 @@
       "method": "first page raster of native exported PDF, unmodified content",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "C909714F-91FC-4A90-974C-AAB2653E34F9",
       "dimensions": [
         1191,
         1684
@@ -330,7 +311,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/watch-fixture.py",
       "syntheticData": true,
-      "simulatorUDID": "7D1D388B-DAA3-4B90-A340-86AF6070DC95",
       "dimensions": [
         422,
         514
@@ -347,7 +327,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/watch-fixture.py",
       "syntheticData": true,
-      "simulatorUDID": "7D1D388B-DAA3-4B90-A340-86AF6070DC95",
       "dimensions": [
         422,
         514
@@ -364,7 +343,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/watch-fixture.py",
       "syntheticData": true,
-      "simulatorUDID": "7D1D388B-DAA3-4B90-A340-86AF6070DC95",
       "dimensions": [
         422,
         514
@@ -381,7 +359,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
       "dimensions": [
         1398,
         2034
@@ -401,7 +378,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
       "dimensions": [
         1398,
         2034
@@ -421,7 +397,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
       "dimensions": [
         1398,
         2034
@@ -441,7 +416,6 @@
       "method": "native simctl screenshot of active display 3",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
       "dimensions": [
         2853,
         2007
@@ -461,7 +435,6 @@
       "method": "native simctl screenshot of active display 3",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
       "dimensions": [
         2853,
         2007
@@ -481,7 +454,6 @@
       "method": "native simctl screenshot of active display 3",
       "fixture": "capture/Fixture.swift",
       "syntheticData": true,
-      "simulatorUDID": "D2A1EE5E-C293-4098-A427-DC48C0A9C78E",
       "dimensions": [
         2853,
         2007
@@ -501,7 +473,6 @@
       "method": "native simulator screenshot",
       "fixture": "capture/LiveActivityScene.swift",
       "syntheticData": true,
-      "simulatorUDID": "EBE6EBD4-1147-4E1B-AB4B-94FE191929BF",
       "dimensions": [
         1320,
         2868
@@ -520,7 +491,6 @@
       "method": "native ActivityKit request outcomes and synthetic state evidence",
       "fixture": "capture/LiveActivityScene.swift",
       "syntheticData": true,
-      "simulatorUDID": "EBE6EBD4-1147-4E1B-AB4B-94FE191929BF",
       "presentationMode": "native ActivityKit system layout, DEBUG presentation demonstration",
       "productionCaveat": "Regular app cancels its feeding reminder when breastfeeding starts; only this isolated capture fixture bypasses reconciliation."
     }

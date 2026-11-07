@@ -1,5 +1,12 @@
 # Карточка App Store на русском
 
+Это справочник для ручного заполнения App Store Connect. Папку не нужно загружать или подключать к сайту: сборки приложения, сайта и промокартинок её не используют.
+
+- Из таблицы ниже скопируйте значения полей, из `description.ru.txt` — полное описание.
+- `review-notes.en.txt` предназначен для поля заметок ревьюеру; `whats-new-1.13.0.ru.txt` — для обновления версии после первого выпуска.
+- Перед отправкой пройдите `review-checklist.md` и сверьте декларации с `../AppPrivacy.md`.
+- Готовые изображения и их порядок перечислены в [UPLOAD_ORDER.md](../UPLOAD_ORDER.md).
+
 Приложение `dev.dimensi.malysh`, Apple ID `6830627364`, локализация Russian (`ru-RU`). Материалы обновлены на базе `6001cb1` (`v1.13.0`), включая PDF-отчёт. Последнее наблюдение App Store Connect: первый публичный черновик iOS `1.0`, выбранная сборка `1.12.0 (1)`. Это сохранённое состояние до обновления графики, а не новая проверка ASC. Для первого публичного выпуска выберите окончательную обработанную сборку с доступной ссылкой на политику внутри приложения. [Поля приложения](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information) · [Поля версии](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)
 
 | Поле | Значение для App Store Connect |
@@ -23,12 +30,6 @@
 | Age Rating | **4+** · рассчитано и сохранено в App Store Connect. Региональные значения рассчитывает Apple. [Ответы анкеты](review-checklist.md). |
 | App Review Information | [Текст для ревьюера на английском](review-notes.en.txt) и подтверждённые имя, телефон с кодом страны и email владельца или назначенного контакта. Sign-in required — выключен для основного локального сценария. |
 | App Store Version Release | **Manually release this version**. Отправка на проверку и выпуск остаются отдельными действиями владельца. |
-| Screenshots, Header, Search Results | Российская локализация, файлы для соответствующих слотов из комплекта. [Размеры и проверка](asset-specs.md). |
+| Screenshots, Header, Search Results | Российская локализация, файлы для соответствующих слотов из комплекта. [Папки и порядок загрузки](../UPLOAD_ORDER.md). |
 
 [Категории App Store](https://developer.apple.com/app-store/categories/) · [Локализации и регионы](https://developer.apple.com/help/app-store-connect/reference/app-information/app-store-localizations) · [Подготовка страницы приложения](https://developer.apple.com/app-store/product-page/)
-
-## Поиск и позиционирование
-
-Имя в карточке сохраняет бренд «Малыш» и добавляет назначение приложения. Подзаголовок перечисляет три основных сценария. В Keywords собраны конкретные действия, замеры и запросы о новорождённых без повтора слов из Name и Subtitle. В видимых текстах используется нормальная русская орфография с «ё», в поисковых терминах — распространённое написание без неё. Это выбор редакции, частотность запросов не измерялась.
-
-В российской витрине похожие продукты выводят кормления, сон и подгузники в первые строки. AnaBaby выдвигает на первый план подсказки о сне, а Huckleberry — рекомендации и планы. Для «Малыша» первые кадры и описание показывают запись событий, общий дневник для родителей и системные сценарии iPhone и Apple Watch. [Baby Tracker](https://apps.apple.com/ru/app/baby-tracker/id779656557) · [Дневник Малыша](https://apps.apple.com/ru/app/id1444238371) · [AnaBaby](https://apps.apple.com/ru/app/id6756239914) · [Huckleberry](https://apps.apple.com/ru/app/id1169136078)

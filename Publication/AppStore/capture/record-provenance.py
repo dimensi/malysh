@@ -40,7 +40,6 @@ for filename in args.files:
         "fixture": "capture/watch-fixture.py" if "/watch/" in relative else "capture/Fixture.swift",
         "syntheticData": True,
     }
-    if args.udid: item["simulatorUDID"] = args.udid
     if path.suffix.lower() == ".png":
         if raw[:8] != b"\x89PNG\r\n\x1a\n": raise ValueError("Not a PNG: " + filename)
         width, height = struct.unpack(">II", raw[16:24])
