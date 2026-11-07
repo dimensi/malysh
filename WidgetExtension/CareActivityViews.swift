@@ -89,19 +89,21 @@ struct CareActivityLockScreen: View {
     let state: CareActivityAttributes.ContentState
 
     var body: some View {
-        if state.end == nil, state.kind == .breast {
+        if state.kind == .breast {
             CareActivityLockScreenRow {
                 HStack(spacing: AppDesign.Spacing.row) {
                     CareActivityBrandMark()
                     feedingInformation
                 }
             } actions: {
-                CareActivityControls(attributes: attributes, state: state, island: false)
+                if state.end == nil {
+                    CareActivityControls(attributes: attributes, state: state, island: false)
+                }
             }
             .foregroundStyle(.white)
             .padding(14)
         } else if state.end != nil {
-            finishedContent.modifier(CareActivityLockScreenInsets())
+            finishedSleepInformation.modifier(CareActivityLockScreenInsets())
         } else {
             CareActivityLockScreenRow {
                 sleepInformation
@@ -117,15 +119,22 @@ struct CareActivityLockScreen: View {
             Text("\(state.babyName) · \(state.title)")
                 .font(AppDesign.Typography.detail.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
-            CareActivityTimer(start: state.start)
+            CareActivityTimer(start: state.start, end: state.end)
                 .font(.largeTitle.weight(.semibold))
-            if let side = state.side {
-                Text("\(side.label) грудь")
+            if let subtitle = feedingSubtitle {
+                Text(subtitle)
                     .font(AppDesign.Typography.note.weight(.medium))
                     .foregroundStyle(.white.opacity(0.72))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+
+    private var feedingSubtitle: String? {
+        if state.end != nil {
+            return "Кормление завершено"
+        }
+        return state.side.map { "\($0.label) грудь" }
     }
 
     private var sleepInformation: some View {
@@ -137,9 +146,9 @@ struct CareActivityLockScreen: View {
         }
     }
 
-    private var finishedContent: some View {
+    private var finishedSleepInformation: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Label(state.kind == .breast ? "Кормление завершено" : "Сон завершён", systemImage: state.symbol)
+            Label("Сон завершён", systemImage: state.symbol)
                 .font(.headline)
             Text(state.babyName)
                 .font(.caption)

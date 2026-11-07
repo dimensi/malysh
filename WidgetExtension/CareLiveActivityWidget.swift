@@ -27,7 +27,7 @@ struct MalyshWidgetBundle: WidgetBundle {
 struct CareLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: CareActivityAttributes.self) { context in
-            let isFeeding = context.state.kind == .breast && context.state.end == nil
+            let isFeeding = context.state.kind == .breast
             CareActivityLockScreen(attributes: context.attributes, state: context.state)
                 .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
                                        eventID: context.attributes.eventID).url)
