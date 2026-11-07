@@ -89,81 +89,44 @@ struct CareActivityLockScreen: View {
     let state: CareActivityAttributes.ContentState
 
     var body: some View {
-        if state.kind == .breast {
-            CareActivityLockScreenRow {
-                HStack(spacing: AppDesign.Spacing.row) {
-                    CareActivityBrandMark()
-                    feedingInformation
-                }
-            } actions: {
-                if state.end == nil {
-                    CareActivityControls(attributes: attributes, state: state, island: false)
-                }
+        CareActivityLockScreenRow {
+            HStack(spacing: AppDesign.Spacing.row) {
+                CareActivityBrandMark()
+                information
             }
-            .foregroundStyle(.white)
-            .padding(14)
-        } else if state.end != nil {
-            finishedSleepInformation.modifier(CareActivityLockScreenInsets())
-        } else {
-            CareActivityLockScreenRow {
-                sleepInformation
-            } actions: {
+        } actions: {
+            if state.end == nil {
                 CareActivityControls(attributes: attributes, state: state, island: false)
             }
-            .modifier(CareActivityLockScreenInsets())
         }
+        .foregroundStyle(state.kind == .breast ? Color.white : .primary)
+        .padding(14)
     }
 
-    private var feedingInformation: some View {
+    private var information: some View {
         VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
             Text("\(state.babyName) · \(state.title)")
                 .font(AppDesign.Typography.detail.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
             CareActivityTimer(start: state.start, end: state.end)
                 .font(.largeTitle.weight(.semibold))
-            if let subtitle = feedingSubtitle {
+            if let subtitle {
                 Text(subtitle)
                     .font(AppDesign.Typography.note.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(state.kind == .breast ? Color.white.opacity(0.72) : .secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
 
-    private var feedingSubtitle: String? {
+    private var subtitle: String? {
+        if state.kind == .sleep {
+            return state.end == nil ? "Идёт сон" : "Сон завершён"
+        }
         if state.end != nil {
             return "Кормление завершено"
         }
         return state.side.map { "\($0.label) грудь" }
-    }
-
-    private var sleepInformation: some View {
-        CareActivityInformation(title: state.title, appearance: state.appearance) {
-            CareActivityTimer(start: state.start)
-        } subtitle: {
-            Text("\(state.babyName) · Идёт сон")
-                .font(.caption)
-        }
-    }
-
-    private var finishedSleepInformation: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Label("Сон завершён", systemImage: state.symbol)
-                .font(.headline)
-            Text(state.babyName)
-                .font(.caption)
-            if let end = state.end {
-                CareActivityTimer(start: state.start, end: end)
-                    .font(.title2.weight(.semibold))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-struct CareActivityLockScreenInsets: ViewModifier {
-    func body(content: Content) -> some View {
-        content.foregroundStyle(.primary).padding(16)
     }
 }
 
@@ -194,22 +157,7 @@ struct CareActivityLockScreenRow<Information: View, Actions: View>: View {
             information()
             actions()
         }
-    }
-}
-
-struct CareActivityInformation<Metric: View, Subtitle: View>: View {
-    let title: String
-    let appearance: CareActivityAppearance
-    @ViewBuilder let metric: () -> Metric
-    @ViewBuilder let subtitle: () -> Subtitle
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Label(title, systemImage: appearance.symbol)
-                .font(.headline)
-            metric().font(.title.weight(.semibold))
-            subtitle().fixedSize(horizontal: false, vertical: true)
-        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -265,10 +213,8 @@ struct CareActivityControls: View {
         Group {
             if island, state.kind == .breast, typeSize.isAccessibilitySize || stackIslandButtons {
                 VStack(spacing: 0) { buttons }
-            } else if island || state.kind == .breast {
-                HStack(spacing: 8) { buttons }
             } else {
-                VStack(alignment: typeSize.isAccessibilitySize ? .leading : .trailing, spacing: 6) { buttons }
+                HStack(spacing: 8) { buttons }
             }
         }
         .font(.caption.weight(.semibold))
@@ -319,24 +265,11 @@ struct CareActivityIntentButton<Action: AppIntent>: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-        } else if appearance == .feeding {
-            CareActivityCircleButton(intent: intent, prominent: prominent) {
+        } else {
+            CareActivityCircleButton(intent: intent, prominent: prominent, accent: appearance.islandAccent) {
                 Image(systemName: symbol ?? "stop.fill")
             }
-        } else if prominent {
-            Button(intent: intent) { lockScreenLabel }
-                .buttonStyle(.borderedProminent)
-                .tint(appearance.islandAccent)
-                .foregroundStyle(.black)
-        } else {
-            Button(intent: intent) { lockScreenLabel }
-                .buttonStyle(.bordered)
-                .tint(.primary)
         }
-    }
-
-    private var lockScreenLabel: some View {
-        label.frame(minWidth: 44, minHeight: 44)
     }
 
     @ViewBuilder private var label: some View {
@@ -363,6 +296,7 @@ struct CareActivityCircleButton<Action: AppIntent, Glyph: View>: View {
     let intent: Action
     let prominent: Bool
     var diameter = AppDesign.Metrics.minimumTouch
+    var accent = CareActivityAppearance.feeding.islandAccent
     @ViewBuilder let label: () -> Glyph
 
     var body: some View {
@@ -373,7 +307,7 @@ struct CareActivityCircleButton<Action: AppIntent, Glyph: View>: View {
                 .foregroundStyle(prominent ? Color.black : Color.white)
                 .frame(width: size, height: size)
                 .background(
-                    prominent ? CareActivityAppearance.feeding.islandAccent : .white.opacity(0.15),
+                    prominent ? accent : .white.opacity(0.15),
                     in: Circle()
                 )
                 .contentShape(Rectangle())
@@ -426,9 +360,5 @@ extension CareActivityAttributes.ContentState {
 
     var appearance: CareActivityAppearance {
         kind == .breast ? .feeding : .sleep
-    }
-
-    var symbol: String {
-        appearance.symbol
     }
 }
