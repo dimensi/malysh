@@ -7,6 +7,7 @@
   "scripts": {
     "prepare-assets": "node scripts/prepare-assets.mjs",
     "render": "node studio/render.mjs",
+    "preview:header": "node studio/header-preview.mjs",
     "gallery": "node studio/gallery.mjs",
     "site-assets": "node studio/site-assets.mjs",
     "validate": "node studio/validate.mjs",

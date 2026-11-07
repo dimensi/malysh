@@ -37,7 +37,10 @@ function show(entry, button) {
     " · версия " +
     entry.release +
     " · " +
-    entry.path;
+    entry.path +
+    (entry.artwork?.kind === "generated-illustration"
+      ? " · Сгенерированная иллюстрация"
+      : "");
   dialog.showModal();
 }
 function render(group) {

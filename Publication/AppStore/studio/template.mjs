@@ -43,6 +43,8 @@ export function renderHTML(job, frames, font) {
     art = `${device(job.sources[0])}<img class="report-page" src="/${job.sources[1]}" alt="">`;
   } else if (job.layout === "document") {
     art = `<img class="document" src="/${job.sources[0]}" alt="">`;
+  } else if (job.layout === "illustration") {
+    art = `<img class="illustration" src="/${escapeHTML(job.artwork.path)}" alt="">`;
   } else {
     art = job.sources
       .map((source) =>

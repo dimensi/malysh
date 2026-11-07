@@ -6,6 +6,7 @@ import { chromium } from "playwright";
 import sharp from "sharp";
 import { buildJobs, jobFrames } from "./jobs.mjs";
 import { renderHTML } from "./template.mjs";
+import { headerReference, renderHeaderPreview } from "./header-preview.mjs";
 import { galleryHTML } from "./gallery-template.mjs";
 import { renderContactSheets } from "./contact-sheets.mjs";
 
@@ -36,6 +37,36 @@ function options() {
     result[option.slice(2)] = process.argv[index + 1];
   }
   return result;
+}
+
+async function validateArtwork(artwork, sourceHashes) {
+  const artworkBytes = await fs.readFile(path.join(root, artwork.path));
+  const provenanceBytes = await fs.readFile(path.join(root, artwork.provenance));
+  const record = JSON.parse(provenanceBytes.toString("utf8"));
+  const { width, height, hasAlpha } = await sharp(artworkBytes).metadata();
+  const sha256 = hash(artworkBytes);
+  if (
+    record.kind !== "generated-illustration" ||
+    !record.tool ||
+    record.asset !== artwork.path ||
+    record.sha256 !== sha256 ||
+    record.dimensions?.[0] !== width ||
+    record.dimensions?.[1] !== height ||
+    record.transparentBackground !== hasAlpha
+  ) {
+    throw new Error(
+      `${artwork.path}: файл иллюстрации не соответствует ${artwork.provenance}.`,
+    );
+  }
+  sourceHashes.set(artwork.path, sha256);
+  sourceHashes.set(artwork.provenance, hash(provenanceBytes));
+  return {
+    ...artwork,
+    kind: record.kind,
+    tool: record.tool,
+    dimensions: [width, height],
+    sha256,
+  };
 }
 
 async function validateInput(job, frames, sourceHashes, provenance) {
@@ -233,6 +264,14 @@ async function renderOne(
         metadata.hasAlpha)
     )
       throw new Error(`${relative}: неверные размеры или прозрачность.`);
+    if (job.kind === "header") {
+      const preview = path.join(staging, "header-preview.png");
+      if (await exists(headerReference)) {
+        await renderHeaderPreview(absolute, preview);
+      } else {
+        await fs.rm(preview, { force: true });
+      }
+    }
     const thumbnail = `thumbnails/${job.device}-${job.id}.webp`;
     await sharp(image)
       .resize({
@@ -257,26 +296,30 @@ async function renderOne(
       sha256: hash(image),
       release: catalog.release,
       commit: catalog.commit,
-      sources: job.sources.map((filename) => ({
-        path: filename,
-        ...(provenance.sources?.[filename] || {
-          release: "unknown",
-          verification: "provenance missing",
-        }),
-        sha256: sourceHashes.get(filename),
-      })),
-      mockups: jobFrames(job).map((key) => ({
-        key,
-        source: frames[key].source,
-        model: frames[key].model,
-        frameSHA256: frames[key].frameSHA256,
-        originalSHA256:
-          mockupSources.devices?.[key]?.sha256 || frames[key].sha256,
-        originalURL: mockupSources.devices?.[key]?.url,
-        license: mockupSources.license,
-        screen: frames[key].screen,
-        screenshotFit: "contain",
-      })),
+      ...(job.artwork
+        ? { artwork: job.artwork }
+        : {
+            sources: job.sources.map((filename) => ({
+              path: filename,
+              ...(provenance.sources?.[filename] || {
+                release: "unknown",
+                verification: "provenance missing",
+              }),
+              sha256: sourceHashes.get(filename),
+            })),
+            mockups: jobFrames(job).map((key) => ({
+              key,
+              source: frames[key].source,
+              model: frames[key].model,
+              frameSHA256: frames[key].frameSHA256,
+              originalSHA256:
+                mockupSources.devices?.[key]?.sha256 || frames[key].sha256,
+              originalURL: mockupSources.devices?.[key]?.url,
+              license: mockupSources.license,
+              screen: frames[key].screen,
+              screenshotFit: "contain",
+            })),
+          }),
     };
   } finally {
     await page.close();
@@ -295,9 +338,6 @@ async function main() {
   const mockupSources = await readJSON(
     path.join(root, "assets/mockup-sources.json"),
   );
-  for (const frame of Object.values(frames)) {
-    frame.frameSHA256 = hash(await fs.readFile(path.join(root, frame.file)));
-  }
   const allJobs = buildJobs(catalog, frames);
   const jobs = allJobs.filter(
     (job) =>
@@ -310,9 +350,18 @@ async function main() {
     );
   if (!(await exists(path.join(root, catalog.font))))
     throw new Error(`Шрифт ${catalog.font} отсутствует.`);
+  if (jobs.some((job) => !job.artwork)) {
+    for (const frame of Object.values(frames)) {
+      frame.frameSHA256 = hash(await fs.readFile(path.join(root, frame.file)));
+    }
+  }
   const sourceHashes = new Map();
   const pending = new Map();
   for (const job of jobs) {
+    if (job.artwork) {
+      job.artwork = await validateArtwork(job.artwork, sourceHashes);
+      continue;
+    }
     const problem = await validateInput(job, frames, sourceHashes, provenance);
     if (!problem) continue;
     if (!job.optional) throw new Error(`${jobKey(job)}: ${problem}`);

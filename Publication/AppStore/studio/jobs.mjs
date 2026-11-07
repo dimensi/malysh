@@ -74,11 +74,11 @@ export function buildJobs(catalog, frames) {
     width: 3840,
     height: 1646,
     kind: "header",
-    layout: "family",
-    tone: "lilac",
-    title: "Один дневник.\nДва родителя.",
-    description: "Кормления, сон и подгузники",
-    sources: [catalog.sources.today, catalog.sources.family],
+    layout: "illustration",
+    artwork: {
+      path: "assets/illustrations/header-bear-cradle.png",
+      provenance: "assets/illustrations/header-bear-cradle.provenance.json",
+    },
   });
   jobs.push({
     id: "02-search-results",
@@ -127,7 +127,7 @@ export function buildJobs(catalog, frames) {
 }
 
 export function jobFrames(job) {
-  if (job.layout === "document") return [];
+  if (job.layout === "document" || job.layout === "illustration") return [];
   if (job.layout === "watch") return ["watch"];
   if (job.layout === "family") return ["iphone", "iphone-silver"];
   if (job.layout === "search") return ["iphone", "watch"];

@@ -440,35 +440,30 @@ p {
   opacity: 0.62;
 }
 
-.kind-header .copy {
-  inset: 23% auto auto 5%;
-  width: 44%;
-  text-align: left;
-}
-
-.kind-header h1 {
-  font-size: calc(70 * var(--unit));
-  line-height: 1.08;
-}
-
-.kind-header p {
-  margin: calc(22 * var(--unit)) 0 0;
-  max-width: none;
-  font-size: calc(20 * var(--unit));
+.kind-header {
+  background:
+    radial-gradient(ellipse 36% 25% at 66% 87%, #b592bf, #bf99be 34%, transparent),
+    radial-gradient(ellipse 52% 66% at 48% 56%, #ffc098, #e8a6ab 49%, transparent),
+    linear-gradient(135deg, #cea5d3 5%, #d4a2c0 45%, #b294c0 88%);
 }
 
 .kind-header .art {
-  inset: 4% 3% 5% 51%;
-  gap: 4%;
+  inset: 0;
+  display: block;
 }
 
-.kind-header .device-unit {
-  width: calc(85vh * var(--body-ratio));
-  margin: 0;
-}
-
-.kind-header .device-unit:last-child {
-  margin-top: 6vh;
+/* The full illustration is inset to clear the preview chrome.
+   Fade the quiet gradient perimeter into the matching canvas. */
+.kind-header .illustration {
+  position: absolute;
+  top: 13.4%;
+  left: 48%;
+  width: 72%;
+  transform: translateX(-50%);
+  mask-image:
+    linear-gradient(to right, transparent, black 31%, black 76%, transparent),
+    linear-gradient(to bottom, transparent, black 9%, black 95%, transparent);
+  mask-composite: intersect;
 }
 
 .kind-search .copy {
