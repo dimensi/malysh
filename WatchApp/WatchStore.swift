@@ -191,7 +191,8 @@ final class WatchStore: NSObject, WCSessionDelegate {
 
     private func requestSnapshot() {
         guard isReachable else { return }
-        session.sendMessage([WatchWire.refresh: true], replyHandler: { [weak self] message in
+        // WatchConnectivity delivers replies off the main actor.
+        session.sendMessage([WatchWire.refresh: true], replyHandler: { @Sendable [weak self] message in
             let payload = WatchPayload(message)
             DispatchQueue.main.async { self?.receive(payload) }
         }, errorHandler: nil)
@@ -215,10 +216,10 @@ final class WatchStore: NSObject, WCSessionDelegate {
         }
         if isReachable {
             sendingLive = true
-            session.sendMessage(message, replyHandler: { [weak self] reply in
+            session.sendMessage(message, replyHandler: { @Sendable [weak self] reply in
                 let payload = WatchPayload(reply)
                 DispatchQueue.main.async { self?.finishLive(id, payload: payload) }
-            }, errorHandler: { [weak self] _ in
+            }, errorHandler: { @Sendable [weak self] _ in
                 DispatchQueue.main.async { self?.finishLive(id, payload: nil) }
             })
         }
