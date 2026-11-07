@@ -38,23 +38,15 @@ struct CareLiveActivityWidget: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    CareActivityIslandHeaderCell {
-                        CareActivityIslandHeading(title: context.state.title, appearance: context.state.appearance)
-                    }
+                    CareActivityIslandTimerRow(region: .controls, attributes: context.attributes, state: context.state)
                 }
-                .contentMargins(.leading, CareActivityAppearance.islandHeaderInset)
                 DynamicIslandExpandedRegion(.trailing) {
-                    CareActivityIslandHeaderCell {
-                        CareActivityTimer(start: context.state.start, end: context.state.end, alignment: .trailing)
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                            .padding(.trailing, 11)
-                    }
+                    CareActivityIslandTimerRow(region: .timer, attributes: context.attributes, state: context.state)
                 }
-                .contentMargins(.trailing, CareActivityAppearance.islandHeaderInset)
                 DynamicIslandExpandedRegion(.bottom) {
-                    CareActivityIslandActions(attributes: context.attributes, state: context.state)
+                    CareActivityIslandTimerRow(
+                        region: .accessibility, attributes: context.attributes, state: context.state
+                    )
                 }
             } compactLeading: {
                 CareActivityIslandIcon(title: context.state.title, appearance: context.state.appearance)
@@ -65,7 +57,7 @@ struct CareLiveActivityWidget: Widget {
             }
             .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
                                    eventID: context.attributes.eventID).url)
-            .contentMargins(.horizontal, CareActivityAppearance.islandExpandedInset, for: .expanded)
+            .contentMargins(.horizontal, AppDesign.Spacing.row, for: .expanded)
         }
     }
 }
