@@ -32,11 +32,14 @@ import SwiftUI
 
 public enum MalyshWidgetsAsset: Sendable {
   public static let accentColor = MalyshWidgetsColors(name: "AccentColor")
+  public static let activityBrandMark = MalyshWidgetsImages(name: "ActivityBrandMark")
   public static let activityFeeding = MalyshWidgetsColors(name: "ActivityFeeding")
+  public static let activityFeedingLockScreen = MalyshWidgetsColors(name: "ActivityFeedingLockScreen")
   public static let babyBear = MalyshWidgetsImages(name: "BabyBear")
   public static let brandMark = MalyshWidgetsImages(name: "BrandMark")
   public static let diaper = MalyshWidgetsColors(name: "Diaper")
   public static let feeding = MalyshWidgetsColors(name: "Feeding")
+  public static let feedingReminderSnooze = MalyshWidgetsImages(name: "FeedingReminderSnooze")
   public static let onAccent = MalyshWidgetsColors(name: "OnAccent")
   public static let sharingThumbnail = MalyshWidgetsImages(name: "SharingThumbnail")
   public static let sleep = MalyshWidgetsColors(name: "Sleep")

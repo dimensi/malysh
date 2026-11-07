@@ -27,11 +27,14 @@ struct MalyshWidgetBundle: WidgetBundle {
 struct CareLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: CareActivityAttributes.self) { context in
+            let isFeeding = context.state.kind == .breast && context.state.end == nil
             CareActivityLockScreen(attributes: context.attributes, state: context.state)
                 .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
                                        eventID: context.attributes.eventID).url)
-                .activityBackgroundTint(context.state.appearance.surfaceColor)
-                .activitySystemActionForegroundColor(.primary)
+                .activityBackgroundTint(
+                    isFeeding ? CareActivityAppearance.feedingLockScreenSurface : context.state.appearance.surfaceColor
+                )
+                .activitySystemActionForegroundColor(isFeeding ? .white : .primary)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
@@ -86,8 +89,8 @@ private struct CompactCareActivityTimer: View {
 )) {
     CareLiveActivityWidget()
 } contentStates: {
-    CareActivityAttributes.ContentState(kind: .breast, start: .now.addingTimeInterval(-742),
-                                        side: .left, babyName: "Малыш")
+    CareActivityAttributes.ContentState(kind: .breast, start: .now.addingTimeInterval(-263),
+                                        side: .left, babyName: "Андрей")
 }
 
 #Preview("Сон · остров", as: .dynamicIsland(.expanded), using: CareActivityAttributes(
