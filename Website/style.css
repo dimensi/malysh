@@ -1,0 +1,46 @@
+:root {
+  color-scheme: light;
+  --accent: #6b4794;
+  --ink: #30243d;
+  --muted: #6a5c75;
+  --line: #e4dbe7;
+  color: var(--ink);
+  background: #fcf9f3;
+  font: 100%/1.75 Manrope, sans-serif;
+  font-synthesis: none;
+  scrollbar-color: #a996b7 #fcf9f3;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+::selection { color: #fff; background: var(--accent); }
+a { color: var(--accent); text-underline-offset: .22em; }
+a:focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; border-radius: 3px; }
+.skip-link { position: absolute; z-index: 2; top: 1rem; left: 1rem; padding: .7rem 1rem; color: #fff; background: var(--accent); }
+.skip-link:not(:focus) { clip-path: inset(50%); }
+header, main, footer { width: min(100% - clamp(2rem, 7vw, 7rem), 49rem); margin-inline: auto; }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 2rem; padding-block: 1.7rem; border-bottom: 1px solid var(--line); }
+.brand { display: inline-flex; align-items: center; gap: .6rem; color: var(--ink); font-size: 1.35rem; font-weight: 800; letter-spacing: -.035em; }
+.brand img { border-radius: 27%; }
+header a { text-decoration: none; }
+nav { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.3rem; }
+nav a { display: inline-flex; align-items: center; min-height: 44px; font-size: .85rem; font-weight: 650; color: var(--ink); }
+nav [aria-current], nav a:hover { text-decoration: underline; }
+main { padding-block: 3rem; }
+h1, h2 { line-height: 1.17; letter-spacing: -.035em; text-wrap: balance; font-weight: 750; }
+h1 { margin: 0 0 1rem; font-size: clamp(2rem, 6.4vw, 3.5rem); overflow-wrap: anywhere; }
+h2 { font-size: clamp(1.3rem, 3.5vw, 1.65rem); margin-block: 2.7rem .9rem; }
+h2[id] { scroll-margin-top: 2rem; }
+p { margin-block: .8rem; }
+li + li { margin-top: .7rem; }
+.intro { max-width: 52ch; margin-bottom: 2.5rem; color: var(--muted); font-size: 1.12rem; }
+.note { border-radius: 16px; background: #eee4f6; padding: 1.5rem 1.7rem; margin-block: 2rem 3rem; }
+.note > :first-child { margin-top: 0; }
+.note > :last-child { margin-bottom: 0; }
+footer { border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; padding-block: 1rem 2rem; }
+@media (max-width: 34rem) {
+  header { gap: .35rem; padding-block: 1rem; }
+  nav { gap: .25rem 1rem; }
+  nav a { font-size: .8rem; }
+  main { padding-top: 2rem; }
+  .note { padding: 1.3rem; }
+}

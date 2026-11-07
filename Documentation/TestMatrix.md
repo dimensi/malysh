@@ -66,10 +66,10 @@
 `Scripts/check.sh` проверяет форматирование/lint, генерирует проект и передаёт дополнительные аргументы в `xcodebuild`. В обычной задаче выбирайте затронутую строку:
 
 ```sh
-rtk proxy env RESULT_BUNDLE_PATH=Artifacts/DomainChecks.xcresult bash Scripts/check.sh \
+env RESULT_BUNDLE_PATH=Artifacts/DomainChecks.xcresult bash Scripts/check.sh \
   -only-testing:MalyshTests/DomainTests
 
-rtk proxy env RESULT_BUNDLE_PATH=Artifacts/ActivityChecks.xcresult bash Scripts/check.sh \
+env RESULT_BUNDLE_PATH=Artifacts/ActivityChecks.xcresult bash Scripts/check.sh \
   -only-testing:MalyshTests/CareActivityCoordinatorTests \
   -only-testing:MalyshTests/CareActivityActionTests \
   -only-testing:MalyshUITests/LiveActivityUITests
@@ -80,13 +80,13 @@ rtk proxy env RESULT_BUNDLE_PATH=Artifacts/ActivityChecks.xcresult bash Scripts/
 Для выпуска полный набор выполняется один раз в релизном CI до подписи и загрузки, без обязательного локального повтора. После общей перестройки тестов полный набор также нужен в CI. При необходимости ручной локальный запуск:
 
 ```sh
-rtk proxy env RESULT_BUNDLE_PATH=Artifacts/FullCheck.xcresult bash Scripts/check.sh
+env RESULT_BUNDLE_PATH=Artifacts/FullCheck.xcresult bash Scripts/check.sh
 ```
 
 Для изменений скриптов выпуска или схемы:
 
 ```sh
-rtk proxy python3 -m unittest discover -s Scripts/tests -v
+python3 -m unittest discover -s Scripts/tests -v
 ```
 
 Для повторного запуска задайте новый `RESULT_BUNDLE_PATH`; устройство можно выбрать через `DESTINATION`. После успешного полного прогона повторять его без изменений не нужно. При сбое сначала разберите и повторите только упавший сценарий. Повторный успех не скрывает первую ошибку. CI TestFlight сохраняет полный прогон приложения; schema workflow запускает свои Python-проверки.

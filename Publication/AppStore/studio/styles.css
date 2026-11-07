@@ -1,0 +1,503 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: Manrope, sans-serif;
+  font-synthesis: none;
+  color: #30213e;
+}
+
+img {
+  display: block;
+}
+
+main {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #f3ecf7;
+}
+
+.tone-cream {
+  background: #fff4d8;
+}
+
+.tone-blue {
+  background: #e9f5f8;
+}
+
+.tone-night {
+  background: #30243f;
+  color: #fff9f2;
+}
+
+.tone-peach {
+  background: #f8ede3;
+}
+
+.copy {
+  position: absolute;
+  top: 4.5%;
+  left: 7%;
+  right: 7%;
+  text-align: center;
+  z-index: 3;
+}
+
+h1 {
+  font-size: calc(100 * var(--unit));
+  line-height: 1.09;
+  letter-spacing: -0.04em;
+  font-weight: 750;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  font-size: calc(34 * var(--unit));
+  line-height: 1.45;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  opacity: 0.8;
+  margin: calc(32 * var(--unit)) auto 0;
+  max-width: 90%;
+}
+
+.art {
+  position: absolute;
+  inset: 30% 6% 3%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3.5%;
+}
+
+.device-unit {
+  position: relative;
+  flex: none;
+  width: 66%;
+  filter: drop-shadow(
+    0 calc(20 * var(--unit)) calc(26 * var(--unit)) #25123424
+  );
+}
+
+.device {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--device-ratio);
+}
+
+.device-screen {
+  position: absolute;
+  left: var(--screen-x);
+  top: var(--screen-y);
+  width: var(--screen-w);
+  height: var(--screen-h);
+  overflow: hidden;
+  border-radius: var(--screen-radius);
+  background: #000;
+}
+
+.device-screen img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.device-body {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.device-label {
+  position: absolute;
+  bottom: calc(-68 * var(--unit));
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: calc(33 * var(--unit));
+  font-weight: 700;
+}
+
+.layout-single .art {
+  top: 21%;
+  bottom: 2%;
+  align-items: flex-start;
+}
+
+.layout-single .device-unit {
+  width: 91%;
+}
+
+.layout-family .art {
+  top: 21%;
+  bottom: 8%;
+  gap: 2.5%;
+  align-items: flex-start;
+}
+
+.layout-family .device-unit {
+  width: 48.5%;
+}
+
+.layout-family .device-unit:nth-child(2) {
+  margin-top: 58%;
+}
+
+.layout-pair .art {
+  top: 21%;
+  bottom: 4%;
+  gap: 2.4%;
+  align-items: flex-start;
+}
+
+.layout-pair .device-unit {
+  width: 49%;
+}
+
+.layout-pair .device-unit:first-child {
+  margin-top: 0;
+}
+
+.layout-pair .device-unit:last-child {
+  margin-top: 58%;
+}
+
+.layout-timers .art {
+  top: 21%;
+  bottom: 4%;
+  gap: 2.4%;
+  align-items: flex-start;
+}
+
+.layout-timers .device-unit {
+  width: 62%;
+}
+
+.layout-timers .device-unit:first-child {
+  margin-top: 0;
+}
+
+.layout-timers .device-unit:last-child {
+  width: 34%;
+  margin-top: 80%;
+}
+
+.layout-watch .art {
+  top: 21%;
+  bottom: 4%;
+  align-items: flex-start;
+}
+
+.layout-watch .device-unit {
+  width: 100%;
+  filter: drop-shadow(
+    0 calc(20 * var(--unit)) calc(30 * var(--unit)) #130b1a40
+  );
+}
+
+.layout-report .art {
+  top: 21%;
+  bottom: 5%;
+  gap: 0;
+  justify-content: start;
+  align-items: flex-start;
+}
+
+.layout-report .device-unit {
+  width: 68%;
+  z-index: 2;
+  align-self: flex-start;
+}
+
+.report-page {
+  width: 58%;
+  height: auto;
+  transform: rotate(3deg);
+  margin-left: -26%;
+  margin-top: 70%;
+  box-shadow: 0 calc(24 * var(--unit)) calc(46 * var(--unit)) #30213e30;
+}
+
+.kind-watch .copy {
+  top: 5%;
+  left: 5%;
+  right: 5%;
+}
+
+.kind-watch h1 {
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.kind-watch .art {
+  top: 24%;
+  bottom: 3%;
+  left: 9%;
+  right: 9%;
+}
+
+.kind-watch .device-unit {
+  height: 100%;
+  width: auto;
+  aspect-ratio: var(--frame-ratio);
+}
+
+.kind-watch .device {
+  height: 100%;
+  width: auto;
+}
+
+.kind-duo .copy {
+  top: 5%;
+  left: 6%;
+  right: 6%;
+}
+
+.kind-duo h1 {
+  font-size: calc(100 * var(--unit));
+}
+
+.kind-duo p {
+  font-size: calc(29 * var(--unit));
+}
+
+.kind-duo .art {
+  top: 30%;
+  bottom: 3%;
+}
+
+.kind-duo .device-unit {
+  height: 100%;
+  width: auto;
+  aspect-ratio: var(--frame-ratio);
+}
+
+.kind-duo .device {
+  height: 100%;
+  width: auto;
+}
+
+.kind-site {
+  background: transparent;
+}
+
+.kind-site .art {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.kind-site .device-unit {
+  width: 100%;
+  height: 100%;
+  filter: none;
+}
+
+.kind-site .device {
+  width: 100%;
+  height: 100%;
+}
+
+.document {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.kind-creative .copy {
+  left: 6%;
+  right: auto;
+  width: 45%;
+  top: 18%;
+  text-align: left;
+}
+
+.kind-creative h1 {
+  font-size: calc(61 * var(--unit));
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+
+.kind-creative p {
+  margin: calc(18 * var(--unit)) 0 0;
+  max-width: 90%;
+  font-size: calc(20 * var(--unit));
+}
+
+.kind-creative .art {
+  inset: 6% 4% 6% 51%;
+  gap: 5%;
+}
+
+.kind-creative .device-unit {
+  width: min(46%, calc(70vh * 606 / 1222));
+  margin: 0;
+}
+
+.kind-creative .device-unit:last-child {
+  margin-top: 13%;
+}
+
+.kind-creative .device-label {
+  display: none;
+}
+
+.kind-social .copy {
+  top: 7%;
+  left: 6%;
+  right: 6%;
+}
+
+.kind-social h1 {
+  font-size: calc(95 * var(--unit));
+}
+
+.kind-social p {
+  font-size: calc(32 * var(--unit));
+}
+
+.kind-social .art {
+  top: 32%;
+  bottom: 5%;
+  gap: 4%;
+}
+
+.kind-social .device-unit {
+  width: 46%;
+  margin: 0;
+}
+
+.kind-social .device-unit:last-child {
+  margin-top: 15%;
+}
+
+.kind-social .device-label {
+  display: none;
+}
+
+/* Short social canvases need a separate scale so both bodies stay whole. */
+@media (min-aspect-ratio: 3/4) {
+  .kind-social .device-unit {
+    width: 40%;
+  }
+
+  .kind-social .device-unit:last-child {
+    margin-top: 8%;
+  }
+}
+
+/* The unfolded Duo composition uses its real landscape display. */
+@media (min-aspect-ratio: 1/1) {
+  .kind-duo .copy {
+    top: 8%;
+    left: 5%;
+    right: auto;
+    width: 35%;
+    text-align: left;
+  }
+
+  .kind-duo h1 {
+    font-size: calc(66 * var(--unit));
+  }
+
+  .kind-duo p {
+    margin-left: 0;
+  }
+
+  .kind-duo .art {
+    inset: 8% 5% 8% 43%;
+    align-items: center;
+  }
+
+  .kind-duo .device-unit,
+  .kind-duo .device {
+    width: 100%;
+    height: auto;
+  }
+}
+
+.caption {
+  margin-top: calc(10 * var(--unit));
+  font-size: calc(27 * var(--unit));
+  opacity: 0.62;
+}
+
+.kind-header {
+  background:
+    radial-gradient(ellipse 36% 25% at 66% 87%, #b592bf, #bf99be 34%, transparent),
+    radial-gradient(ellipse 52% 66% at 48% 56%, #ffc098, #e8a6ab 49%, transparent),
+    linear-gradient(135deg, #cea5d3 5%, #d4a2c0 45%, #b294c0 88%);
+}
+
+.kind-header .art {
+  inset: 0;
+  display: block;
+}
+
+/* The full illustration is inset to clear the preview chrome.
+   Fade the quiet gradient perimeter into the matching canvas. */
+.kind-header .illustration {
+  position: absolute;
+  top: 13.4%;
+  left: 48%;
+  width: 72%;
+  transform: translateX(-50%);
+  mask-image:
+    linear-gradient(to right, transparent, black 31%, black 76%, transparent),
+    linear-gradient(to bottom, transparent, black 9%, black 95%, transparent);
+  mask-composite: intersect;
+}
+
+.kind-search .copy {
+  inset: 6% auto auto 6%;
+  width: 54%;
+  text-align: left;
+}
+
+.kind-search h1 {
+  font-size: calc(64 * var(--unit));
+  line-height: 1.1;
+}
+
+.kind-search p {
+  margin: calc(18 * var(--unit)) 0 0;
+  max-width: none;
+  font-size: calc(22 * var(--unit));
+}
+
+.kind-search .art {
+  inset: 0;
+  display: block;
+}
+
+.kind-search .device-unit {
+  position: absolute;
+  top: 5%;
+  right: 7%;
+  width: calc(90vh * var(--body-ratio));
+}
+
+.kind-search .device-unit:last-child {
+  top: 34%;
+  left: 27%;
+  right: auto;
+  width: calc(61vh * var(--body-ratio));
+}
