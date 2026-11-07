@@ -99,7 +99,3 @@ npm --prefix Publication/AppStore run preview:header -- --reference "/путь/�
 ```
 
 Референс останется в игнорируемом `.cache/header-reference.png`. Рендер Header обновляет `output/header-preview.png`, если референс есть в кэше. Перед загрузкой проверьте окончательное кадрирование в Preview App Store Connect.
-
-## Тексты App Store
-
-`Metadata/README.md` содержит значения полей для копирования в App Store Connect; `Metadata/description.ru.txt` — описание. Эти файлы не участвуют в сборках. Размеры изображений и порядок загрузки находятся в `UPLOAD_ORDER.md`.
