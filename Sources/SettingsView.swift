@@ -303,24 +303,25 @@ private struct FeedingReminderSettings: View {
     @Environment(\.openURL) private var openURL
     @State private var editsCustomInterval = false
 
-    private var usesCustomInterval: Bool {
-        editsCustomInterval || !FeedingReminderService.presets.contains(reminders.intervalMinutes)
-    }
-
     var body: some View {
         Section {
             Toggle("Напоминать о кормлении", isOn: Binding(
                 get: { reminders.enabled },
-                set: { reminders.setEnabled($0) }
+                set: { enabled in
+                    reminders.setEnabled(enabled)
+                    if !enabled {
+                        editsCustomInterval = false
+                    }
+                }
             ))
             .accessibilityIdentifier("feeding-reminder.enabled")
             if reminders.enabled {
                 intervalPicker
-                if usesCustomInterval {
-                    FeedingReminderIntervalInput(
-                        intervalMinutes: reminders.intervalMinutes,
-                        apply: reminders.setIntervalMinutes
-                    )
+                if editsCustomInterval {
+                    FeedingReminderIntervalInput(intervalMinutes: reminders.intervalMinutes) { minutes in
+                        reminders.setIntervalMinutes(minutes)
+                        editsCustomInterval = false
+                    }
                 }
                 if reminders.authorization == .denied {
                     Button("Открыть настройки уведомлений") {
@@ -349,7 +350,7 @@ private struct FeedingReminderSettings: View {
 
     private var intervalPicker: some View {
         Picker("Интервал", selection: Binding<Int?>(
-            get: { usesCustomInterval ? nil : reminders.intervalMinutes },
+            get: { reminders.intervalMinutes },
             set: { minutes in
                 editsCustomInterval = minutes == nil
                 if let minutes {
@@ -359,6 +360,10 @@ private struct FeedingReminderSettings: View {
         )) {
             ForEach(FeedingReminderService.presets, id: \.self) { minutes in
                 Text(FeedingReminderService.intervalLabel(minutes)).tag(Optional(minutes))
+            }
+            if !FeedingReminderService.presets.contains(reminders.intervalMinutes) {
+                Text(FeedingReminderService.intervalLabel(reminders.intervalMinutes))
+                    .tag(Optional(reminders.intervalMinutes))
             }
             Text("Свой интервал").tag(nil as Int?)
         }
@@ -417,60 +422,117 @@ private struct FeedingReminderSettings: View {
 
 @MainActor
 private struct FeedingReminderIntervalInput: View {
-    private enum Field: Hashable { case hours, minutes }
-
-    let intervalMinutes: Int
     let apply: (Int) -> Void
-    @State private var hours: String
-    @State private var minutes: String
-    @FocusState private var focusedField: Field?
+    @State private var intervalMinutes: Int
 
     init(intervalMinutes: Int, apply: @escaping (Int) -> Void) {
-        self.intervalMinutes = intervalMinutes
         self.apply = apply
-        let hours = intervalMinutes / 60
-        let minutes = intervalMinutes % 60
-        _hours = State(initialValue: hours == 0 ? "" : String(hours))
-        _minutes = State(initialValue: minutes == 0 ? "" : String(minutes))
+        _intervalMinutes = State(initialValue: intervalMinutes)
     }
 
     var body: some View {
-        let draft = draftInterval
-        LabeledContent("Часы") {
-            TextField("Часы", text: $hours, prompt: Text("0"))
-                .keyboardType(.numberPad)
-                .multilineTextAlignment(.trailing)
-                .focused($focusedField, equals: .hours)
-                .accessibilityIdentifier("feeding-reminder.hours")
+        FeedingReminderIntervalWheels(intervalMinutes: $intervalMinutes)
+            .frame(height: 150)
+        Button("Готово") {
+            apply(intervalMinutes)
         }
-        LabeledContent("Минуты") {
-            TextField("Минуты", text: $minutes, prompt: Text("0"))
-                .keyboardType(.numberPad)
-                .multilineTextAlignment(.trailing)
-                .focused($focusedField, equals: .minutes)
-                .accessibilityIdentifier("feeding-reminder.minutes")
-        }
-        Button("Применить") {
-            guard let draft else { return }
-            apply(draft)
-            focusedField = nil
-        }
-        .disabled(draft == nil || draft == intervalMinutes)
         .accessibilityIdentifier("feeding-reminder.apply-interval")
-        if draft == nil {
-            Text("От 15 минут до 24 часов с шагом 5 минут.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
+    }
+}
+
+@MainActor
+private struct FeedingReminderIntervalWheels: UIViewRepresentable {
+    @Binding var intervalMinutes: Int
+
+    func makeUIView(context: Context) -> UIPickerView {
+        let picker = UIPickerView()
+        picker.dataSource = context.coordinator
+        picker.delegate = context.coordinator
+        picker.accessibilityIdentifier = "feeding-reminder.wheels"
+        return picker
     }
 
-    private var draftInterval: Int? {
-        let maxHours = FeedingReminderService.customRange.upperBound / 60
-        guard let hours = Int(hours.isEmpty ? "0" : hours), (0 ... maxHours).contains(hours),
-              let minutes = Int(minutes.isEmpty ? "0" : minutes), (0 ... 59).contains(minutes)
-        else { return nil }
-        let total = hours * 60 + minutes
-        return FeedingReminderService.validInterval(total) ? total : nil
+    func updateUIView(_ picker: UIPickerView, context: Context) {
+        context.coordinator.intervalMinutes = $intervalMinutes
+        context.coordinator.select(intervalMinutes, in: picker)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(intervalMinutes: $intervalMinutes)
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, UIPickerViewDataSource, UIPickerViewAccessibilityDelegate {
+        private static let step = FeedingReminderService.customStep
+        private static let range = FeedingReminderService.customRange
+
+        var intervalMinutes: Binding<Int>
+        private var minuteBounds: ClosedRange<Int>
+        private var displayedInterval: Int?
+
+        init(intervalMinutes: Binding<Int>) {
+            self.intervalMinutes = intervalMinutes
+            minuteBounds = Self.minuteBounds(for: intervalMinutes.wrappedValue / 60)
+        }
+
+        func numberOfComponents(in _: UIPickerView) -> Int {
+            2
+        }
+
+        func pickerView(_: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+            if component == 0 {
+                return Self.range.upperBound / 60 + 1
+            }
+            return (minuteBounds.upperBound - minuteBounds.lowerBound) / Self.step + 1
+        }
+
+        func pickerView(_: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+            component == 0 ? "\(row) ч" : "\(minute(at: row)) мин"
+        }
+
+        func pickerView(_: UIPickerView, accessibilityLabelForComponent component: Int) -> String? {
+            component == 0 ? "Часы" : "Минуты"
+        }
+
+        func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+            if component == 0 {
+                let bounds = Self.minuteBounds(for: row)
+                let remainder = intervalMinutes.wrappedValue % 60
+                let minutes = min(max(remainder, bounds.lowerBound), bounds.upperBound)
+                intervalMinutes.wrappedValue = row * 60 + minutes
+                select(intervalMinutes.wrappedValue, in: pickerView)
+            } else {
+                let hours = intervalMinutes.wrappedValue / 60
+                intervalMinutes.wrappedValue = hours * 60 + minute(at: row)
+            }
+        }
+
+        func select(_ interval: Int, in picker: UIPickerView) {
+            guard interval != displayedInterval else { return }
+            displayedInterval = interval
+            let hours = interval / 60
+            let bounds = Self.minuteBounds(for: hours)
+            if bounds != minuteBounds {
+                minuteBounds = bounds
+                picker.reloadComponent(1)
+            }
+            let minuteRow = (interval % 60 - bounds.lowerBound) / Self.step
+            if picker.selectedRow(inComponent: 0) != hours {
+                picker.selectRow(hours, inComponent: 0, animated: false)
+            }
+            if picker.selectedRow(inComponent: 1) != minuteRow {
+                picker.selectRow(minuteRow, inComponent: 1, animated: false)
+            }
+        }
+
+        private func minute(at row: Int) -> Int {
+            minuteBounds.lowerBound + row * Self.step
+        }
+
+        private static func minuteBounds(for hours: Int) -> ClosedRange<Int> {
+            let base = hours * 60
+            return max(0, range.lowerBound - base) ... min(60 - step, range.upperBound - base)
+        }
     }
 }
 

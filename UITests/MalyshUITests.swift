@@ -247,27 +247,34 @@ final class MalyshUITests: XCTestCase {
         let custom = app.buttons["Свой интервал"].firstMatch
         XCTAssertTrue(custom.waitForExistence(timeout: 5))
         custom.tap()
-        // FR: Invalid input must not replace the active interval.
-        XCTAssertEqual(app.textFields["feeding-reminder.hours"].value as? String, "3")
-        let minutes = app.textFields["feeding-reminder.minutes"]
+        // FR: Wheel changes stay a draft until Done and reopen at the saved duration.
+        let hours = app.pickerWheels["Часы"]
+        let minutes = app.pickerWheels["Минуты"]
         revealReminderRow(minutes, in: app)
+        XCTAssertTrue(hours.waitForExistence(timeout: 5))
         XCTAssertTrue(minutes.waitForExistence(timeout: 5))
-        minutes.tap()
-        let delete = XCUIKeyboardKey.delete.rawValue
-        minutes.typeText("7")
-        let apply = app.buttons["feeding-reminder.apply-interval"]
-        XCTAssertTrue(apply.waitForExistence(timeout: 5))
-        XCTAssertFalse(apply.isEnabled)
+        XCTAssertEqual(hours.value as? String, "3 ч")
+        XCTAssertEqual(minutes.value as? String, "0 мин")
+        hours.adjust(toPickerWheelValue: "0 ч")
+        XCTAssertEqual(minutes.value as? String, "15 мин")
+        hours.adjust(toPickerWheelValue: "24 ч")
+        XCTAssertEqual(minutes.value as? String, "0 мин")
+        hours.adjust(toPickerWheelValue: "2 ч")
+        minutes.adjust(toPickerWheelValue: "45 мин")
         XCTAssertEqual(interval.value as? String, "3 часа")
-        minutes.typeText(delete + "5")
-        XCTAssertTrue(apply.isEnabled)
-        apply.tap()
-        XCTAssertEqual(minutes.value as? String, "5")
-        XCTAssertEqual(interval.value as? String, "3 часа 5 минут")
-        capture(app, name: "Напоминания — свой интервал")
+        capture(app, name: "Напоминания — колёса интервала")
+
+        let done = app.buttons["feeding-reminder.apply-interval"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5))
+        done.tap()
+        XCTAssertEqual(interval.value as? String, "2 часа 45 минут")
+        XCTAssertFalse(minutes.exists)
 
         app.terminate()
-        let restored = launch(reset: false, appearance: fixture)
+        let restored = launch(
+            reset: false,
+            appearance: ["--feeding-reminders-authorized", "--dark-mode", "--large-text"]
+        )
         tap(restored, id: "action.feed")
         tap(restored, id: "feed.bottle", label: "Бутылочка")
         tap(restored, id: "editor.save")
@@ -277,8 +284,17 @@ final class MalyshUITests: XCTestCase {
 
         XCTAssertEqual(toggle.value as? String, "1")
         XCTAssertTrue(interval.waitForExistence(timeout: 5))
+        XCTAssertEqual(interval.value as? String, "2 часа 45 минут")
+        XCTAssertFalse(minutes.exists)
+        interval.tap()
+        XCTAssertTrue(custom.waitForExistence(timeout: 5))
+        custom.tap()
         revealReminderRow(minutes, in: restored)
-        XCTAssertEqual(minutes.value as? String, "5")
+        XCTAssertEqual(hours.value as? String, "2 ч")
+        XCTAssertEqual(minutes.value as? String, "45 мин")
+        capture(restored, name: "Напоминания — колёса после перезапуска")
+        done.tap()
+
         interval.tap()
         let preset = restored.buttons["4 часа"].firstMatch
         XCTAssertTrue(preset.waitForExistence(timeout: 5))

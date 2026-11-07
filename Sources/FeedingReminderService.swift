@@ -356,7 +356,7 @@ final class FeedingReminderService {
         }
     }
 
-    static func validInterval(_ minutes: Int) -> Bool {
+    private static func validInterval(_ minutes: Int) -> Bool {
         customRange.contains(minutes) && minutes.isMultiple(of: customStep)
     }
 
