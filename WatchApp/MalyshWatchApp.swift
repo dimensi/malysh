@@ -43,32 +43,49 @@ private struct WatchDiaryView: View {
     @State private var routeMessage: String?
     @State private var errorPresented = false
 
+    private let tileSpacing: CGFloat = 6
+
+    private var usesSquareTiles: Bool {
+        dynamicTypeSize < .xxLarge
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
-                    if let diary = store.selectedDiary {
-                        diaryOverview(diary)
-                        if !diary.canWrite {
-                            Label("Только просмотр", systemImage: "lock")
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
+                        if let diary = store.selectedDiary {
+                            if !usesSquareTiles {
+                                diaryHeader(diary)
+                            }
+                            if !diary.canWrite {
+                                Label("Только просмотр", systemImage: "lock")
+                                    .font(AppDesign.Typography.note)
+                                    .foregroundStyle(.secondary)
+                            }
+                            actions(diary, tileSide: squareSide(in: geometry.size.width))
+                        } else {
+                            emptyDiary
+                        }
+                        if let routeMessage {
+                            Text(routeMessage)
                                 .font(AppDesign.Typography.note)
                                 .foregroundStyle(.secondary)
                         }
-                        actions(diary)
-                    } else {
-                        emptyDiary
+                        WatchSyncStatus(store: store)
                     }
-                    if let routeMessage {
-                        Text(routeMessage)
-                            .font(AppDesign.Typography.note)
-                            .foregroundStyle(.secondary)
-                    }
-                    WatchSyncStatus(store: store)
+                    .padding(.horizontal, AppDesign.Spacing.group)
+                    .padding(.bottom, AppDesign.Spacing.group)
                 }
-                .padding(.horizontal, AppDesign.Spacing.group)
-                .padding(.bottom, AppDesign.Spacing.group)
+                .contentMargins(.top, 0, for: .scrollContent)
             }
-            .contentMargins(.top, 0, for: .scrollContent)
+            .toolbar {
+                if usesSquareTiles, let diary = store.selectedDiary {
+                    ToolbarItem(placement: .topBarLeading) {
+                        diaryHeader(diary)
+                    }
+                }
+            }
             .navigationDestination(for: Page.self, destination: destination)
         }
         .onOpenURL { url in
@@ -110,15 +127,27 @@ private struct WatchDiaryView: View {
         }
     }
 
+    private func squareSide(in width: CGFloat) -> CGFloat? {
+        guard usesSquareTiles else { return nil }
+        let contentWidth = width - 2 * AppDesign.Spacing.group
+        return max(AppDesign.Metrics.minimumTouch, floor((contentWidth - tileSpacing) / 2))
+    }
+
     @ViewBuilder
-    private func diaryOverview(_ diary: WatchDiary) -> some View {
+    private func diaryHeader(_ diary: WatchDiary) -> some View {
         if store.diaries.count > 1 {
             Button {
                 showDiaries = true
             } label: {
-                overviewContent(diary, showsPicker: true)
-                    .frame(minHeight: AppDesign.Metrics.minimumTouch)
-                    .contentShape(.rect)
+                HStack(spacing: AppDesign.Spacing.related) {
+                    diaryName(diary)
+                    Image(systemName: "chevron.down")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+                .frame(minHeight: usesSquareTiles ? nil : AppDesign.Metrics.minimumTouch)
+                .contentShape(.rect)
             }
             .buttonStyle(.plain)
             .disabled(isLuminanceReduced)
@@ -131,81 +160,31 @@ private struct WatchDiaryView: View {
                 Button("Отмена", role: .cancel) {}
             }
         } else {
-            overviewContent(diary, showsPicker: false)
+            diaryName(diary)
         }
     }
 
-    private func overviewContent(_ diary: WatchDiary, showsPicker: Bool) -> some View {
-        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
-            HStack(spacing: AppDesign.Spacing.related) {
-                Text(diary.name)
-                    .font(AppDesign.Typography.itemTitle)
-                    .accessibilityAddTraits(.isHeader)
-                    .privacySensitive()
-                    .redacted(reason: isLuminanceReduced ? .privacy : [])
-                if showsPicker {
-                    Image(systemName: "chevron.down")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                }
-            }
-            if let latest = diary.latestFeeding {
-                TimelineView(.everyMinute) { context in
-                    let now = context.date
-                    let elapsed = relativeFeedingTime(latest.feedingReferenceDate, now: now)
-                    ViewThatFits(in: .horizontal) {
-                        HStack(spacing: AppDesign.Spacing.group) {
-                            feedingSummary(elapsed, event: latest, now: now)
-                                .fixedSize(horizontal: true, vertical: false)
-                        }
-                        HStack(spacing: AppDesign.Spacing.group) {
-                            feedingSummary(elapsed, event: latest, now: now, compact: true)
-                                .fixedSize(horizontal: true, vertical: false)
-                        }
-                        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
-                            feedingSummary(elapsed, event: latest, now: now)
-                        }
-                    }
-                }
-            } else {
-                Text("Кормлений пока нет")
-                    .font(AppDesign.Typography.note)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-    }
-
-    @ViewBuilder
-    private func feedingSummary(_ elapsed: String, event: CareEvent, now: Date, compact: Bool = false) -> some View {
-        let detail = compact
-            ? (event.kind == .bottle ? "\(event.volumeML) мл" : event.kind.label)
-            : feedingDetail(event, now: now, abbreviated: true)
-        Text(elapsed)
-            .font(.caption.weight(.semibold))
-            .monospacedDigit()
-            .accessibilityLabel("Последнее кормление, \(elapsed)")
-            .accessibilityIdentifier("watch.lastFeeding.elapsed")
-        Text(detail)
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .accessibilityLabel(feedingDetail(event, now: now, abbreviated: false))
+    private func diaryName(_ diary: WatchDiary) -> some View {
+        Text(diary.name)
+            .font(AppDesign.Typography.itemTitle)
+            .accessibilityAddTraits(.isHeader)
             .privacySensitive()
             .redacted(reason: isLuminanceReduced ? .privacy : [])
     }
 
-    private func actions(_ diary: WatchDiary) -> some View {
+    private func actions(_ diary: WatchDiary, tileSide: CGFloat?) -> some View {
         let breast = diary.active(.breast)
         let sleep = diary.active(.sleep)
-        let secondaryLayout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: AppDesign.Spacing.related))
-            : AnyLayout(HStackLayout(spacing: AppDesign.Spacing.related))
-        return VStack(spacing: AppDesign.Spacing.related) {
-            WatchActionButton(
-                title: "Кормление", symbol: "heart.fill", tint: AppDesign.Palette.feeding,
-                prominent: true, timer: breast
+        let columns = if let tileSide {
+            [GridItem(.fixed(tileSide), spacing: tileSpacing), GridItem(.fixed(tileSide))]
+        } else {
+            [GridItem(.flexible())]
+        }
+
+        return LazyVGrid(columns: columns, spacing: tileSpacing) {
+            WatchCareTile(
+                title: "Кормление", artwork: "WidgetFeedingArt", tint: AppDesign.Palette.feeding,
+                tileSide: tileSide, running: breast != nil
             ) {
                 if let breast {
                     path = [.timer(diaryID: diary.id, eventID: breast.id)]
@@ -228,30 +207,36 @@ private struct WatchDiaryView: View {
                 Button("Отмена", role: .cancel) {}
             }
 
-            secondaryLayout {
-                WatchActionButton(title: "Подгузник", symbol: "drop.fill", tint: AppDesign.Palette.diaper) {
-                    diaperChoice = DiaperChoice(diaryID: diary.id)
-                }
-                .disabled(!diary.canWrite)
-                .accessibilityIdentifier("watch.diaper")
-                .confirmationDialog(
-                    "Подгузник",
-                    isPresented: choiceBinding($diaperChoice),
-                    titleVisibility: .visible,
-                    presenting: diaperChoice
-                ) { choice in
-                    ForEach(DiaperType.allCases, id: \.self) { type in
-                        Button(type.label) { recordDiaper(type, choice: choice) }
-                    }
-                    Button("Отмена", role: .cancel) {}
-                }
-
-                WatchActionButton(title: "Сон", symbol: "moon.zzz.fill", tint: AppDesign.Palette.sleep, timer: sleep) {
-                    openSleep(diaryID: diary.id)
-                }
-                .disabled(!diary.canWrite && sleep == nil)
-                .accessibilityIdentifier("watch.sleep")
+            WatchCareTile(
+                title: "Подгузник", artwork: "WidgetDiaperArt", tint: AppDesign.Palette.diaper,
+                tileSide: tileSide
+            ) {
+                diaperChoice = DiaperChoice(diaryID: diary.id)
             }
+            .disabled(!diary.canWrite)
+            .accessibilityIdentifier("watch.diaper")
+            .confirmationDialog(
+                "Подгузник",
+                isPresented: choiceBinding($diaperChoice),
+                titleVisibility: .visible,
+                presenting: diaperChoice
+            ) { choice in
+                ForEach(DiaperType.allCases, id: \.self) { type in
+                    Button(type.label) { recordDiaper(type, choice: choice) }
+                }
+                Button("Отмена", role: .cancel) {}
+            }
+
+            WatchCareTile(
+                title: "Сон", artwork: "WidgetSleepArt", tint: AppDesign.Palette.sleep,
+                tileSide: tileSide, running: sleep != nil
+            ) {
+                openSleep(diaryID: diary.id)
+            }
+            .disabled(!diary.canWrite && sleep == nil)
+            .accessibilityIdentifier("watch.sleep")
+
+            WatchHomeStatus(diary: diary, breast: breast, sleep: sleep, tileSide: tileSide)
         }
         .disabled(isLuminanceReduced)
     }
@@ -372,117 +357,160 @@ private struct WatchDiaryView: View {
     }
 }
 
-private func relativeFeedingTime(_ date: Date, now: Date) -> String {
-    let elapsed = max(0, now.timeIntervalSince(date))
-    if elapsed < 60 {
-        return "Только что"
-    }
-    let formatter = RelativeDateTimeFormatter()
-    formatter.locale = Locale(identifier: "ru_RU")
-    formatter.unitsStyle = .short
-    return formatter.localizedString(fromTimeInterval: -elapsed)
-}
-
-private func feedingDetail(_ event: CareEvent, now: Date, abbreviated: Bool) -> String {
-    if event.kind == .bottle {
-        if abbreviated {
-            let type = event.bottleType == .formula ? "Смесь" : "Молоко"
-            return "\(type) · \(event.volumeML) мл"
-        }
-        return "Бутылочка · \(event.bottleType.label) · \(event.volumeML) мл"
-    }
-    if abbreviated {
-        return "Грудь · \(watchMinutes(event.elapsed(now: now)))"
-    }
-    let sides = event.breastDurations(now: now)
-    return "Грудь · левая \(watchMinutes(sides.left)), правая \(watchMinutes(sides.right))"
-}
-
-private struct WatchActionButton: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+private struct WatchCareTile: View {
     @Environment(\.isEnabled) private var isEnabled
-    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     let title: String
-    let symbol: String
+    let artwork: String
     let tint: Color
-    var prominent = false
-    var timer: CareEvent?
+    let tileSide: CGFloat?
+    var running = false
     let action: () -> Void
 
     var body: some View {
-        if prominent {
-            Button(action: action) {
-                prominentLabel
+        Button(action: action) {
+            HStack(spacing: AppDesign.Spacing.group) {
+                let imageSide = tileSide.map { $0 * 0.63 } ?? 32
+                Image(artwork)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: imageSide, height: imageSide)
+                    .accessibilityHidden(true)
+                if tileSide == nil {
+                    Text(title).font(AppDesign.Typography.itemTitle)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .tint(tint.opacity(0.9))
-            .foregroundStyle(AppDesign.Palette.onAccent)
-            .environment(\.colorScheme, .light)
-        } else {
-            Button(action: action) {
-                secondaryLabel
-                    .background {
-                        RoundedRectangle(cornerRadius: AppDesign.Radius.card)
-                            .fill(tint.opacity(0.20))
-                            .environment(\.colorScheme, .light)
+            .frame(maxWidth: .infinity, minHeight: AppDesign.Metrics.minimumTouch)
+            .frame(width: tileSide, height: tileSide)
+            .background {
+                RoundedRectangle(cornerRadius: AppDesign.Radius.card)
+                    .fill(tint.opacity(0.21))
+                    .environment(\.colorScheme, .light)
+            }
+            .overlay(alignment: .topTrailing) {
+                if running {
+                    Circle()
+                        .fill(tint)
+                        .frame(width: 5, height: 5)
+                        .padding(AppDesign.Spacing.cardContent)
+                        .environment(\.colorScheme, .light)
+                        .accessibilityHidden(true)
+                }
+            }
+            .contentShape(.rect(cornerRadius: AppDesign.Radius.card))
+            .opacity(isEnabled ? 1 : 0.55)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(running ? "Таймер запущен" : "")
+    }
+}
+
+private struct WatchHomeStatus: View {
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+    let diary: WatchDiary
+    let breast: CareEvent?
+    let sleep: CareEvent?
+    let tileSide: CGFloat?
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            VStack(alignment: .leading, spacing: 2) {
+                if let breast, let sleep {
+                    Text("Сейчас")
+                    timerRow(breast, at: context.date, artwork: "WidgetFeedingArt", tint: AppDesign.Palette.feeding)
+                    timerRow(sleep, at: context.date, artwork: "WidgetSleepArt", tint: AppDesign.Palette.sleep)
+                } else if let breast {
+                    Text("Грудь")
+                    value(breast.elapsed(now: context.date), tint: AppDesign.Palette.feeding)
+                    Text(breast.side.label)
+                        .accessibilityLabel("\(breast.side.label) грудь")
+                        .privacySensitive()
+                        .redacted(reason: isLuminanceReduced ? .privacy : [])
+                } else if let sleep {
+                    Text("Сон")
+                    value(sleep.elapsed(now: context.date), tint: AppDesign.Palette.sleep)
+                } else if let latest = diary.latestCompletedFeeding {
+                    ViewThatFits(in: .horizontal) {
+                        Text("Кормили").fixedSize()
+                        Text("Еда").fixedSize()
                     }
-                    .contentShape(.rect(cornerRadius: AppDesign.Radius.card))
-                    .opacity(isEnabled ? 1 : 0.55)
+                    .accessibilityLabel("Последнее кормление")
+                    value(context.date.timeIntervalSince(latest.feedingReferenceDate), tint: .white)
+                        .accessibilityIdentifier("watch.lastFeeding.elapsed")
+                    HStack(spacing: 2) {
+                        Text("назад")
+                        feedingMark(latest)
+                            .privacySensitive()
+                            .redacted(reason: isLuminanceReduced ? .privacy : [])
+                    }
+                } else {
+                    Text("Пока пусто")
+                        .accessibilityLabel("Кормлений пока нет")
+                }
             }
-            .buttonStyle(.plain)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(6)
+            .frame(width: tileSide, height: tileSide, alignment: .leading)
+            .background(.white.opacity(0.10), in: .rect(cornerRadius: AppDesign.Radius.card))
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("watch.status")
         }
     }
 
-    private var prominentLabel: some View {
-        let stacked = timer != nil && dynamicTypeSize.isAccessibilitySize
-        let layout = stacked
-            ? AnyLayout(VStackLayout(spacing: 2))
-            : AnyLayout(HStackLayout(spacing: AppDesign.Spacing.related))
-        return layout {
-            symbolImage
-            if let timer {
-                Text(timer.side.label)
-                    .accessibilityLabel(timer.side.label + " грудь")
-                    .privacySensitive()
-                    .redacted(reason: isLuminanceReduced ? .privacy : [])
-                WatchElapsedText(start: timer.start, compact: true)
-                    .font(.caption2)
-                    .opacity(0.82)
-            } else {
-                Text(title)
-            }
+    private func value(_ elapsed: TimeInterval, tint: Color, font: Font = .subheadline) -> some View {
+        ViewThatFits(in: .horizontal) {
+            Text(compactWatchDuration(elapsed)).fixedSize()
+            Text(compactWatchDuration(elapsed, minuteSuffix: "м")).fixedSize()
         }
-        .font(AppDesign.Typography.itemTitle)
-        .frame(maxWidth: .infinity, minHeight: AppDesign.Metrics.minimumTouch)
-        .accessibilityElement(children: .combine)
+        .font(font.weight(.semibold))
+        .monospacedDigit()
+        .foregroundStyle(tint)
+        .environment(\.colorScheme, .light)
+        .accessibilityLabel(elapsed < 60 ? "Меньше минуты" : watchMinutes(elapsed))
     }
 
-    private var secondaryLabel: some View {
-        let layout = dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(HStackLayout(spacing: AppDesign.Spacing.group))
-            : AnyLayout(VStackLayout(spacing: 2))
-        return layout {
-            symbolImage
-                .foregroundStyle(tint)
+    private func timerRow(_ event: CareEvent, at date: Date, artwork: String, tint: Color) -> some View {
+        let elapsed = event.elapsed(now: date)
+        return HStack(spacing: 2) {
+            Image(artwork)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 11, height: 11)
+                .accessibilityHidden(true)
+            value(elapsed, tint: tint, font: .caption2)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "\(event.kind == .sleep ? "Сон" : "Кормление"), \(elapsed < 60 ? "меньше минуты" : watchMinutes(elapsed))"
+        )
+    }
+
+    @ViewBuilder
+    private func feedingMark(_ event: CareEvent) -> some View {
+        if event.kind == .bottle {
+            Image("WidgetFeedingArt")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 12, height: 12)
+                .accessibilityLabel("Бутылочка, \(event.bottleType.label), \(event.volumeML) миллилитров")
+        } else {
+            Image(systemName: "heart.fill")
+                .foregroundStyle(AppDesign.Palette.feeding)
                 .environment(\.colorScheme, .light)
-            if let timer {
-                WatchElapsedText(start: timer.start, compact: true)
-                    .accessibilityLabel(Text("Сон, \(timer.start, style: .timer)"))
-            } else {
-                Text(title)
-                    .fontWidth(.condensed)
-            }
+                .accessibilityLabel("Грудь")
         }
-        .font(.caption2.weight(.medium))
-        .frame(maxWidth: .infinity, minHeight: AppDesign.Metrics.minimumTouch)
-        .accessibilityElement(children: .combine)
     }
+}
 
-    private var symbolImage: some View {
-        Image(systemName: symbol)
-            .font(.body.weight(.semibold))
-            .accessibilityHidden(true)
+private func compactWatchDuration(_ elapsed: TimeInterval, minuteSuffix: String = " мин") -> String {
+    let minutes = max(0, Int(elapsed / 60))
+    return switch minutes {
+    case 0: "<1\(minuteSuffix)"
+    case 1 ..< 60: "\(minutes)\(minuteSuffix)"
+    case 60 ..< 1440: "\(minutes / 60) ч"
+    default: "\(minutes / 1440) д"
     }
 }
 
@@ -697,12 +725,11 @@ private struct WatchTimerView: View {
 private struct WatchElapsedText: View {
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     let start: Date
-    var compact = false
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: isLuminanceReduced || compact ? 60 : 1)) { context in
+        TimelineView(.periodic(from: .now, by: isLuminanceReduced ? 60 : 1)) { context in
             let elapsed = max(0, context.date.timeIntervalSince(start))
-            let precise = !isLuminanceReduced && !compact && context.cadence <= .seconds
+            let precise = !isLuminanceReduced && context.cadence <= .seconds
             Text(timerDuration(elapsed, precise: precise))
                 .monospacedDigit()
                 .accessibilityLabel("Прошло \(spokenTimerDuration(elapsed, precise: precise))")
