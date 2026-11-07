@@ -3,50 +3,80 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Ответы на вопросы о дневнике «Малыш» и связь с разработчиком.">
-  <title>Поддержка «Малыша»</title>
+  <meta name="description" content="«Малыш» — дневник ухода за ребёнком для iPhone и Apple Watch. Кормления, сон, подгузники, измерения и семейный доступ через iCloud.">
+  <meta property="og:title" content="Малыш — дневник первых дней">
+  <meta property="og:description" content="Кормления, сон и подгузники в одном дневнике для iPhone и Apple Watch.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ru_RU">
+  <title>Малыш — дневник первых дней</title>
   <link rel="icon" type="image/png" href="brand.png">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="landing.css">
 </head>
 <body>
-  <header>
-    <a class="brand" href="./"><img src="brand.png" width="36" height="36" alt="">Малыш</a>
-    <nav aria-label="Страницы приложения">
-      <a href="./" aria-current="page">Поддержка</a>
-      <a href="privacy.html">Конфиденциальность</a>
+  <header class="shell site-header">
+    <a class="wordmark" href="./" aria-current="page"><img src="brand.png" width="42" height="42" alt="">Малыш</a>
+    <nav aria-label="Основная навигация">
+      <a href="#features">Возможности</a>
+      <a href="support.html">Поддержка</a>
     </nav>
   </header>
-  <main>
-    <h1>Поддержка «Малыша»</h1>
-    <p class="intro">Помощь с дневником ухода за ребёнком на iPhone и Apple Watch.</p>
 
-    <section class="note" aria-labelledby="contact">
-      <h2 id="contact">Связь с разработчиком</h2>
-      <p><a href="https://github.com/dimensi/malysh/issues/new">Сообщить о проблеме на GitHub</a>. Нужна учётная запись GitHub. Обращение и ответы будут публичными.</p>
-      <p>Укажите версию «Малыша», модель устройства, версию iOS или watchOS, шаги и текст ошибки. Не прикладывайте имена и фото ребёнка, записи дневника, данные аккаунта или ссылки-приглашения.</p>
+  <main>
+    <section class="shell hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title">Дневник первых дней</h1>
+        <p>Записывайте кормления, сон и&nbsp;подгузники. Смотрите, когда малыш ел в&nbsp;последний раз и&nbsp;сколько спал за&nbsp;день.</p>
+        <a class="primary" href="#features">Посмотреть возможности
+          <svg aria-hidden="true" viewBox="0 0 20 20" width="20" height="20" fill="none">
+            <path d="M10 4v12m-5-5 5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+        <p class="release">Готовится к выходу в App Store</p>
+      </div>
+      <figure class="showcase" aria-label="Экран приложения «Малыш»">
+        <img class="device" src="screens/today.webp" width="760" height="1652" fetchpriority="high" alt="Вкладка «Сегодня» с последним кормлением Ванечки, быстрыми действиями и последними событиями">
+      </figure>
     </section>
 
-    <h2>Можно вести дневник без iCloud?</h2>
-    <p>Да. Создайте дневник на iPhone. Записи, измерения и уже добавленные фотографии доступны без сети. Для загрузки снимка, который хранится только в «Фото iCloud», может понадобиться интернет.</p>
+    <section id="features" class="shell rhythm" aria-labelledby="features-title">
+      <figure class="rhythm-picture">
+        <img class="device" src="screens/statistics.webp" width="700" height="1521" loading="lazy" alt="Вкладка «Статистика» с итогами и графиком событий за день">
+      </figure>
+      <div class="rhythm-copy">
+        <h2 id="features-title">Как прошёл день</h2>
+        <p>Откройте историю, чтобы вспомнить время кормления, или посмотрите суточную сводку сна, кормлений и подгузников.</p>
+        <dl class="features">
+          <div><dt>Таймеры под рукой</dt><dd>Засекайте сон и кормление грудью, переключайте сторону и смотрите ход таймера на экране блокировки iPhone.</dd></div>
+          <div><dt>Как растёт малыш</dt><dd>Записывайте вес, рост и окружность головы. Просматривайте свои измерения на графиках.</dd></div>
+          <div><dt>Фотографии в дневнике</dt><dd>Добавляйте снимки и возвращайтесь к ним в фотоальбоме ребёнка.</dd></div>
+        </dl>
+      </div>
+    </section>
 
-    <h2>Как пригласить второго родителя?</h2>
-    <p>Откройте настройки «Малыша», включите «Синхронизация через iCloud» и дождитесь подключения. В разделе «Семья» выберите «Пригласить второго родителя». У получателя должны быть «Малыш» и активный iCloud. Передайте приглашение только тому, кому хотите дать доступ к записям и фотографиям выбранного дневника.</p>
+    <section class="shell family" aria-labelledby="family-title">
+      <img src="brand.png" width="96" height="96" loading="lazy" alt="">
+      <div>
+        <h2 id="family-title">Один дневник на двоих</h2>
+        <p>Пригласите близкого через iCloud, чтобы вы оба видели записи выбранного дневника. Синхронизацию можно включить в настройках. Личный дневник доступен и без неё.</p>
+        <a href="support.html#family">Как пригласить близкого</a>
+      </div>
+    </section>
 
-    <h2>Что делать, если дневник не синхронизируется?</h2>
-    <p>Проверьте интернет и вход в iCloud. В настройках «Малыша» посмотрите статус синхронизации и нажмите «Попробовать снова», если кнопка доступна. Если проблема с приглашением, проверьте статус участника в разделе «Семья».</p>
-
-    <h2>Как включить напоминания о кормлении?</h2>
-    <p>В «Настройках» → «Напоминания» включите «Напоминать о кормлении» и выберите интервал. Отсчёт начинается после завершённого кормления. Параметры задаются на каждом iPhone. Проверьте разрешения на Live Activities и уведомления в настройках iPhone, если напоминания не появляются.</p>
-
-    <h2>Где найти фото и как сохранить копию?</h2>
-    <p>Нажмите на аватар ребёнка на вкладке «Сегодня» или откройте галерею во вкладке «Малыш». Оригинал снимка, сделанного камерой «Малыша», сохраняется в системное приложение «Фото». В галерее хранится отдельная копия. Чтобы сохранить полученный от другого участника снимок в «Фото», нажмите и удерживайте его миниатюру и выберите сохранение.</p>
-
-    <h2>Как подключить Apple Watch?</h2>
-    <p>Установите «Малыш» на сопряжённые часы и хотя бы один раз откройте дневник на iPhone. После загрузки дневника часы могут записывать события без связи с телефоном. Если действие осталось «Сохранено на часах», восстановите связь с iPhone и дождитесь подтверждения.</p>
-
-    <h2>Как выгрузить записи или удалить дневник?</h2>
-    <p>«Настройки» → «Экспортировать дневник» сохраняет в «Файлы» JSON с профилем, записями и измерениями. Фотографии сохраняются из галереи отдельно. Для удаления дневника или выхода из общего дневника откройте «Настройки» → «Управление дневниками». Подробности об облаке и копиях есть в <a href="privacy.html#choices">разделе об управлении данными</a>.</p>
+    <section class="shell availability" aria-labelledby="availability-title">
+      <h2 id="availability-title">На iPhone и Apple Watch</h2>
+      <div>
+        <p>На сопряжённых часах можно начать таймер или записать кормление и подгузник. Записи передаются в дневник на iPhone.</p>
+        <p class="requirements">iOS 27.0 и новее · watchOS 26.0 и новее</p>
+      </div>
+    </section>
   </main>
-  <footer><p>«Малыш» · <a href="privacy.html">Политика конфиденциальности</a></p></footer>
+
+  <footer class="shell site-footer">
+    <a class="wordmark" href="./"><img src="brand.png" width="34" height="34" alt="">Малыш</a>
+    <nav aria-label="Справочная информация">
+      <a href="support.html">Поддержка</a>
+      <a href="privacy.html">Конфиденциальность</a>
+    </nav>
+  </footer>
 </body>
 </html>
