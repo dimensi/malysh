@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Отложить на 15 минут</title>
+  <path d="M22 58V40L14 44C8 40 5.5 34 6 27C7 15.5 18 7.5 32 7.5C46 7.5 57 15.5 58 27C58.7 36 53 43 46 43H34L32.5 50C37.2 47.3 43.6 47.9 45.8 51.2C49 56 44.2 60.8 37.5 60C35.1 59.8 33.2 58.8 31.8 57.2M23.5 18H40.5L23.5 32H40.5M6.8 11.8C9.1 7.9 12.7 5.2 17.2 4M46.8 4C51.3 5.2 54.9 7.9 57.2 11.8"
+        stroke="#FFDBC9" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

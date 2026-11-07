@@ -20,52 +20,44 @@ struct MalyshWidgetBundle: WidgetBundle {
         WetDiaperControl()
         SleepCareControl()
         CareLiveActivityWidget()
+        FeedingReminderLiveActivityWidget()
     }
 }
 
 struct CareLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: CareActivityAttributes.self) { context in
+            let isFeeding = context.state.kind == .breast
             CareActivityLockScreen(attributes: context.attributes, state: context.state)
                 .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
                                        eventID: context.attributes.eventID).url)
-                .activityBackgroundTint(context.state.surfaceColor)
-                .activitySystemActionForegroundColor(.primary)
+                .activityBackgroundTint(
+                    isFeeding ? CareActivityAppearance.feedingLockScreenSurface : context.state.appearance.surfaceColor
+                )
+                .activitySystemActionForegroundColor(isFeeding ? .white : .primary)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    CareActivityIslandHeaderCell {
-                        CareActivityIslandHeading(state: context.state)
-                    }
+                    CareActivityIslandTimerRow(region: .controls, attributes: context.attributes, state: context.state)
                 }
-                .contentMargins(.leading, 26)
                 DynamicIslandExpandedRegion(.trailing) {
-                    CareActivityIslandHeaderCell {
-                        CareActivityTimer(start: context.state.start, end: context.state.end, alignment: .trailing)
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                            .padding(.trailing, 11)
-                    }
+                    CareActivityIslandTimerRow(region: .timer, attributes: context.attributes, state: context.state)
                 }
-                .contentMargins(.trailing, 26)
                 DynamicIslandExpandedRegion(.bottom) {
-                    CareActivityIslandActions(attributes: context.attributes, state: context.state)
+                    CareActivityIslandTimerRow(
+                        region: .accessibility, attributes: context.attributes, state: context.state
+                    )
                 }
             } compactLeading: {
-                Image(systemName: context.state.symbol)
-                    .foregroundStyle(context.state.islandAccent)
-                    .accessibilityLabel(context.state.title)
+                CareActivityIslandIcon(title: context.state.title, appearance: context.state.appearance)
             } compactTrailing: {
                 CompactCareActivityTimer(state: context.state)
             } minimal: {
-                Image(systemName: context.state.symbol)
-                    .foregroundStyle(context.state.islandAccent)
-                    .accessibilityLabel(context.state.title)
+                CareActivityIslandIcon(title: context.state.title, appearance: context.state.appearance)
             }
             .widgetURL(WidgetRoute(.activity, babyID: context.attributes.babyID,
                                    eventID: context.attributes.eventID).url)
-            .contentMargins(.horizontal, 16, for: .expanded)
+            .contentMargins(.horizontal, AppDesign.Spacing.row, for: .expanded)
         }
     }
 }
@@ -89,8 +81,8 @@ private struct CompactCareActivityTimer: View {
 )) {
     CareLiveActivityWidget()
 } contentStates: {
-    CareActivityAttributes.ContentState(kind: .breast, start: .now.addingTimeInterval(-742),
-                                        side: .left, babyName: "Малыш")
+    CareActivityAttributes.ContentState(kind: .breast, start: .now.addingTimeInterval(-263),
+                                        side: .left, babyName: "Андрей")
 }
 
 #Preview("Сон · остров", as: .dynamicIsland(.expanded), using: CareActivityAttributes(

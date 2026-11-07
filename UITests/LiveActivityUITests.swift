@@ -32,6 +32,39 @@ final class LiveActivityUITests: XCTestCase {
         assertSavedEvent(eventID, in: app)
     }
 
+    func testFeedingLockScreenKeepsControlsBesideTitleAndShowsCompletedCard() {
+        let app = launch()
+        app.buttons["action.feed"].tap()
+        let left = app.buttons.matching(identifier: "feed.left").firstMatch
+        XCTAssertTrue(left.waitForExistence(timeout: 5))
+        left.tap()
+        let timer = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'timer.finish.'")).firstMatch
+        XCTAssertTrue(timer.waitForExistence(timeout: 5))
+        let eventID = String(timer.identifier.dropFirst("timer.finish.".count))
+
+        let title = "Малыш · Кормление"
+        let finishLabel = "Завершить кормление"
+        let switchLabel = "Переключить на правую грудь"
+        XCUIDevice.shared.press(.home)
+        let activeCard = showActivity(button: finishLabel)
+        let activeTitle = activeCard.staticTexts[title]
+        let switchSide = activeCard.buttons[switchLabel]
+        let finish = activeCard.buttons[finishLabel]
+        XCTAssertTrue(activeTitle.exists)
+        XCTAssertTrue(switchSide.isHittable)
+        XCTAssertGreaterThanOrEqual(switchSide.frame.minX, activeTitle.frame.maxX)
+        XCTAssertGreaterThan(finish.frame.minX, switchSide.frame.minX)
+        XCTAssertEqual(switchSide.frame.midY, finish.frame.midY, accuracy: 2)
+
+        finish.tap()
+        let completedCard = assertSystemActivityFinished(button: finishLabel, status: "Кормление завершено", app: app)
+        XCTAssertTrue(completedCard.staticTexts[title].exists)
+        waitForSystemDismissal(completedCard.buttons[switchLabel])
+        app.activate()
+        waitForRemoval(timer)
+        assertSavedEvent(eventID, in: app)
+    }
+
     private func assertSavedEvent(_ id: String, in app: XCUIApplication) {
         let event = app.buttons["event.\(id)"]
         if !event.isHittable {
@@ -93,7 +126,8 @@ final class LiveActivityUITests: XCTestCase {
         return cover
     }
 
-    private func assertSystemActivityFinished(button: String, status: String, app: XCUIApplication) {
+    @discardableResult
+    private func assertSystemActivityFinished(button: String, status: String, app: XCUIApplication) -> XCUIElement {
         XCTAssertNotEqual(app.state, .runningForeground)
         // Refresh iOS 26's stale AX snapshot before querying the removed card.
         XCUIDevice.shared.press(.home)
@@ -103,6 +137,7 @@ final class LiveActivityUITests: XCTestCase {
         capture("\(status) — итог")
         XCTAssertTrue(cover.isHittable)
         XCTAssertNotEqual(app.state, .runningForeground)
+        return cover
     }
 
     private func allowActivityIfNeeded(_ springboard: XCUIApplication) {

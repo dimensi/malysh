@@ -2,6 +2,7 @@
 @preconcurrency import CoreData
 import SwiftUI
 import UIKit
+import UserNotifications
 
 @main
 @MainActor
@@ -55,7 +56,67 @@ struct MalyshApp: App {
 }
 
 @MainActor
-final class AppDelegate: NSObject, UIApplicationDelegate {
+final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    func application(
+        _: UIApplication,
+        didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+        SystemFeedingReminderScheduler.registerCategories()
+        return true
+    }
+
+    nonisolated func userNotificationCenter(
+        _: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void
+    ) {
+        let payload = Self.reminderPayload(notification.request)
+        Task { @MainActor in
+            guard let payload, await CareActivityRuntime.shared.acceptFeedingReminderDelivery(
+                token: payload.token, babyID: payload.babyID
+            ) else {
+                completionHandler([])
+                return
+            }
+            completionHandler([.banner, .list, .sound])
+        }
+    }
+
+    nonisolated func userNotificationCenter(
+        _: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping @Sendable () -> Void
+    ) {
+        let payload = Self.reminderPayload(response.notification.request)
+        let action = response.actionIdentifier
+        Task { @MainActor in
+            // iOS can update scene restoration as part of this completion.
+            defer { completionHandler() }
+            guard let (token, babyID) = payload else { return }
+            switch action {
+            case FeedingReminderNotification.snoozeActionID:
+                await CareActivityRuntime.shared.snoozeFeedingReminder(token: token, babyID: babyID)
+            case FeedingReminderNotification.openActionID, UNNotificationDefaultActionIdentifier:
+                await CareActivityRuntime.shared.openFeedingReminder(token: token, babyID: babyID)
+            default:
+                break
+            }
+        }
+    }
+
+    private nonisolated static func reminderPayload(_ request: UNNotificationRequest)
+        -> (token: String, babyID: UUID)?
+    {
+        guard request.identifier == FeedingReminderNotification.requestID,
+              request.content.categoryIdentifier == FeedingReminderNotification.categoryID,
+              let token = request.content.userInfo[FeedingReminderNotification.tokenKey] as? String,
+              let rawBabyID = request.content.userInfo[FeedingReminderNotification.babyIDKey] as? String,
+              let babyID = UUID(uuidString: rawBabyID) else { return nil }
+        return (token, babyID)
+    }
+
     func accept(_ metadata: CKShare.Metadata) {
         let runtime = CareActivityRuntime.shared
         runtime.store.receiveInvitation(metadata)

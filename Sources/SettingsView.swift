@@ -1,5 +1,6 @@
 import CloudKit
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 @MainActor
@@ -56,6 +57,7 @@ struct SettingsView: View {
                     .accessibilityIdentifier("diary.export")
                 }
                 familySection
+                FeedingReminderSettings(reminders: store.feedingReminders)
                 Section {
                     Toggle("Копировать фото других участников в «Фото»", isOn: Binding(
                         get: { store.photoGallery.autoSaveReceived },
@@ -292,6 +294,151 @@ struct SettingsView: View {
         .frame(minHeight: 44, alignment: .leading)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityElement(children: .combine)
+    }
+}
+
+@MainActor
+private struct FeedingReminderSettings: View {
+    let reminders: FeedingReminderService
+    @Environment(\.openURL) private var openURL
+    @State private var editsCustomInterval = false
+
+    private var usesCustomInterval: Bool {
+        editsCustomInterval || !FeedingReminderService.presets.contains(reminders.intervalMinutes)
+    }
+
+    var body: some View {
+        Section {
+            Toggle("Напоминать о кормлении", isOn: Binding(
+                get: { reminders.enabled },
+                set: { reminders.setEnabled($0) }
+            ))
+            .accessibilityIdentifier("feeding-reminder.enabled")
+            if reminders.enabled {
+                intervalPicker
+                if usesCustomInterval {
+                    customIntervalPickers
+                }
+                if reminders.authorization == .denied {
+                    Button("Открыть настройки уведомлений") {
+                        if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                            openURL(url)
+                        }
+                    }
+                    .accessibilityIdentifier("feeding-reminder.notification-settings")
+                }
+            }
+        } header: {
+            Text("Напоминания")
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(statusText)
+                    .accessibilityIdentifier("feeding-reminder.status")
+                if reminders.enabled {
+                    Text(channelText)
+                        .accessibilityIdentifier("feeding-reminder.channel")
+                    Text(notificationText)
+                        .accessibilityIdentifier("feeding-reminder.notification-status")
+                }
+            }
+        }
+    }
+
+    private var intervalPicker: some View {
+        Picker("Интервал", selection: Binding<Int?>(
+            get: { usesCustomInterval ? nil : reminders.intervalMinutes },
+            set: { minutes in
+                editsCustomInterval = minutes == nil
+                if let minutes {
+                    reminders.setIntervalMinutes(minutes)
+                }
+            }
+        )) {
+            ForEach(FeedingReminderService.presets, id: \.self) { minutes in
+                Text(FeedingReminderService.intervalLabel(minutes)).tag(Optional(minutes))
+            }
+            Text("Свой интервал").tag(nil as Int?)
+        }
+        .pickerStyle(.menu)
+        .accessibilityValue(FeedingReminderService.intervalLabel(reminders.intervalMinutes))
+        .accessibilityIdentifier("feeding-reminder.interval")
+    }
+
+    private var customIntervalPickers: some View {
+        let range = FeedingReminderService.customRange
+        let hours = reminders.intervalMinutes / 60
+        let minutes = reminders.intervalMinutes % 60
+        let maxHours = range.upperBound / 60
+        let minMinutes = max(0, range.lowerBound - hours * 60)
+        let maxMinutes = min(59, range.upperBound - hours * 60)
+        return Group {
+            Picker("Часы", selection: Binding(get: { hours }, set: { newHours in
+                let total = newHours * 60 + minutes
+                reminders.setIntervalMinutes(min(range.upperBound, max(range.lowerBound, total)))
+            })) {
+                ForEach(0 ... maxHours, id: \.self) { Text("\($0)").tag($0) }
+            }
+            .pickerStyle(.menu)
+            .accessibilityValue("\(hours)")
+            .accessibilityIdentifier("feeding-reminder.hours")
+
+            Picker("Минуты", selection: Binding(get: { minutes }, set: { newMinutes in
+                reminders.setIntervalMinutes(hours * 60 + newMinutes)
+            })) {
+                ForEach(Array(stride(from: minMinutes, through: maxMinutes, by: FeedingReminderService.customStep)),
+                        id: \.self) { Text("\($0)").tag($0) }
+            }
+            .pickerStyle(.menu)
+            .accessibilityValue("\(minutes)")
+            .accessibilityIdentifier("feeding-reminder.minutes")
+        }
+    }
+
+    private var statusText: String {
+        guard reminders.enabled else { return "Одно напоминание после последнего кормления на этом устройстве." }
+
+        switch reminders.status {
+        case .off:
+            return "Подготавливаем напоминание."
+        case .noChild:
+            return "Выберите дневник, чтобы получать напоминания."
+        case .noFeeding:
+            return "Напоминание появится после первого кормления."
+        case .feedingActive:
+            return "Напоминание появится после завершения кормления."
+        case .overdue:
+            return "Интервал после последнего кормления уже прошёл."
+        case let .scheduled(date):
+            return "Следующее напоминание — \(date.formatted(date: .abbreviated, time: .shortened))."
+        case .unavailable:
+            return "Не удалось запланировать напоминание."
+        }
+    }
+
+    private var channelText: String {
+        switch reminders.deliveryChannel {
+        case .liveActivity:
+            "Напоминание появится на экране блокировки."
+        case .notification:
+            "Напоминание придёт обычным уведомлением."
+        case nil:
+            reminders.liveActivitiesEnabled
+                ? "Экран блокировки: эфиры включены."
+                : "Эфиры на экране блокировки выключены."
+        }
+    }
+
+    private var notificationText: String {
+        switch reminders.authorization {
+        case .notDetermined:
+            "Для резервного напоминания разрешите уведомления."
+        case .denied:
+            "Резервные уведомления выключены в настройках iPhone."
+        case .unavailable:
+            "Не удалось проверить разрешение на уведомления."
+        case .allowed:
+            "Резервные уведомления разрешены."
+        }
     }
 }
 

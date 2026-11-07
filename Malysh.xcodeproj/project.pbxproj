@@ -17,6 +17,8 @@
 		0BB408F1BF9B16E0F293D90F /* CloudFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FC9DCFAFEAB31295E2C73C9 /* CloudFailure.swift */; };
 		0FE6FE4CF9713709385F99DF /* Malysh.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 226833D8083308456F270E4A /* Malysh.xcdatamodeld */; };
 		1293DF30C38C77610F6F7B37 /* DiaryExportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A98F1EEFC13E48B797D317 /* DiaryExportTests.swift */; };
+		1EBA681D9BE5EDC961503EEA /* FeedingReminderLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 783C3B841AAFBD8DE4E2F071 /* FeedingReminderLiveActivityWidget.swift */; };
+		1FB104A19B8B190029825570 /* FeedingReminderServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE40B113EE3AD2B436F3D23C /* FeedingReminderServiceTests.swift */; };
 		228E388971D3954E88EC9311 /* TuistBundle+MalyshWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69A9E7AB507DAA687BD0BB74 /* TuistBundle+MalyshWidgets.swift */; };
 		2416CD96A4E21E4A0F36CA79 /* WidgetRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B5885ACCC409989C1F4056 /* WidgetRoute.swift */; };
 		33597B5E20B804B71A8FC5A9 /* WidgetRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B5885ACCC409989C1F4056 /* WidgetRoute.swift */; };
@@ -44,21 +46,25 @@
 		870006EE96AB31B6BF0DD86E /* CareActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 754529FCC0E07F606825A2B8 /* CareActivityAttributes.swift */; };
 		8886130B58ED428FA3882547 /* WidgetCommandTiming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25F8DAFA491923A13031F3D6 /* WidgetCommandTiming.swift */; };
 		891A56698AC608E53300989F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3EC1589C84F4006C41A0DDA4 /* Assets.xcassets */; };
+		89D88FDE4C6D215B120357CC /* FeedingReminderActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B8857822990B914F74E212F /* FeedingReminderActivityIntents.swift */; };
 		9018789A63CD7F2FCA764977 /* WidgetCareIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */; };
 		91133169ED9FCD9E0D6D7A75 /* ParentProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F977BB4322C33F798653AE45 /* ParentProfileTests.swift */; };
 		954894A9AEA2163B02AD6E15 /* AppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C111135A85BE95B43D4B2D1E /* AppStoreTests.swift */; };
 		968DC1846F5F47343910AE58 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4210B00AFA4D4AF6758D41C2 /* ContentView.swift */; };
 		9761D7F5D866652F67387C29 /* TuistBundle+Malysh.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA01728ECAE9C538E98ADFE2 /* TuistBundle+Malysh.swift */; };
 		976CF09E6A2DFC1AF66EB399 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3EC1589C84F4006C41A0DDA4 /* Assets.xcassets */; };
+		98FDB863BFCAB59A62F2D46C /* FeedingReminderActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B8857822990B914F74E212F /* FeedingReminderActivityIntents.swift */; };
 		99D3859FD55730DBE6473A47 /* PhotoLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3516F171055E4B248A6F8FB1 /* PhotoLibraryService.swift */; };
 		9F89C8F74725200C3EC7A561 /* ParentProfileCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFBAACA39179BDCE9D3B7214 /* ParentProfileCache.swift */; };
 		9FE1D2A66266DA19DC36E444 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */; };
 		A235322E41861923BEB23F7F /* CareActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D59E1D6759F548114733AA4 /* CareActivityIntents.swift */; };
 		A4A5AFC46D497F016367EA14 /* LiveActivityUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F7D4F94DA23CE72902D9D94 /* LiveActivityUITests.swift */; };
 		A52AB186DDDC5DFF3BB920C6 /* CareActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D59E1D6759F548114733AA4 /* CareActivityIntents.swift */; };
+		A876F5C05868B87062797527 /* FeedingReminderActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01006C15AB5AE01F728C2871 /* FeedingReminderActivityAttributes.swift */; };
 		AB4AD7A627C03B6B7C3BE27C /* ChildProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCDE9BFA45CFA05A1B7BA48F /* ChildProfileView.swift */; };
 		AC51A80628E140BB694B5B9F /* CareActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 754529FCC0E07F606825A2B8 /* CareActivityAttributes.swift */; };
 		AFCF53F170C0545ED90A6BA7 /* MalyshWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CFD96C656BDC9151995D4C54 /* MalyshWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B0B77E4527B2300746F1EEC4 /* FeedingReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 494DAE40115510F4BD0FDF5F /* FeedingReminderService.swift */; };
 		B2A7A83F97C181ECF436E190 /* WidgetRouteInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52776983C90FA0DFDE019FC6 /* WidgetRouteInbox.swift */; };
 		B4267217CE704E21907B5796 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D7E65D32F2B4DE72FAC657C /* AppConfiguration.swift */; };
 		B7163E483965FD4D0588C9C2 /* MalyshApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 163EA23D70ABAF9E0B136375 /* MalyshApp.swift */; };
@@ -82,6 +88,7 @@
 		EA862DF2E9F18A40E9F14575 /* DiaryExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48B7FB463E4728291A0FF22F /* DiaryExport.swift */; };
 		EFBF5AC48A18D9C974746757 /* EventAuthorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD34A9F6DBDFE454C66BE51B /* EventAuthorTests.swift */; };
 		EFD1383B5D7F307BB54F28E7 /* EventEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */; };
+		F058520E59CF26DED7F38AB5 /* FeedingReminderActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01006C15AB5AE01F728C2871 /* FeedingReminderActivityAttributes.swift */; };
 		F9629CFC6378C7A36C5577C9 /* WidgetCareIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */; };
 		FA549E306B4C98F66025D754 /* TuistAssets+Malysh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5777AC8BD2FBB805A3988C6A /* TuistAssets+Malysh.swift */; };
 		FA79D7A9C836A7944AF1FAC5 /* ProfileUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC02A65EE936D70B32516130 /* ProfileUITests.swift */; };
@@ -166,6 +173,7 @@
 
 /* Begin PBXFileReference section */
 		00D9AF466A93712355CEF51C /* BabyPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BabyPhoto.swift; sourceTree = "<group>"; };
+		01006C15AB5AE01F728C2871 /* FeedingReminderActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedingReminderActivityAttributes.swift; sourceTree = "<group>"; };
 		080D9C43EA2BC9BE4E5C72EB /* MalyshTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MalyshTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0857B9537B060843E9A9C2FE /* PhotoGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoGalleryView.swift; sourceTree = "<group>"; };
 		13DF3E543DEE8C3368B64A42 /* Malysh.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Malysh.entitlements; sourceTree = "<group>"; };
@@ -192,6 +200,7 @@
 		476759839648658E6C4E8EDD /* CareLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareLiveActivityWidget.swift; sourceTree = "<group>"; };
 		48B7FB463E4728291A0FF22F /* DiaryExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryExport.swift; sourceTree = "<group>"; };
 		49004F5825FA22D6ABA4331B /* WidgetCareIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetCareIntent.swift; sourceTree = "<group>"; };
+		494DAE40115510F4BD0FDF5F /* FeedingReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedingReminderService.swift; sourceTree = "<group>"; };
 		4C1142AC4200083321BFC857 /* DesignComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignComponents.swift; sourceTree = "<group>"; };
 		4FC9DCFAFEAB31295E2C73C9 /* CloudFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudFailure.swift; sourceTree = "<group>"; };
 		52397D5545338436E2A4363B /* EventAuthorCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventAuthorCache.swift; sourceTree = "<group>"; };
@@ -208,6 +217,7 @@
 		71A98F1EEFC13E48B797D317 /* DiaryExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryExportTests.swift; sourceTree = "<group>"; };
 		7506D390CDD3C7B5193526D3 /* MalyshV4.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MalyshV4.xcdatamodel; sourceTree = "<group>"; };
 		754529FCC0E07F606825A2B8 /* CareActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityAttributes.swift; sourceTree = "<group>"; };
+		783C3B841AAFBD8DE4E2F071 /* FeedingReminderLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedingReminderLiveActivityWidget.swift; sourceTree = "<group>"; };
 		7A5E3FA6E2E9607DF4BAA2FE /* CareActivityViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityViews.swift; sourceTree = "<group>"; };
 		8189783BCF7A92166A15581D /* SchemaInitialization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaInitialization.swift; sourceTree = "<group>"; };
 		8221E9168F2FE8C1DC2F6FA7 /* MalyshUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MalyshUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -216,6 +226,7 @@
 		8D7E65D32F2B4DE72FAC657C /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		95A8E86027D81DA5E3D72D8A /* PhotoGalleryUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoGalleryUITests.swift; sourceTree = "<group>"; };
 		9A4F9D817C68BDF127D819AC /* DiaryRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryRootView.swift; sourceTree = "<group>"; };
+		9B8857822990B914F74E212F /* FeedingReminderActivityIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedingReminderActivityIntents.swift; sourceTree = "<group>"; };
 		9C6C2B65094C01B6252EF7AB /* PhotoPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPersistenceTests.swift; sourceTree = "<group>"; };
 		9E3196271A6AFAD4C78051CC /* DiaryWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryWidget.swift; sourceTree = "<group>"; };
 		A0060453B15CE2FE05570920 /* PhotoMedia.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoMedia.swift; sourceTree = "<group>"; };
@@ -235,6 +246,7 @@
 		CF439A3A8C09CF76764DDB0D /* CareActivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityCoordinator.swift; sourceTree = "<group>"; };
 		CFD96C656BDC9151995D4C54 /* MalyshWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MalyshWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Domain.swift; sourceTree = "<group>"; };
+		DE40B113EE3AD2B436F3D23C /* FeedingReminderServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedingReminderServiceTests.swift; sourceTree = "<group>"; };
 		E2DA251C68BAE8B6BD4189EA /* Malysh.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Malysh.xcdatamodel; sourceTree = "<group>"; };
 		EC026ED73F1E5888713E7176 /* CareActivityRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CareActivityRuntime.swift; sourceTree = "<group>"; };
 		ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
@@ -284,6 +296,8 @@
 				CF439A3A8C09CF76764DDB0D /* CareActivityCoordinator.swift */,
 				6D59E1D6759F548114733AA4 /* CareActivityIntents.swift */,
 				EC026ED73F1E5888713E7176 /* CareActivityRuntime.swift */,
+				01006C15AB5AE01F728C2871 /* FeedingReminderActivityAttributes.swift */,
+				9B8857822990B914F74E212F /* FeedingReminderActivityIntents.swift */,
 			);
 			path = LiveActivities;
 			sourceTree = "<group>";
@@ -318,6 +332,7 @@
 				476759839648658E6C4E8EDD /* CareLiveActivityWidget.swift */,
 				C2147ABDEBC2B791FFF4C063 /* DiaryControls.swift */,
 				9E3196271A6AFAD4C78051CC /* DiaryWidget.swift */,
+				783C3B841AAFBD8DE4E2F071 /* FeedingReminderLiveActivityWidget.swift */,
 			);
 			path = WidgetExtension;
 			sourceTree = "<group>";
@@ -353,6 +368,7 @@
 				71A98F1EEFC13E48B797D317 /* DiaryExportTests.swift */,
 				892C506F7C92B8100B9D1C01 /* DomainTests.swift */,
 				FD34A9F6DBDFE454C66BE51B /* EventAuthorTests.swift */,
+				DE40B113EE3AD2B436F3D23C /* FeedingReminderServiceTests.swift */,
 				F977BB4322C33F798653AE45 /* ParentProfileTests.swift */,
 				298DBC1D5993065C443496CB /* PersistenceTests.swift */,
 				9C6C2B65094C01B6252EF7AB /* PhotoPersistenceTests.swift */,
@@ -415,6 +431,7 @@
 				DCC1BA4C1A6CEDCDDD0897BD /* Domain.swift */,
 				52397D5545338436E2A4363B /* EventAuthorCache.swift */,
 				176C0FBBFDC7B5DE4E465E08 /* EventEditor.swift */,
+				494DAE40115510F4BD0FDF5F /* FeedingReminderService.swift */,
 				163EA23D70ABAF9E0B136375 /* MalyshApp.swift */,
 				BFBAACA39179BDCE9D3B7214 /* ParentProfileCache.swift */,
 				ED9BC8E7CADB1EA24D2A09F8 /* Persistence.swift */,
@@ -625,6 +642,8 @@
 				C4DCD121F98897D5E6D67BED /* Domain.swift in Sources */,
 				AC51A80628E140BB694B5B9F /* CareActivityAttributes.swift in Sources */,
 				A52AB186DDDC5DFF3BB920C6 /* CareActivityIntents.swift in Sources */,
+				F058520E59CF26DED7F38AB5 /* FeedingReminderActivityAttributes.swift in Sources */,
+				98FDB863BFCAB59A62F2D46C /* FeedingReminderActivityIntents.swift in Sources */,
 				9018789A63CD7F2FCA764977 /* WidgetCareIntent.swift in Sources */,
 				D9A8C7BAE8621EC9A4FC9A66 /* WidgetCommandTiming.swift in Sources */,
 				33597B5E20B804B71A8FC5A9 /* WidgetRoute.swift in Sources */,
@@ -634,6 +653,7 @@
 				5AA41CD247C9B1BE457ED211 /* CareLiveActivityWidget.swift in Sources */,
 				78440D4CE5B230B9E3CB9858 /* DiaryControls.swift in Sources */,
 				7664046950551F14BE43BEE1 /* DiaryWidget.swift in Sources */,
+				1EBA681D9BE5EDC961503EEA /* FeedingReminderLiveActivityWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -657,10 +677,13 @@
 				067E7D5BBDA60231BD35C71B /* Domain.swift in Sources */,
 				524A5D584CB7E44BBB006A03 /* EventAuthorCache.swift in Sources */,
 				EFD1383B5D7F307BB54F28E7 /* EventEditor.swift in Sources */,
+				B0B77E4527B2300746F1EEC4 /* FeedingReminderService.swift in Sources */,
 				870006EE96AB31B6BF0DD86E /* CareActivityAttributes.swift in Sources */,
 				070CCD2396B49D535859846A /* CareActivityCoordinator.swift in Sources */,
 				A235322E41861923BEB23F7F /* CareActivityIntents.swift in Sources */,
 				5EF90387E386D7A3E1BECAF5 /* CareActivityRuntime.swift in Sources */,
+				A876F5C05868B87062797527 /* FeedingReminderActivityAttributes.swift in Sources */,
+				89D88FDE4C6D215B120357CC /* FeedingReminderActivityIntents.swift in Sources */,
 				B7163E483965FD4D0588C9C2 /* MalyshApp.swift in Sources */,
 				9F89C8F74725200C3EC7A561 /* ParentProfileCache.swift in Sources */,
 				9FE1D2A66266DA19DC36E444 /* Persistence.swift in Sources */,
@@ -694,6 +717,7 @@
 				1293DF30C38C77610F6F7B37 /* DiaryExportTests.swift in Sources */,
 				E26E0EFC8953691AD67A597E /* DomainTests.swift in Sources */,
 				EFBF5AC48A18D9C974746757 /* EventAuthorTests.swift in Sources */,
+				1FB104A19B8B190029825570 /* FeedingReminderServiceTests.swift in Sources */,
 				91133169ED9FCD9E0D6D7A75 /* ParentProfileTests.swift in Sources */,
 				09C5C8A5DC48FF563D2E37DA /* PersistenceTests.swift in Sources */,
 				D150E738DE8872A7A529567A /* PhotoPersistenceTests.swift in Sources */,

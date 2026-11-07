@@ -5,6 +5,85 @@ import XCTest
 
 @MainActor
 final class CareActivityActionTests: XCTestCase {
+    // FR: A cold notification response waits for the local diary and its replacement request.
+    func testColdSnoozeUsesLatestPersistedFeedingBeforeReturning() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let suite = "feeding-reminder-runtime-tests." + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let scheduler = IsolatedFeedingReminderScheduler(authorization: .allowed)
+        let firstFeeding = Date(timeIntervalSinceReferenceDate: 810_000_000)
+        let setup = Persistence(directory: directory)
+        let service = FeedingReminderService(defaults: defaults, scheduler: scheduler, now: { firstFeeding })
+        let first = CareActivityRuntime(
+            persistence: setup,
+            coordinator: RecordingCareCoordinator(),
+            feedingReminders: service
+        )
+        await first.ensureReady(checkCloudAccount: false)
+        try first.store.createFirstDiary(name: "Малыш", birthDate: nil)
+        let babyID = try XCTUnwrap(first.store.selectedID)
+        try first.store.save(CareEvent(babyID: babyID, kind: .bottle, start: firstFeeding))
+        service.setEnabled(true)
+        await service.flush()
+        let previous = try XCTUnwrap(scheduler.pending)
+
+        // Simulate a newly imported feeding without going through the first AppStore.
+        let latestFeeding = previous.due.addingTimeInterval(-30 * 60)
+        try setup.saveEvent(CareEvent(babyID: babyID, kind: .bottle, start: latestFeeding, end: latestFeeding))
+        let reopened = CareActivityRuntime(
+            persistence: Persistence(directory: directory), coordinator: RecordingCareCoordinator(),
+            feedingReminders: FeedingReminderService(defaults: defaults, scheduler: scheduler, now: { previous.due })
+        )
+        await reopened.snoozeFeedingReminder(token: previous.token, babyID: babyID)
+
+        let replacement = try XCTUnwrap(scheduler.pending)
+        XCTAssertNotEqual(replacement.token, previous.token)
+        XCTAssertEqual(replacement.due, latestFeeding.addingTimeInterval(180 * 60))
+    }
+
+    // FR: Both side buttons share one durable command, and the old card cannot restart it.
+    func testReminderIntentStartsOnePersistedTimerAndIgnoresOppositeSideReplay() async throws {
+        let suite = "feeding-reminder-runtime-tests." + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let scheduler = IsolatedFeedingReminderScheduler(authorization: .denied, liveActivitiesEnabled: true)
+        let coordinator = RecordingCareCoordinator()
+        let start = Date().addingTimeInterval(-180 * 60)
+        var now = start
+        let service = FeedingReminderService(defaults: defaults, scheduler: scheduler, now: { now })
+        let runtime = CareActivityRuntime(persistence: Persistence(inMemory: true), coordinator: coordinator,
+                                          feedingReminders: service)
+        await runtime.ensureReady(checkCloudAccount: false)
+        try runtime.store.createFirstDiary(name: "Малыш", birthDate: nil)
+        let babyID = try XCTUnwrap(runtime.store.selectedID)
+        try runtime.store.save(CareEvent(babyID: babyID, kind: .bottle, start: start))
+        service.setEnabled(true)
+        await service.flush()
+        let reminder = try XCTUnwrap(scheduler.activityRequest)
+        let eventID = try XCTUnwrap(UUID(uuidString: reminder.token))
+        now = reminder.due
+        scheduler.showScheduledActivity()
+
+        try await CareActivityRuntime.$actionRuntime.withValue(runtime) {
+            _ = try await StartFeedingFromReminderIntent(token: reminder.token, babyID: babyID, side: .left).perform()
+            _ = try await StartFeedingFromReminderIntent(token: reminder.token, babyID: babyID, side: .right).perform()
+            let stored = try runtime.store.persistence.events(babyID: babyID).filter { $0.kind == .breast }
+            XCTAssertEqual(stored.map(\.id), [eventID])
+            let active = try XCTUnwrap(stored.first)
+            XCTAssertEqual(active.side, .left)
+            XCTAssertNil(active.end)
+            XCTAssertNil(scheduler.activityRequest)
+            XCTAssertTrue(coordinator.allowStart)
+            XCTAssertTrue(coordinator.events.contains { $0.id == eventID && $0.end == nil })
+
+            try runtime.store.delete(active)
+            _ = try await StartFeedingFromReminderIntent(token: reminder.token, babyID: babyID, side: .right).perform()
+            XCTAssertFalse(try runtime.store.persistence.events(babyID: babyID).contains { $0.kind == .breast })
+        }
+    }
+
     func testCapturedSleepControlReplayCannotToggleOrFinishNewerTimer() async throws {
         let runtime = CareActivityRuntime(
             persistence: Persistence(inMemory: true),

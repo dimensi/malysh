@@ -70,7 +70,9 @@ let project = Project(name: "Malysh", settings: settings, targets: [
                           "Sources/Domain.swift", "Sources/DesignSystem.swift",
                           "Sources/Widgets/**",
                           "Sources/LiveActivities/CareActivityAttributes.swift",
-                          "Sources/LiveActivities/CareActivityIntents.swift"],
+                          "Sources/LiveActivities/CareActivityIntents.swift",
+                          "Sources/LiveActivities/FeedingReminderActivityAttributes.swift",
+                          "Sources/LiveActivities/FeedingReminderActivityIntents.swift"],
             resources: ["Resources/Assets.xcassets", "Resources/PrivacyInfo.xcprivacy"],
             entitlements: .file(path: "Resources/MalyshWidgets.entitlements"),
             settings: .settings(base: [

@@ -41,6 +41,10 @@ DESTINATION='platform=iOS Simulator,name=iPhone 16 Pro' RESULT_BUNDLE_PATH=Artif
 
 Ручной запуск той же подготовки в GitHub Actions: [CloudKit schema tooling](.github/workflows/cloudkit-schema.yml) → Run workflow → `prepare`; Production переносится вручную в CloudKit Console. [Порядок работы с CI artifact](Documentation/CloudKitSchema.md#запуск-через-github-actions).
 
+## Напоминания о кормлении
+
+В «Настройки» → «Напоминания» включите «Напоминать о кормлении» и выберите интервал. После завершения кормления iPhone планирует одну Live Activity с кнопками «Левая», «Правая» и «Через 15 минут». Если Live Activity недоступна, при выданном разрешении сработает локальное уведомление. Параметры хранятся на каждом iPhone отдельно. [Как рассчитывается время и когда учитывается кормление второго родителя](Documentation/FeedingReminders.md).
+
 ## Таймеры на экране блокировки
 
 Кормление грудью и сон поддерживают Live Activities и Dynamic Island. Кнопки переключения груди и завершения сохраняют изменения в дневнике без открытия приложения. Подробности восстановления, ограничения iOS и задержки CloudKit описаны в [LiveActivities.md](Documentation/LiveActivities.md). Проект включает `MalyshWidgets`; для подписанного выпуска расширению нужен отдельный профиль из [TestFlight.md](Documentation/TestFlight.md).

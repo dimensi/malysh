@@ -19,12 +19,17 @@ final class CareActivityRuntime {
     private var cloudAccountReadiness: Task<Void, Never>?
     private var subscriptions: Set<AnyCancellable> = []
     private var actionsInFlight = 0
+    private var reminderStartsInFlight = 0
 
-    init(persistence: Persistence? = nil, coordinator: any CareActivityCoordinating = CareActivityCoordinator()) {
+    init(persistence: Persistence? = nil,
+         coordinator: any CareActivityCoordinating = CareActivityCoordinator(),
+         feedingReminders: FeedingReminderService? = nil)
+    {
         self.coordinator = coordinator
-        store = AppStore(persistence: persistence, activityCoordinator: coordinator)
+        store = AppStore(persistence: persistence, activityCoordinator: coordinator, feedingReminders: feedingReminders)
         store.allowsActivityStart = { [weak self] in
-            (self?.actionsInFlight ?? 0) > 0 || UIApplication.shared.applicationState == .active
+            guard let self, reminderStartsInFlight == 0 else { return false }
+            return actionsInFlight > 0 || UIApplication.shared.applicationState == .active
         }
         NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)
             .merge(with: NotificationCenter.default.publisher(for: .malyshSharingChanged))
@@ -88,6 +93,60 @@ final class CareActivityRuntime {
         }
     }
 
+    func snoozeFeedingReminder(token: String, babyID: UUID) async {
+        guard await acceptFeedingReminderDelivery(token: token, babyID: babyID) else { return }
+        await store.feedingReminders.snooze(token: token)
+    }
+
+    func openFeedingReminder(token: String, babyID: UUID) async {
+        guard await acceptFeedingReminderDelivery(token: token, babyID: babyID) else { return }
+        WidgetRouteInbox.shared.receive(WidgetRoute(.breast, babyID: babyID))
+    }
+
+    func startFeedingFromReminder(token: String, babyID: UUID, side: BreastSide) async throws {
+        guard let commandID = UUID(uuidString: token),
+              await acceptFeedingReminderDelivery(token: token, babyID: babyID, channel: .liveActivity)
+        else { return }
+        actionsInFlight += 1
+        defer { actionsInFlight -= 1 }
+        // Release the reminder's ActivityKit slot before requesting the running timer.
+        reminderStartsInFlight += 1
+        let action: WidgetCareAction = side == .left ? .startBreastLeft : .startBreastRight
+        let mutation = Result { try store.recordWidgetAction(
+            action,
+            babyID: babyID,
+            commandID: commandID,
+            reminderToken: token
+        ) }
+        await store.feedingReminders.flush()
+        reminderStartsInFlight -= 1
+        let reconciliation = Result { try store.reload() }
+        await coordinator.flush()
+        await store.feedingReminders.flush()
+        try mutation.get()
+        try reconciliation.get()
+    }
+
+    func snoozeFeedingReminderActivity(token: String, babyID: UUID) async {
+        guard await acceptFeedingReminderDelivery(token: token, babyID: babyID, channel: .liveActivity)
+        else { return }
+        await store.feedingReminders.snooze(token: token)
+    }
+
+    func acceptFeedingReminderDelivery(
+        token: String, babyID: UUID, channel: FeedingReminderDeliveryChannel = .notification
+    ) async -> Bool {
+        await ensureReady(checkCloudAccount: false)
+        guard store.ready, !store.diaryRemovalInProgress, (try? store.reload()) != nil else { return false }
+        let recorded = channel == .liveActivity || store.feedingReminders.recordDelivery(token: token, babyID: babyID)
+        await store.feedingReminders.flush()
+        return recorded && !store.diaryRemovalInProgress && store.selectedID == babyID &&
+            store.feedingReminders.deliveryChannel == channel && store.feedingReminders.canOpen(
+                token: token,
+                babyID: babyID
+            )
+    }
+
     func recordWidgetAction(_ action: WidgetCareAction, babyID: UUID, commandID: UUID) async throws {
         #if DEBUG
             WidgetCommandTiming.current?.mark("beforeLocalReady")
@@ -105,6 +164,7 @@ final class CareActivityRuntime {
                 WidgetCommandTiming.current?.mark("mutationFailed")
             #endif
             await coordinator.flush()
+            await store.feedingReminders.flush()
             throw error
         }
         #if DEBUG
@@ -114,6 +174,7 @@ final class CareActivityRuntime {
         #if DEBUG
             WidgetCommandTiming.current?.mark("coordinatorFlushComplete")
         #endif
+        await store.feedingReminders.flush()
     }
 
     func finish(eventID: UUID, babyID: UUID) async throws {
@@ -133,6 +194,7 @@ final class CareActivityRuntime {
                 WidgetCommandTiming.current?.mark("mutationFailed")
             #endif
             await coordinator.flush()
+            await store.feedingReminders.flush()
             throw error
         }
         #if DEBUG
@@ -142,6 +204,7 @@ final class CareActivityRuntime {
         #if DEBUG
             WidgetCommandTiming.current?.mark("coordinatorFlushComplete")
         #endif
+        await store.feedingReminders.flush()
     }
 
     func switchSide(eventID: UUID, babyID: UUID, to side: BreastSide) async throws {
@@ -161,6 +224,7 @@ final class CareActivityRuntime {
                 WidgetCommandTiming.current?.mark("mutationFailed")
             #endif
             await coordinator.flush()
+            await store.feedingReminders.flush()
             throw error
         }
         #if DEBUG
@@ -170,6 +234,7 @@ final class CareActivityRuntime {
         #if DEBUG
             WidgetCommandTiming.current?.mark("coordinatorFlushComplete")
         #endif
+        await store.feedingReminders.flush()
     }
 }
 

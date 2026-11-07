@@ -3,37 +3,12 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-struct CareActivityIslandHeading: View {
-    let state: CareActivityAttributes.ContentState
-
-    var body: some View {
-        Label {
-            Text(state.title)
-        } icon: {
-            Image(systemName: state.symbol)
-                .foregroundStyle(state.islandAccent)
-        }
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.white)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-/// Keeps independently laid out Island regions on a shared, Dynamic Type-scaled row.
-struct CareActivityIslandHeaderCell<Content: View>: View {
-    @ScaledMetric(relativeTo: .title2) private var minimumHeight = 32
-    private let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
+struct CareActivityIslandTimerRow: View {
+    enum Region {
+        case controls, timer, accessibility
     }
 
-    var body: some View {
-        content.frame(minHeight: minimumHeight, alignment: .center)
-    }
-}
-
-struct CareActivityIslandActions: View {
+    let region: Region
     let attributes: CareActivityAttributes
     let state: CareActivityAttributes.ContentState
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -41,44 +16,53 @@ struct CareActivityIslandActions: View {
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     var body: some View {
-        if typeSize.isAccessibilitySize {
-            VStack(spacing: 4) {
-                sideLabel
-                CareActivityControls(attributes: attributes, state: state, island: true)
+        switch region {
+        case .controls:
+            if !typeSize.isAccessibilitySize, state.end == nil {
+                controls
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(.leading, 5)
+                    .frame(minHeight: 52)
+                    .dynamicIsland(verticalPlacement: .belowIfTooWide)
             }
-        } else if state.kind == .breast {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
-                    sideLabel.fixedSize(horizontal: true, vertical: false)
-                    Spacer(minLength: 0)
-                    CareActivityControls(attributes: attributes, state: state, island: true)
-                        .fixedSize(horizontal: true, vertical: false)
-                }
-                VStack(alignment: .leading, spacing: 0) {
-                    sideLabel.fixedSize(horizontal: true, vertical: false)
-                    CareActivityControls(attributes: attributes, state: state, island: true)
-                        .fixedSize(horizontal: true, vertical: false)
-                }
-                VStack(alignment: .leading, spacing: 0) {
-                    sideLabel.fixedSize(horizontal: true, vertical: false)
-                    CareActivityControls(attributes: attributes, state: state, island: true, stackIslandButtons: true)
-                        .fixedSize(horizontal: true, vertical: false)
-                }
+        case .timer:
+            if !typeSize.isAccessibilitySize {
+                timer(alignment: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.trailing, AppDesign.Spacing.row)
+                    .frame(minHeight: 52)
             }
-        } else {
-            CareActivityControls(attributes: attributes, state: state, island: true)
-                .padding(.horizontal, 50)
-                .frame(maxWidth: .infinity)
+        case .accessibility:
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: AppDesign.Spacing.group) {
+                    timer(alignment: .leading)
+                    controls
+                }
+                .padding(.horizontal, AppDesign.Spacing.group)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
-    @ViewBuilder private var sideLabel: some View {
-        if state.kind == .breast, let side = state.side {
-            Text("\(side.label) грудь")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.white.opacity(0.75))
-                .contentTransition(.opacity)
-                .animation(reduceMotion || isLuminanceReduced ? nil : .easeInOut(duration: 0.2), value: state.side)
+    @ViewBuilder private var controls: some View {
+        if state.end == nil {
+            CareActivityControls(attributes: attributes, state: state)
+        }
+    }
+
+    private func timer(alignment: TextAlignment) -> some View {
+        VStack(alignment: alignment == .trailing ? .trailing : .leading, spacing: 2) {
+            CareActivityTimer(start: state.start, end: state.end, alignment: alignment)
+                .font(.title.weight(.semibold))
+                .foregroundStyle(state.appearance.islandAccent)
+            if let subtitle = state.subtitle {
+                Text(subtitle)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.75))
+                    .multilineTextAlignment(alignment)
+                    .contentTransition(.opacity)
+                    .animation(reduceMotion || isLuminanceReduced ? nil : .easeInOut(duration: 0.2), value: state.side)
+            }
         }
     }
 }
@@ -86,57 +70,66 @@ struct CareActivityIslandActions: View {
 struct CareActivityLockScreen: View {
     let attributes: CareActivityAttributes
     let state: CareActivityAttributes.ContentState
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        Group {
-            if state.end != nil {
-                finishedContent
-            } else if typeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 8) {
-                    activityInformation
-                    CareActivityControls(attributes: attributes, state: state, island: false)
-                }
-            } else {
-                HStack(alignment: .center, spacing: 12) {
-                    activityInformation
-                    Spacer(minLength: 0)
-                    CareActivityControls(attributes: attributes, state: state, island: false)
-                }
+        CareActivityLockScreenRow(stacksAtAccessibilitySize: state.kind == .breast) {
+            HStack(spacing: AppDesign.Spacing.row) {
+                CareActivityBrandMark()
+                information
+            }
+        } actions: {
+            if state.end == nil {
+                CareActivityControls(attributes: attributes, state: state)
             }
         }
-        .foregroundStyle(.primary)
-        .padding(16)
+        .foregroundStyle(state.kind == .breast ? Color.white : .primary)
+        .padding(14)
     }
 
-    private var activityInformation: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Label(state.title, systemImage: state.symbol)
-                .font(.headline)
-            CareActivityTimer(start: state.start)
-                .font(.title.weight(.semibold))
-            if state.kind == .breast {
-                Text(state.side.map { "\(state.babyName) · \($0.label) грудь" } ?? state.babyName)
-                    .font(.caption.weight(.medium))
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                Text("\(state.babyName) · Идёт сон")
-                    .font(.caption)
+    private var information: some View {
+        VStack(alignment: .leading, spacing: AppDesign.Spacing.related) {
+            Text("\(state.babyName) · \(state.title)")
+                .font(AppDesign.Typography.detail.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
+            CareActivityTimer(start: state.start, end: state.end)
+                .font(.largeTitle.weight(.semibold))
+            if let subtitle = state.subtitle {
+                Text(subtitle)
+                    .font(AppDesign.Typography.note.weight(.medium))
+                    .foregroundStyle(state.kind == .breast ? Color.white.opacity(0.72) : .secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
+}
 
-    private var finishedContent: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Label(state.kind == .breast ? "Кормление завершено" : "Сон завершён", systemImage: state.symbol)
-                .font(.headline)
-            Text(state.babyName)
-                .font(.caption)
-            if let end = state.end {
-                CareActivityTimer(start: state.start, end: end)
-                    .font(.title2.weight(.semibold))
-            }
+struct CareActivityLockScreenRow<Information: View, Actions: View>: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
+    let stacksAtAccessibilitySize: Bool
+    @ViewBuilder let information: () -> Information
+    @ViewBuilder let actions: () -> Actions
+
+    var body: some View {
+        if typeSize >= .accessibility4 || (stacksAtAccessibilitySize && typeSize.isAccessibilitySize) {
+            stacked
+        } else {
+            horizontal
+        }
+    }
+
+    private var horizontal: some View {
+        HStack(alignment: .center, spacing: 12) {
+            information()
+            Spacer(minLength: 0)
+            actions()
+                .layoutPriority(1)
+        }
+    }
+
+    private var stacked: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            information()
+            actions()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -186,96 +179,121 @@ struct CareActivityTimer: View {
 struct CareActivityControls: View {
     let attributes: CareActivityAttributes
     let state: CareActivityAttributes.ContentState
-    var island: Bool
-    var stackIslandButtons = false
-    @Environment(\.dynamicTypeSize) private var typeSize
-
     var body: some View {
-        Group {
-            if island, state.kind == .breast, typeSize.isAccessibilitySize || stackIslandButtons {
-                VStack(spacing: 0) { islandButtons }
-            } else if island {
-                HStack(spacing: 8) { islandButtons }
-            } else {
-                VStack(alignment: typeSize.isAccessibilitySize ? .leading : .trailing, spacing: 6) { lockScreenButtons }
+        HStack(spacing: AppDesign.Spacing.group) {
+            if state.kind == .breast, let side = state.side {
+                CareActivityCircleButton(
+                    intent: SwitchCareSideIntent(
+                        eventID: attributes.eventID.uuidString, babyID: attributes.babyID.uuidString,
+                        side: side == .left ? "right" : "left"
+                    ),
+                    prominent: false
+                ) {
+                    Image(systemName: "arrow.left.arrow.right")
+                }
+                .accessibilityLabel(side == .left ? "Переключить на правую грудь" : "Переключить на левую грудь")
             }
-        }
-        .font(.caption.weight(.semibold))
-    }
-
-    @ViewBuilder private var islandButtons: some View {
-        if state.kind == .breast, let side = state.side {
-            Button(intent: SwitchCareSideIntent(
-                eventID: attributes.eventID.uuidString, babyID: attributes.babyID.uuidString,
-                side: side == .left ? "right" : "left"
-            )) {
-                islandLabel("Сменить", symbol: "arrow.left.arrow.right", prominent: false)
+            CareActivityCircleButton(
+                intent: FinishCareActivityIntent(
+                    eventID: attributes.eventID.uuidString,
+                    babyID: attributes.babyID.uuidString
+                ),
+                prominent: true, accent: state.appearance.islandAccent
+            ) {
+                Image(systemName: "stop.fill")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(side == .left ? "Переключить на правую грудь" : "Переключить на левую грудь")
+            .accessibilityLabel(state.kind == .breast ? "Завершить кормление" : "Завершить сон")
         }
-        Button(intent: FinishCareActivityIntent(
-            eventID: attributes.eventID.uuidString, babyID: attributes.babyID.uuidString
-        )) {
-            islandLabel("Завершить", symbol: "stop.fill", prominent: true)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(state.kind == .breast ? "Завершить кормление" : "Завершить сон")
-    }
-
-    private func islandLabel(_ title: String, symbol: String, prominent: Bool) -> some View {
-        Label(title, systemImage: symbol)
-            .font(state.kind == .sleep ? .subheadline.weight(.semibold) : .caption.weight(.semibold))
-            .foregroundStyle(prominent ? Color.black : Color.white)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: state.kind == .sleep ? .infinity : nil, minHeight: 38)
-            .background(prominent ? state.islandAccent : Color.white.opacity(0.18), in: Capsule())
-            .frame(minWidth: 44, minHeight: 44)
-            .contentShape(Rectangle())
-    }
-
-    @ViewBuilder private var lockScreenButtons: some View {
-        if state.kind == .breast, let side = state.side {
-            Button(intent: SwitchCareSideIntent(
-                eventID: attributes.eventID.uuidString, babyID: attributes.babyID.uuidString,
-                side: side == .left ? "right" : "left"
-            )) {
-                Label("Сменить", systemImage: "arrow.left.arrow.right")
-                    .frame(minWidth: 44, minHeight: 44)
-            }
-            .buttonStyle(.bordered)
-            .tint(.primary)
-            .accessibilityLabel(side == .left ? "Переключить на правую грудь" : "Переключить на левую грудь")
-        }
-        Button(intent: FinishCareActivityIntent(
-            eventID: attributes.eventID.uuidString, babyID: attributes.babyID.uuidString
-        )) {
-            Label("Завершить", systemImage: "stop.fill")
-                .frame(minWidth: 44, minHeight: 44)
-        }
-        .buttonStyle(.borderedProminent)
-        .tint(state.islandAccent)
-        .foregroundStyle(.black)
-        .accessibilityLabel(state.kind == .breast ? "Завершить кормление" : "Завершить сон")
     }
 }
 
-extension CareActivityAttributes.ContentState {
-    var title: String {
-        kind == .breast ? "Кормление" : "Сон"
+struct CareActivityBrandMark: View {
+    var body: some View {
+        Image("ActivityBrandMark")
+            .resizable()
+            .scaledToFit()
+            .frame(width: AppDesign.Metrics.brandMarkSize, height: AppDesign.Metrics.brandMarkSize)
+            .clipShape(.rect(cornerRadius: AppDesign.Metrics.brandMarkCornerRadius))
+            .accessibilityHidden(true)
     }
+}
+
+struct CareActivityCircleButton<Action: AppIntent, Glyph: View>: View {
+    let intent: Action
+    let prominent: Bool
+    var diameter = AppDesign.Metrics.minimumTouch
+    var accent = CareActivityAppearance.feeding.islandAccent
+    @ViewBuilder let label: () -> Glyph
+
+    var body: some View {
+        let size = max(diameter, AppDesign.Metrics.minimumTouch)
+        Button(intent: intent) {
+            label()
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(prominent ? Color.black : Color.white)
+                .frame(width: size, height: size)
+                .background(
+                    prominent ? accent : .white.opacity(0.15),
+                    in: Circle()
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+enum CareActivityAppearance {
+    case feeding, sleep
+
+    static let islandExpandedInset: CGFloat = 16
+    static let feedingLockScreenSurface = Color("ActivityFeedingLockScreen")
 
     var symbol: String {
-        kind == .breast ? "drop.fill" : "moon.zzz.fill"
+        self == .feeding ? "drop.fill" : "moon.zzz.fill"
     }
 
     var surfaceColor: Color {
-        Color(kind == .breast ? "ActivityFeeding" : "Sleep")
+        Color(assetName)
     }
 
     var islandAccent: Color {
         // The Island is always black. Use the light asset variant for legible contrast.
-        let color = UIColor(named: kind == .breast ? "ActivityFeeding" : "Sleep") ?? .label
+        let color = UIColor(named: assetName) ?? .label
         return Color(uiColor: color.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)))
+    }
+
+    private var assetName: String {
+        self == .feeding ? "ActivityFeeding" : "Sleep"
+    }
+}
+
+struct CareActivityIslandIcon: View {
+    let title: String
+    let appearance: CareActivityAppearance
+
+    var body: some View {
+        Image(systemName: appearance.symbol)
+            .foregroundStyle(appearance.islandAccent)
+            .accessibilityLabel(title)
+    }
+}
+
+extension CareActivityAttributes.ContentState {
+    var subtitle: String? {
+        if kind == .sleep {
+            return end == nil ? "Идёт сон" : "Сон завершён"
+        }
+        if end != nil {
+            return "Кормление завершено"
+        }
+        return side.map { "\($0.label) грудь" }
+    }
+
+    var title: String {
+        kind == .breast ? "Кормление" : "Сон"
+    }
+
+    var appearance: CareActivityAppearance {
+        kind == .breast ? .feeding : .sleep
     }
 }
