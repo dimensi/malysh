@@ -27,12 +27,12 @@ export MALYSH_CAPTURE_REF=v1.13.0
 export MALYSH_CAPTURE_BUILD_DIR=/tmp/malysh-storefront-build
 # Если команда выполняется не из рабочего дерева репозитория:
 # export MALYSH_CAPTURE_REPO=/absolute/path/to/Malysh
-rtk proxy xcrun simctl bootstatus "$CAPTURE_UDID" -b
-rtk proxy bash Publication/AppStore/capture/capture-iphone.sh "$CAPTURE_UDID"
-rtk proxy bash Publication/AppStore/capture/capture-iphone.sh "$CAPTURE_UDID" \
+xcrun simctl bootstatus "$CAPTURE_UDID" -b
+bash Publication/AppStore/capture/capture-iphone.sh "$CAPTURE_UDID"
+bash Publication/AppStore/capture/capture-iphone.sh "$CAPTURE_UDID" \
   Publication/AppStore/raw MalyshUITests/WidgetSystemUITests/testStorefrontWidget \
   MalyshUITests/StorefrontFeatureScenes/testReminder
-rtk proxy xcrun simctl shutdown "$CAPTURE_UDID"
+xcrun simctl shutdown "$CAPTURE_UDID"
 ```
 
 Третий и последующие аргументы задают XCTest selection. Например, `MalyshUITests/StorefrontScenes/testToday` переснимает только главный экран. Размеры симуляторов: iPhone 18 Pro Max — 1320 × 2868; iPhone 18 Pro — 1206 × 2622. Для нового ref нужен осознанный просмотр результатов: драйвер не меняет production UI при изменении accessibility identifiers.
@@ -43,9 +43,9 @@ rtk proxy xcrun simctl shutdown "$CAPTURE_UDID"
 
 ```sh
 export MALYSH_WATCH_CAPTURE_APP="$MALYSH_CAPTURE_BUILD_DIR/DerivedData/Build/Products/Debug-watchsimulator/MalyshWatch.app"
-rtk proxy xcrun simctl bootstatus "$WATCH_UDID" -b
-rtk proxy bash Publication/AppStore/capture/capture-watch.sh "$WATCH_UDID"
-rtk proxy xcrun simctl shutdown "$WATCH_UDID"
+xcrun simctl bootstatus "$WATCH_UDID" -b
+bash Publication/AppStore/capture/capture-watch.sh "$WATCH_UDID"
+xcrun simctl shutdown "$WATCH_UDID"
 ```
 
 Снимаются дневник, активное кормление и активный сон. Размер исходников 422 × 514. Перед запуском выберите этот временный Watch в Device Hub: у фонового watchOS compositor системный заголовок иногда появляется с задержкой. После съёмки обязательно проверьте имя ребёнка и часы в верхней части каждого кадра.
@@ -53,7 +53,7 @@ rtk proxy xcrun simctl shutdown "$WATCH_UDID"
 Обе команды автоматически обновляют `capture/provenance.json` только для реально экспортированных файлов: ref разрешается в commit, модель/runtime читаются по UDID, размеры и SHA-256 берутся из файлов. При съёмке `testPDFReport` основной скрипт также автоматически копирует `StorefrontReport.pdf` из Documents выделенного симулятора в `raw/15-pediatrician-report.pdf` и рендерит первую страницу в одноимённый PNG. Для повторной растеризации сохранённого PDF:
 
 ```sh
-rtk proxy swift Publication/AppStore/capture/raster-pdf.swift \
+swift Publication/AppStore/capture/raster-pdf.swift \
   Publication/AppStore/raw/15-pediatrician-report.pdf \
   Publication/AppStore/raw/15-pediatrician-report.png
 ```
@@ -65,21 +65,21 @@ rtk proxy swift Publication/AppStore/capture/raster-pdf.swift \
 Для трёх сюжетов внешнего дисплея после выбора **Closed**:
 
 ```sh
-rtk proxy bash Publication/AppStore/capture/capture-iphone.sh "$DUO_UDID" \
+bash Publication/AppStore/capture/capture-iphone.sh "$DUO_UDID" \
   Publication/AppStore/raw/duo-outer MalyshUITests/StorefrontScenes/testDuoScreens
 ```
 
 После нажатия **Open** сначала сохраните диагностический `simctl io "$DUO_UDID" screenshot --display=3` вне `raw` и визуально проверьте, что он содержит приложение. Только после этого снимайте внутреннюю серию. Не копируйте внешние экраны в папку внутренних.
 
 ```sh
-rtk proxy python3 Publication/AppStore/capture/capture-duo-inner.py "$DUO_UDID"
+python3 Publication/AppStore/capture/capture-duo-inner.py "$DUO_UDID"
 ```
 
 Эта обёртка нужна, потому что `XCUIScreen.main` в этой среде продолжает снимать выключенный внешний дисплей №1. XCTest открывает настоящие экраны и удерживает каждый пять секунд, а обёртка сохраняет именно дисплей №3 через `simctl`. Размер проверяется, чёрный кадр отклоняется, прежние источники заменяются только после проверки всех трёх результатов. Обычный рендер к симулятору не обращается.
 
 В текущем прогоне 7 ноября 2026 штатная кнопка **Open** успешно включила внутренний экран: он показал настоящий UI, в отличие от прежней попытки одного переключения питания.
 
-Точные результаты проверки текущего набора и идентификаторы симуляторов — в `provenance.json`. Необязательные наборы без настоящего источника остаются явно незавершёнными в генераторе. Изображения настоящего UI не ретушируются. Архивы ZIP не создаются.
+Версия приложения, модель устройства и размеры исходных кадров записаны в `provenance.json`. Необязательные наборы без настоящего источника остаются явно незавершёнными в генераторе. Изображения настоящего UI не ретушируются. Архивы ZIP не создаются.
 
 
 ## Один настоящий системный кадр Live Activities
@@ -87,13 +87,13 @@ rtk proxy python3 Publication/AppStore/capture/capture-duo-inner.py "$DUO_UDID"
 Проверенное условие автоматического повтора — **чистый запуск выделенного симулятора**: выключите его по `CAPTURE_UDID`, если он ещё запущен, затем выполните `xcrun simctl boot` и `xcrun simctl bootstatus "$CAPTURE_UDID" -b`. Устройства пользователя не перезапускайте.
 
 ```sh
-rtk proxy bash Publication/AppStore/capture/capture-iphone.sh "$CAPTURE_UDID" \
+bash Publication/AppStore/capture/capture-iphone.sh "$CAPTURE_UDID" \
   Publication/AppStore/raw MalyshUITests/StorefrontLiveActivityScenes/testNativeLockScreenStates
 ```
 
 `LiveActivityScene.swift` существует только в временной DEBUG-сборке для симулятора. Флаг `--storefront-live-states` напрямую запрашивает настоящие `CareActivityAttributes` (кормление 12 минут, сон 43 минуты) и `FeedingReminderActivityAttributes` (3 часа). Штатное расширение рисует карточки, а SpringBoard выбирает раскладку и фон. Снимок `raw/16-live-activities-lock-screen.png` сохраняется целиком, без вырезания и перестановки частей.
 
-Это демонстрация системных состояний: обычное приложение отменяет напоминание при старте кормления. Только эта фикстура отключает автоматическое согласование активностей, чтобы проверить возможности нативной презентации. Не следует описывать кадр как обычный одновременный режим дневника. Результаты каждого системного запроса, включая возможный `targetMaximumExceeded`, сохраняются в `raw/16-live-activities-state.json` и учитываются при визуальной проверке. Код production-приложения и WidgetKit UI не меняются; CloudKit/APNs удалены из временных entitlements, личные Apple ID не используются.
+Это демонстрация системных состояний: обычное приложение отменяет напоминание при старте кормления. Только эта фикстура отключает автоматическое согласование активностей, чтобы проверить возможности нативной презентации. Не следует описывать кадр как обычный одновременный режим дневника. Результаты каждого системного запроса, включая возможный `targetMaximumExceeded`, сохраняются локально в игнорируемый Git файл `raw/16-live-activities-state.json`. Код production-приложения и WidgetKit UI не меняются; CloudKit/APNs удалены из временных entitlements, личные Apple ID не используются.
 
 ### Проверенный системный способ и предел автоматизации
 
@@ -102,7 +102,7 @@ rtk proxy bash Publication/AppStore/capture/capture-iphone.sh "$CAPTURE_UDID" \
 Если автоматическая съёмка остановилась, установленную временную сборку можно запустить прямо:
 
 ```sh
-rtk proxy xcrun simctl launch --terminate-running-process "$CAPTURE_UDID" dev.dimensi.malysh \
+xcrun simctl launch --terminate-running-process "$CAPTURE_UDID" dev.dimensi.malysh \
   --ui-testing --reset-data --storefront-fixture --storefront-live-states --light-mode \
   -AppleLanguages '(ru)' -AppleLocale ru_RU
 ```
@@ -110,10 +110,10 @@ rtk proxy xcrun simctl launch --terminate-running-process "$CAPTURE_UDID" dev.di
 В Device Hub выберите **только выделенный** `Malysh – App Store Launch…`, дождитесь главного экрана Ванечки, затем **Controls → Lock**, **Home**. Нажмите на группу активностей, разрешите их показ, если iOS спросит, и убедитесь, что видны кормление, сон и напоминание. Ничего не вырезайте: сохраняется полный кадр.
 
 ```sh
-rtk proxy xcrun simctl io "$CAPTURE_UDID" screenshot Publication/AppStore/raw/16-live-activities-lock-screen.png
-CAPTURE_DATA=$(rtk proxy xcrun simctl get_app_container "$CAPTURE_UDID" dev.dimensi.malysh data)
-rtk proxy cp "$CAPTURE_DATA/Documents/StorefrontLiveActivities.json" Publication/AppStore/raw/16-live-activities-state.json
-rtk proxy python3 Publication/AppStore/capture/record-provenance.py --repo "$PWD" --release v1.13.0 --udid "$CAPTURE_UDID" \
-  Publication/AppStore/raw/16-live-activities-lock-screen.png Publication/AppStore/raw/16-live-activities-state.json
-rtk proxy xcrun simctl shutdown "$CAPTURE_UDID"
+xcrun simctl io "$CAPTURE_UDID" screenshot Publication/AppStore/raw/16-live-activities-lock-screen.png
+CAPTURE_DATA=$(xcrun simctl get_app_container "$CAPTURE_UDID" dev.dimensi.malysh data)
+cp "$CAPTURE_DATA/Documents/StorefrontLiveActivities.json" Publication/AppStore/raw/16-live-activities-state.json
+python3 Publication/AppStore/capture/record-provenance.py --repo "$PWD" --release v1.13.0 --udid "$CAPTURE_UDID" \
+  Publication/AppStore/raw/16-live-activities-lock-screen.png
+xcrun simctl shutdown "$CAPTURE_UDID"
 ```

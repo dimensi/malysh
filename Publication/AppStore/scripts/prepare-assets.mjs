@@ -53,4 +53,4 @@ for (const [id, device] of Object.entries(sources.devices)) {
   };
   console.log(`${device.model}: ${prepared[id].width} × ${prepared[id].height}`);
 }
-await writeFile(resolve(root, 'assets/mockups.json'), `${JSON.stringify(prepared, null, 2)}\n`);
+await writeFile(resolve(cache, 'manifest.json'), `${JSON.stringify(prepared, null, 2)}\n`);

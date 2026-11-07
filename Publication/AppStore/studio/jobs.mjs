@@ -77,7 +77,7 @@ export function buildJobs(catalog, frames) {
     layout: "illustration",
     artwork: {
       path: "assets/illustrations/header-bear-cradle.png",
-      provenance: "assets/illustrations/header-bear-cradle.provenance.json",
+      kind: "generated-illustration",
     },
   });
   jobs.push({

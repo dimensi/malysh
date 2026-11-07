@@ -3,7 +3,7 @@
   "commit": "6001cb1",
   "locale": "ru-RU",
   "font": "assets/fonts/manrope.ttf",
-  "mockups": "assets/mockups.json",
+  "mockups": ".cache/mockups/manifest.json",
   "sources": {
     "today": "raw/01-today.png",
     "family": "raw/01-family-parent.png",

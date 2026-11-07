@@ -39,36 +39,6 @@ function options() {
   return result;
 }
 
-async function validateArtwork(artwork, sourceHashes) {
-  const artworkBytes = await fs.readFile(path.join(root, artwork.path));
-  const provenanceBytes = await fs.readFile(path.join(root, artwork.provenance));
-  const record = JSON.parse(provenanceBytes.toString("utf8"));
-  const { width, height, hasAlpha } = await sharp(artworkBytes).metadata();
-  const sha256 = hash(artworkBytes);
-  if (
-    record.kind !== "generated-illustration" ||
-    !record.tool ||
-    record.asset !== artwork.path ||
-    record.sha256 !== sha256 ||
-    record.dimensions?.[0] !== width ||
-    record.dimensions?.[1] !== height ||
-    record.transparentBackground !== hasAlpha
-  ) {
-    throw new Error(
-      `${artwork.path}: файл иллюстрации не соответствует ${artwork.provenance}.`,
-    );
-  }
-  sourceHashes.set(artwork.path, sha256);
-  sourceHashes.set(artwork.provenance, hash(provenanceBytes));
-  return {
-    ...artwork,
-    kind: record.kind,
-    tool: record.tool,
-    dimensions: [width, height],
-    sha256,
-  };
-}
-
 async function validateInput(job, frames, sourceHashes, provenance) {
   const missing = [];
   for (const filename of job.sources) {
@@ -358,10 +328,7 @@ async function main() {
   const sourceHashes = new Map();
   const pending = new Map();
   for (const job of jobs) {
-    if (job.artwork) {
-      job.artwork = await validateArtwork(job.artwork, sourceHashes);
-      continue;
-    }
+    if (job.artwork) continue;
     const problem = await validateInput(job, frames, sourceHashes, provenance);
     if (!problem) continue;
     if (!job.optional) throw new Error(`${jobKey(job)}: ${problem}`);

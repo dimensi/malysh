@@ -3,3 +3,4 @@ output/
 .render-*/
 .render.lock
 .cache/
+raw/**/*.json

@@ -4,7 +4,7 @@
 
 Текущий каталог содержит 48 изображений: 9 сюжетов iPhone в двух размерах, 3 Watch, 3 для внешнего и 3 для внутреннего экрана Duo, 16 для сайта, 2 рекламных формата App Store и 3 социальных обложки. Все шесть кадров Duo сняты на настоящих дисплеях симулятора; внутренний экран — 2853 × 2007.
 
-[Порядок загрузки в App Store Connect](UPLOAD_ORDER.md) · [Подключение Cloudflare к GitHub](Cloudflare.md)
+[Сборка и публикация сайта](../../Documentation/Website.md)
 
 ## Первый запуск
 
@@ -53,7 +53,7 @@ npm --prefix Publication/AppStore run validate
 3. В `slides` добавьте запись с уникальным `id`, заголовком, подписью, `layout`, `tone` и ключами `screens`. Типы композиций — `single`, `family`, `pair`, `watch`, `report`.
 4. Пересоберите выбранный кадр, проверьте его в галерее в оригинальном размере и в миниатюре.
 
-Новый размер или семейство экспорта добавляется в `studio/jobs.mjs`. Геометрию готового устройства задаёт подготовленный `assets/mockups.json`; она содержит размеры корпуса, прямоугольник экрана и скругления. Каждый экран сохраняет пропорции снимка. Изменение содержимого UI выполняется в приложении перед съёмкой.
+Новый размер или семейство экспорта добавляется в `studio/jobs.mjs`. Геометрию готового устройства задаёт генерируемый `.cache/mockups/manifest.json`; она содержит размеры корпуса, прямоугольник экрана и скругления. Каждый экран сохраняет пропорции снимка. Изменение содержимого UI выполняется в приложении перед съёмкой.
 
 ## Результаты и сохранность
 
@@ -78,7 +78,7 @@ npm --prefix Publication/AppStore run validate
 Для демонстрации трёх вариантов используется отдельная DEBUG-сцена `capture/LiveActivityScene.swift`. Она запрашивает настоящие ActivityKit-представления штатного расширения версии 1.13.0. В обычном дневнике напоминание исчезает при начале кормления; демонстрационная сцена обходит только это согласование состояний в изолированной временной сборке. Поэтому кадр подписан «Примеры состояний Live Activities», а ограничение записывается в происхождении источника. Это не утверждение, что три состояния возникают одновременно в обычном сценарии.
 
 ```sh
-rtk proxy bash Publication/AppStore/capture/capture-iphone.sh "$CAPTURE_UDID" \
+bash Publication/AppStore/capture/capture-iphone.sh "$CAPTURE_UDID" \
   Publication/AppStore/raw MalyshUITests/StorefrontLiveActivityScenes/testNativeLockScreenStates
 npm --prefix Publication/AppStore run render -- --slide 05-timers
 npm --prefix Publication/AppStore run render -- --device site --slide live-activities
@@ -90,7 +90,7 @@ npm --prefix Publication/AppStore run render -- --device site --slide live-activ
 
 ## Header и его предпросмотр
 
-Header — отдельная сгенерированная иллюстрация, а не снимок приложения. Её исходник и минимальные сведения о происхождении (тип, размер, контрольная сумма) находятся в `assets/illustrations/`. Промпты для сборки не требуются.
+Иллюстрация Header находится в `assets/illustrations/header-bear-cradle.png`. Чтобы заменить её, обновите PNG и пересоберите слайд `01-header`.
 
 Для локального предпросмотра передайте референс 912 × 802 px:
 

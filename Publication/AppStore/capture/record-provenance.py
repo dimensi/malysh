@@ -50,7 +50,6 @@ for filename in args.files:
         item["fixture"] = "capture/LiveActivityScene.swift"
         item["presentationMode"] = "native ActivityKit system layout, DEBUG presentation demonstration"
         item["productionCaveat"] = "Regular app cancels its feeding reminder when breastfeeding starts; only this isolated capture fixture bypasses reconciliation."
-        if path.suffix.lower() == ".json": item["method"] = "native ActivityKit request outcomes and synthetic state evidence"
     data["sources"][relative] = item
 temporary = manifest.with_suffix(".json.tmp")
 temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
