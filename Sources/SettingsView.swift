@@ -92,6 +92,14 @@ struct SettingsView: View {
                 } header: { Text("iCloud") } footer: {
                     Text("Дневник хранится на этом iPhone. iCloud синхронизирует его между устройствами.")
                 }
+                Section("О приложении") {
+                    if let supportURL = URL(string: "https://dimensi.github.io/malysh/support.html"),
+                       let privacyURL = URL(string: "https://dimensi.github.io/malysh/privacy.html")
+                    {
+                        Link("Поддержка", destination: supportURL)
+                        Link("Политика конфиденциальности", destination: privacyURL)
+                    }
+                }
             }
             .navigationTitle("Настройки")
             .fileExporter(
