@@ -36,3 +36,6 @@ fastlane/README.md
 
 # Local Git worktrees
 /.worktrees/
+
+# Cloudflare local deployment cache
+.wrangler/
