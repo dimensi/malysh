@@ -44,6 +44,9 @@
 	<key>WKRunsIndependentlyOfCompanionApp</key>
 	<true/>
 	<key>WKSupportsLiveActivityLaunchAttributeTypes</key>
-	<array/>
+	<array>
+		<string>CareActivityAttributes</string>
+		<string>FeedingReminderActivityAttributes</string>
+	</array>
 </dict>
 </plist>

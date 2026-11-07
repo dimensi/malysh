@@ -108,7 +108,9 @@ let project = Project(name: "Malysh", settings: settings, targets: [
                 "WKApplication": true,
                 "WKRunsIndependentlyOfCompanionApp": true,
                 "WKCompanionAppBundleIdentifier": "$(MALYSH_WATCH_COMPANION)",
-                "WKSupportsLiveActivityLaunchAttributeTypes": .array([]),
+                "WKSupportsLiveActivityLaunchAttributeTypes": [
+                    "CareActivityAttributes", "FeedingReminderActivityAttributes",
+                ],
                 "CFBundleURLTypes": [["CFBundleURLName": "$(PRODUCT_BUNDLE_IDENTIFIER).widgets",
                                       "CFBundleURLSchemes": ["$(MALYSH_WIDGET_URL_SCHEME)"]]],
                 "ITSAppUsesNonExemptEncryption": false,
